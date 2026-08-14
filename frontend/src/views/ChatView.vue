@@ -39,6 +39,8 @@
               <option value="mock">Mock 模式</option>
               <option v-for="m in models" :key="m" :value="m">{{ m }}</option>
             </select>
+            <!-- 导出 -->
+            <button class="clear-btn" title="导出对话为 Markdown" @click="exportMarkdown">📥</button>
             <!-- 清空 -->
             <button class="clear-btn" title="清空对话" @click="clearChat">🗑</button>
           </div>
@@ -106,13 +108,29 @@
                 <span v-else>{{ m.content }}</span>
                 <span v-if="m.role === 'assistant' && loading && i === messages.length - 1" class="cursor">▍</span>
               </div>
-              <button
-                v-if="m.content"
-                type="button"
-                class="msg-copy"
-                @click="copyMessage(m)"
-                :title="m.copied ? '已复制' : '复制消息'"
-              >{{ m.copied ? '✓' : '⧉' }}</button>
+              <span class="msg-actions">
+                <button
+                  v-if="m.role === 'assistant' && canRegenerate(m)"
+                  type="button"
+                  class="msg-act"
+                  title="重新生成"
+                  @click="regenerate(m)"
+                >⤾</button>
+                <button
+                  v-if="m.role === 'user' && canEdit(m)"
+                  type="button"
+                  class="msg-act"
+                  title="编辑并重发"
+                  @click="editMessage(m)"
+                >✎</button>
+                <button
+                  v-if="m.content"
+                  type="button"
+                  class="msg-act"
+                  @click="copyMessage(m)"
+                  :title="m.copied ? '已复制' : '复制消息'"
+                >{{ m.copied ? '✓' : '⧉' }}</button>
+              </span>
             </div>
           </div>
         </section>
@@ -388,6 +406,10 @@ function clearChat() {
 }
 
 async function send() {
+  if (editingLast.value) {
+    editingLast.value = false
+    await deleteLastExchange()
+  }
   const q = question.value
   if (!q || loading.value) return
   question.value = ''
@@ -516,6 +538,78 @@ function copyMessage(m) {
       setTimeout(() => { m.copied = false }, 1500)
     })
     .catch(() => {})
+}
+
+// ===== 导出对话（Markdown） =====
+function exportMarkdown() {
+  if (messages.value.length === 0) return
+  const conv = conversations.value.find((c) => c.id === activeConvId.value)
+  const lines = [
+    '# AI 对话导出',
+    '',
+    '时间：' + new Date().toLocaleString('zh-CN', { hour12: false }),
+    '会话：' + (conv?.title || '未命名'),
+    '',
+  ]
+  for (const m of messages.value) {
+    lines.push(m.role === 'user' ? '## 我' : '## Harness AI')
+    lines.push('')
+    lines.push(m.content || '（无内容）')
+    lines.push('')
+  }
+  const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'conversation-' + new Date().toISOString().slice(0, 10) + '.md'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ===== 重新生成 / 编辑重发 =====
+const editingLast = ref(false)
+
+function canRegenerate(m) {
+  return !loading.value && messages.value.length > 0 && messages.value[messages.value.length - 1] === m
+}
+
+function canEdit(m) {
+  return (
+    !loading.value &&
+    messages.value.length >= 2 &&
+    messages.value[messages.value.length - 2] === m &&
+    messages.value[messages.value.length - 1].role === 'assistant'
+  )
+}
+
+async function deleteLastExchange() {
+  if (!activeConvId.value) return
+  try {
+    await api.delete('/ai/history/last', { params: { conversation_id: activeConvId.value } })
+  } catch { /* ignore */ }
+  // 本地同步移除最后一条问答（assistant + 其前一条 user）
+  if (messages.value.length && messages.value[messages.value.length - 1].role === 'assistant') {
+    messages.value.pop()
+  }
+  if (messages.value.length && messages.value[messages.value.length - 1].role === 'user') {
+    messages.value.pop()
+  }
+  historyTotal.value = Math.max(0, historyTotal.value - 1)
+}
+
+async function regenerate(m) {
+  if (!canRegenerate(m)) return
+  const q = m.content
+  await deleteLastExchange()
+  question.value = q
+  await send()
+}
+
+function editMessage(m) {
+  if (!canEdit(m)) return
+  question.value = m.content
+  editingLast.value = true
+  inputEl.value?.focus()
 }
 
 function logout() {
@@ -835,10 +929,22 @@ onBeforeUnmount(() => {
   position: relative;
 }
 
-.msg-copy {
+.msg-actions {
   position: absolute;
   top: 2px;
   right: 2px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.msg:hover .msg-actions,
+.msg-actions:focus-within {
+  opacity: 1;
+}
+
+.msg-act {
   width: 26px;
   height: 26px;
   border: none;
@@ -847,22 +953,16 @@ onBeforeUnmount(() => {
   color: var(--text-muted);
   font-size: 13px;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
-.msg:hover .msg-copy,
-.msg-copy:focus-visible {
-  opacity: 1;
-}
-
-.msg-copy:hover {
+.msg-act:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
 
 @media (hover: none) {
-  .msg-copy { opacity: 0.6; }
+  .msg-actions { opacity: 0.6; }
 }
 
 .bubble {

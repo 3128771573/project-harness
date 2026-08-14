@@ -55,10 +55,6 @@ def _friendly_message(detail: dict) -> str:
             gt=ctx.get("gt", ""),
             le=ctx.get("le", ""),
         )
-        # 清理空白占位
-        import re
-
-        msg = re.sub(r"\s+（[^）]*）(?=\s|$)", "", msg) if False else msg
         return msg
 
     return f"{field}格式不正确"

@@ -13,11 +13,21 @@ from .errors import validation_error_handler
 from .middleware import VisitLogMiddleware
 from .models import Base, Notice, Role, VisitLog
 from .routers import admin, ai, auth, guestbook, iot, security, system, user
+from .services.cleanup import cleanup_loop
 from .services.iot_mqtt import mqtt_worker
 from .security import ROLE_ADMIN, ROLE_SUPER_ADMIN, ROLE_USER
 
+# 版本号集中管理
+APP_VERSION = "0.10.1"
+
 # 进程启动时间（用于公开统计接口的「稳定运行时长」）
 START_TIME = datetime.now(timezone.utc)
+
+# 安全校验：生产环境禁止使用默认 JWT 密钥（fail-fast）
+if settings.JWT_SECRET in ("", "change-me-in-prod-please"):
+    raise RuntimeError(
+        "JWT_SECRET 未配置或仍为默认值：请在生产环境 .env 中设置随机密钥（如 openssl rand -hex 32）"
+    )
 
 
 async def seed_roles():
@@ -38,14 +48,17 @@ async def lifespan(app: FastAPI):
     await seed_roles()
     # 启动 MQTT 遥测订阅（任务挂在 app.state 防止被 GC；broker 未就绪会自动重连）
     app.state.mqtt_task = asyncio.create_task(mqtt_worker())
+    # 启动每日过期数据清理
+    app.state.cleanup_task = asyncio.create_task(cleanup_loop())
     yield
     app.state.mqtt_task.cancel()
+    app.state.cleanup_task.cancel()
     await engine.dispose()
 
 
 app = FastAPI(
     title="Project Harness API",
-    version="0.10.1",
+    version=APP_VERSION,
     lifespan=lifespan,
 )
 
@@ -75,7 +88,7 @@ app.include_router(guestbook.router, prefix="/api/v1")
 
 @app.get("/api/v1/health", tags=["system"])
 async def health():
-    return {"status": "ok", "service": "harness-backend", "version": "0.10.1"}
+    return {"status": "ok", "service": "harness-backend", "version": APP_VERSION}
 
 
 @app.get("/api/v1/public/stats", tags=["system"])

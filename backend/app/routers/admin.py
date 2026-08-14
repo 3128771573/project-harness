@@ -197,7 +197,10 @@ async def admin_user_role(
 
 @router.get("/system/status", response_model=SystemStatus, summary="系统监控")
 async def admin_system_status(current_user: User = Depends(require_admin)):
-    return monitor.get_system_status()
+    import asyncio
+
+    # CPU 采样含 0.4s sleep，放线程池避免阻塞事件循环
+    return await asyncio.to_thread(monitor.get_system_status)
 
 
 # ---------- AI 配置管理 ----------

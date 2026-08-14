@@ -157,6 +157,10 @@ async def query_message(
     q = _query_log.setdefault(ip, deque())
     while q and q[0] < now_ts - 60:
         q.popleft()
+    if not q:
+        # 清理空队列，避免 IP 集合无限增长
+        _query_log.pop(ip, None)
+        q = deque()
     if len(q) >= rate:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="查询过于频繁，请一分钟后再试"

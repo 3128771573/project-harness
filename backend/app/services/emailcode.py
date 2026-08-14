@@ -1,4 +1,5 @@
 """邮箱验证码服务：生成、发送、校验、限流"""
+import asyncio
 import random
 from datetime import datetime, timedelta, timezone
 
@@ -44,8 +45,8 @@ async def send_verification_code(db: AsyncSession, email: str, purpose: str) -> 
     db.add(EmailCode(email=email, code=code, purpose=purpose, expires_at=expires_at))
     await db.commit()
 
-    # 发送邮件
-    sent = send_email(email, f"【Harness】您的验证码：{code}", build_code_email(code, purpose))
+    # 发送邮件（同步 smtplib 放线程池，避免阻塞事件循环）
+    sent = await asyncio.to_thread(send_email, email, f"【Harness】您的验证码：{code}", build_code_email(code, purpose))
     return {
         "sent": sent,
         "message": "验证码已发送到邮箱" if sent else "验证码已生成（邮件服务未配置，开发模式）",

@@ -79,7 +79,8 @@ def schedule_login_alert(uid: str, email: str, ip: str | None, ua: str | None, d
         if not settings.smtp_enabled:
             return
         html = _build_alert_html(email, ip, location, device, ua)
-        send_email(email, "【Harness 安全提醒】检测到新设备登录", html)
+        # 同步 smtplib 放线程池，避免阻塞事件循环
+        await asyncio.to_thread(send_email, email, "【Harness 安全提醒】检测到新设备登录", html)
 
     task = asyncio.create_task(_run())
     _TASKS.add(task)

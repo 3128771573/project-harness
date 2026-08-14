@@ -1,5 +1,8 @@
+from collections import deque
 from datetime import datetime, timezone
+from time import time as _time
 
+import pyotp
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,8 +26,13 @@ from ..security import (
     create_refresh_token,
     decode_token,
     hash_password,
+    validate_password_policy,
     verify_password,
 )
+
+# 发送验证码的 IP 限速：ip -> 近 1 小时时间戳队列（内存版，单实例）
+_send_code_log: dict[str, deque] = {}
+_SEND_CODE_HOURLY_LIMIT = 10
 from ..services.emailcode import invalidate_codes, send_verification_code, verify_code
 from ..services import login_alert
 from ..services.loginlog import _parse_device, record_login, update_last_login
@@ -91,7 +99,18 @@ async def register(payload: RegisterRequest, request: Request, db: AsyncSession 
 
 
 @router.post("/send-code", summary="发送邮箱验证码")
-async def send_code(payload: SendCodeRequest, db: AsyncSession = Depends(get_db)):
+async def send_code(payload: SendCodeRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    # IP 级限流：同一 IP 每小时最多 10 次（防 SMTP 轰炸）
+    fwd = request.headers.get("x-forwarded-for")
+    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
+    now_ts = _time()
+    q = _send_code_log.setdefault(ip, deque())
+    while q and q[0] < now_ts - 3600:
+        q.popleft()
+    if len(q) >= _SEND_CODE_HOURLY_LIMIT:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="发送过于频繁，请稍后再试")
+    q.append(now_ts)
+
     try:
         result = await send_verification_code(db, payload.email, payload.purpose)
     except ValueError as e:
@@ -105,9 +124,7 @@ async def forgot_password(
     db: AsyncSession = Depends(get_db),
 ):
     """发送重置密码验证码到邮箱"""
-    from sqlalchemy import select as _select
-
-    result = await db.execute(_select(User).where(User.email == payload.email.lower()))
+    result = await db.execute(select(User).where(User.email == payload.email.lower()))
     user = result.scalar_one_or_none()
     if user is None:
         return {"message": "如果该邮箱已注册，验证码已发送", "sent": False}
@@ -117,21 +134,20 @@ async def forgot_password(
 
 @router.post("/reset-password", summary="使用邮箱验证码设置新密码")
 async def reset_password(payload: ResetPasswordRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    from ..security import hash_password as _hp, validate_password_policy
-
     if not await verify_code(db, payload.email, payload.token, "reset"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
 
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
     user = result.scalar_one_or_none()
     if user is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="用户不存在")
+        # 防枚举：与验证码错误同口径
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
 
     policy_error = validate_password_policy(payload.new_password)
     if policy_error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=policy_error)
 
-    user.password_hash = _hp(payload.new_password)
+    user.password_hash = hash_password(payload.new_password)
     user.password_changed_at = datetime.now(timezone.utc)
     await invalidate_codes(db, payload.email, "reset")
 
@@ -157,7 +173,8 @@ async def login_with_code(payload: CodeLoginRequest, request: Request, db: Async
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
     user = result.scalar_one_or_none()
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="该邮箱未注册，请先注册")
+        # 防枚举：与验证码错误同口径
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用")
 
@@ -165,8 +182,6 @@ async def login_with_code(payload: CodeLoginRequest, request: Request, db: Async
     if user.totp_enabled:
         if not payload.totp_code:
             raise HTTPException(status_code=status.HTTP_428_PRECONDITION_REQUIRED, detail="需要两步验证码")
-        import pyotp
-
         if not pyotp.TOTP(user.totp_secret or "").verify(payload.totp_code.strip(), valid_window=1):
             await record_login(
                 db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=False, reason="两步验证码错误"
@@ -201,8 +216,6 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
     if user.totp_enabled:
         if not payload.totp_code:
             raise HTTPException(status_code=status.HTTP_428_PRECONDITION_REQUIRED, detail="需要两步验证码")
-        import pyotp
-
         if not pyotp.TOTP(user.totp_secret or "").verify(payload.totp_code.strip(), valid_window=1):
             await record_login(
                 db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=False, reason="两步验证码错误"
