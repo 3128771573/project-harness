@@ -1,9 +1,5 @@
 # ============================================
-# Project Harness · 生产环境部署（云服务器）
-# 用法：
-#   cp docker-compose.prod.yml docker-compose.yml
-#   cp .env.prod.example .env  → 填写真实值
-#   docker compose up -d --build
+# Project Harness · 生产环境部署（云服务器 + HTTPS）
 # ============================================
 
 services:
@@ -54,10 +50,14 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - backend
     volumes:
       - /data/harness/uploads:/usr/share/nginx/html/uploads:ro
+      # SSL 证书 + ACME 验证
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
     networks:
       - harness-net
 
