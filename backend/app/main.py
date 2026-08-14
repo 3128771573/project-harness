@@ -34,9 +34,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Project Harness API",
-    version="0.9.0",
+    version="0.10.1",
     lifespan=lifespan,
 )
+
+# 校验错误 → 友好中文提示
+app.add_exception_handler(RequestValidationError, validation_error_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,4 +62,4 @@ app.include_router(system.router, prefix="/api/v1")
 
 @app.get("/api/v1/health", tags=["system"])
 async def health():
-    return {"status": "ok", "service": "harness-backend", "version": "0.9.0"}
+    return {"status": "ok", "service": "harness-backend", "version": "0.10.1"}

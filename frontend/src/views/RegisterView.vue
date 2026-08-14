@@ -26,6 +26,11 @@
         <input v-model="form.password" type="password" placeholder="至少 8 位，含大小写/数字/符号" required autocomplete="new-password" />
       </label>
 
+      <label class="field">
+        <span>确认密码</span>
+        <input v-model="form.confirm" type="password" placeholder="再次输入密码" required autocomplete="new-password" />
+      </label>
+
       <p v-if="error" class="error">{{ error }}</p>
       <p v-if="msg" class="success-msg">{{ msg }}</p>
 
@@ -44,7 +49,7 @@ import api from '../api/client'
 import AuthLayout from '../layouts/AuthLayout.vue'
 
 const router = useRouter()
-const form = reactive({ username: '', email: '', password: '', code: '' })
+const form = reactive({ username: '', email: '', password: '', confirm: '', code: '' })
 const error = ref('')
 const msg = ref('')
 const loading = ref(false)
@@ -79,9 +84,24 @@ async function sendCode() {
 
 async function onSubmit() {
   error.value = ''
+  // 前端校验：确认密码
+  if (form.password !== form.confirm) {
+    error.value = '两次输入的密码不一致'
+    return
+  }
+  // 前端校验：密码强度提示
+  if (form.password.length < 8) {
+    error.value = '密码至少 8 位'
+    return
+  }
   loading.value = true
   try {
-    const { data } = await api.post('/auth/register', form)
+    const { data } = await api.post('/auth/register', {
+      username: form.username,
+      email: form.email,
+      password: form.password,
+      code: form.code,
+    })
     localStorage.setItem('harness_access', data.access_token)
     localStorage.setItem('harness_refresh', data.refresh_token)
     localStorage.setItem('harness_user', JSON.stringify(data.user))
