@@ -79,14 +79,14 @@ async def _cfg(db: AsyncSession) -> tuple[int, int, int]:
 
 
 @router.get("/captcha", summary="获取图形验证码（image/png，Cookie 关联，点击刷新）")
-async def get_captcha(response: Response, db: AsyncSession = Depends(get_db)):
+async def get_captcha(db: AsyncSession = Depends(get_db)):
     _, ttl, _ = await _cfg(db)
     captcha_id, png = create_captcha(ttl=ttl)
-    response.set_cookie(
-        "captcha_id", captcha_id, max_age=ttl, path="/", httponly=False, samesite="lax"
-    )
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    return Response(content=png, media_type="image/png")
+    # 注意：必须在同一个 Response 对象上设置 Cookie 与返回内容
+    resp = Response(content=png, media_type="image/png")
+    resp.set_cookie("captcha_id", captcha_id, max_age=ttl, path="/", httponly=False, samesite="lax")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
 
 
 @router.post("/messages", response_model=MessageSubmitOut, summary="提交留言")
