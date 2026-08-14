@@ -155,7 +155,7 @@
           <div class="session-info">
             <b>{{ l.device || '未知设备' }}</b>
             <span class="muted small">
-              {{ l.ip || '—' }}<template v-if="l.ip_location"> · {{ l.ip_location }}</template> · {{ fmtTime(l.created_time) }}
+              {{ methodLabel(l.method) }}<template v-if="l.used_2fa"> · 2FA</template> · {{ l.ip || '—' }}<template v-if="l.ip_location"> · {{ l.ip_location }}</template> · {{ fmtTime(l.created_time) }}
             </span>
           </div>
           <span class="badge new" v-if="l.success && l.is_new_device" title="此前 30 天内未在该设备/IP 登录">新设备</span>
@@ -203,6 +203,10 @@ async function loadOAuthAccounts() {
 
 function providerName(p) {
   return { github: 'GitHub' }[p] || p
+}
+
+function methodLabel(m) {
+  return { password: '密码', code: '邮箱验证码', sso: 'GitHub SSO', register: '注册', reset: '密码重置' }[m] || (m || '—')
 }
 
 async function unbindOAuth(provider) {

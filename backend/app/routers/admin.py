@@ -1,12 +1,28 @@
 from datetime import datetime, time, timezone
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import case, func, select
+from sqlalchemy import case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import settings
 from ..database import get_db
 from ..deps import get_current_user, get_role_by_name, require_roles
-from ..models import AiHistory, AuditLog, LoginLog, Notice, RefreshToken, Role, User, VisitLog
+from ..models import (
+    AiHistory,
+    AuditLog,
+    Conversation,
+    Device,
+    LoginLog,
+    Notice,
+    OAuthAccount,
+    PasswordReset,
+    RefreshToken,
+    Role,
+    User,
+    VisitLog,
+)
 from ..schemas import (
     AdminLoginLogItem,
     AdminLoginLogList,
@@ -516,6 +532,52 @@ async def admin_reset_password(
         ip=_client_ip(request),
     )
     return {"message": f"已重置 {target.username} 的密码，该用户所有设备已下线"}
+
+
+@router.delete("/users/{uid}", status_code=status.HTTP_204_NO_CONTENT, summary="删除用户（级联清理关联数据）")
+async def admin_delete_user(
+    uid: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    target = await db.get(User, uid)
+    if target is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
+    if target.uid == current_user.uid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不能删除当前登录的账号")
+    # 防锁死：不能删除唯一的超级管理员
+    if target.role and target.role.name == ROLE_SUPER_ADMIN:
+        super_count = (
+            await db.execute(
+                select(func.count())
+                .select_from(User)
+                .join(Role, User.role_id == Role.id)
+                .where(Role.name == ROLE_SUPER_ADMIN)
+            )
+        ).scalar_one()
+        if super_count <= 1:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不能删除唯一的超级管理员")
+
+    # 级联清理外键依赖行
+    for model in (RefreshToken, LoginLog, AiHistory, Conversation, Device, OAuthAccount, PasswordReset):
+        await db.execute(delete(model).where(model.uid == uid))
+
+    # 清理头像文件
+    if target.avatar and target.avatar.startswith("/uploads/avatars/"):
+        try:
+            (Path(settings.UPLOAD_DIR) / target.avatar.removeprefix("/uploads/")).unlink(missing_ok=True)
+        except Exception:
+            pass
+
+    await db.delete(target)
+    await db.commit()
+    await record_audit(
+        db, actor=current_user, action="user.delete", resource=f"users/{uid}",
+        target_uid=uid, detail=f"删除用户 {target.username} ({target.email})",
+        ip=_client_ip(request),
+    )
+    return None
 
 
 # ---------- 流量访问记录 ----------

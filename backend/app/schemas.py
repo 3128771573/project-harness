@@ -69,6 +69,8 @@ class LoginLogItem(BaseModel):
     ip_location: str | None = None
     device: str | None = None
     user_agent: str | None = None
+    method: str | None = None
+    used_2fa: bool = False
     success: bool
     reason: str | None = None
     created_time: datetime
@@ -328,6 +330,8 @@ class AdminLoginLogItem(BaseModel):
     ip: str | None = None
     ip_location: str | None = None
     device: str | None = None
+    method: str | None = None
+    used_2fa: bool = False
     success: bool
     reason: str | None = None
     created_time: datetime

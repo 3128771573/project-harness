@@ -93,7 +93,8 @@ async def register(payload: RegisterRequest, request: Request, db: AsyncSession 
     await db.flush()
     await invalidate_codes(db, payload.email, "register")
     await record_login(
-        db, uid=user.uid, email=user.email, ip=_client_ip(request), user_agent=_client_ua(request), success=True
+        db, uid=user.uid, email=user.email, ip=_client_ip(request), user_agent=_client_ua(request),
+        method="register", success=True,
     )
     return await _issue_tokens(db, user, request)
 
@@ -158,7 +159,7 @@ async def reset_password(payload: ResetPasswordRequest, request: Request, db: As
         t.revoked = True
 
     await db.commit()
-    await record_login(db, uid=user.uid, email=user.email, ip=_client_ip(request), user_agent=_client_ua(request), success=True, reason="密码重置")
+    await record_login(db, uid=user.uid, email=user.email, ip=_client_ip(request), user_agent=_client_ua(request), method="reset", success=True, reason="密码重置")
     return {"message": "密码已重置，请重新登录"}
 
 
@@ -167,7 +168,7 @@ async def login_with_code(payload: CodeLoginRequest, request: Request, db: Async
     ip = _client_ip(request)
     ua = _client_ua(request)
     if not await verify_code(db, payload.email, payload.code, "login"):
-        await record_login(db, email=payload.email.lower(), ip=ip, user_agent=ua, success=False, reason="验证码错误")
+        await record_login(db, email=payload.email.lower(), ip=ip, user_agent=ua, method="code", success=False, reason="验证码错误")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
 
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
@@ -179,18 +180,20 @@ async def login_with_code(payload: CodeLoginRequest, request: Request, db: Async
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用")
 
     # 两步验证（若已开启）
+    used_2fa = False
     if user.totp_enabled:
         if not payload.totp_code:
             raise HTTPException(status_code=status.HTTP_428_PRECONDITION_REQUIRED, detail="需要两步验证码")
         if not pyotp.TOTP(user.totp_secret or "").verify(payload.totp_code.strip(), valid_window=1):
             await record_login(
-                db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=False, reason="两步验证码错误"
+                db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, method="code", success=False, reason="两步验证码错误"
             )
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="两步验证码错误")
+        used_2fa = True
 
     device = _parse_device(ua)
     is_new = not await login_alert.is_known_login(db, user.uid, ip, device)
-    await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=True)
+    await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, method="code", used_2fa=used_2fa, success=True)
     await update_last_login(db, user, ip)
     if is_new:
         login_alert.schedule_login_alert(user.uid, user.email, ip, ua, device)
@@ -205,26 +208,28 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
     user = result.scalar_one_or_none()
     if user is None or not verify_password(payload.password, user.password_hash):
         await record_login(
-            db, email=payload.email.lower(), ip=ip, user_agent=ua, success=False, reason="密码错误或账号不存在"
+            db, email=payload.email.lower(), ip=ip, user_agent=ua, method="password", success=False, reason="密码错误或账号不存在"
         )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="邮箱或密码错误")
     if not user.is_active:
-        await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=False, reason="账号已禁用")
+        await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, method="password", success=False, reason="账号已禁用")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用")
 
     # 两步验证（若已开启）
+    used_2fa = False
     if user.totp_enabled:
         if not payload.totp_code:
             raise HTTPException(status_code=status.HTTP_428_PRECONDITION_REQUIRED, detail="需要两步验证码")
         if not pyotp.TOTP(user.totp_secret or "").verify(payload.totp_code.strip(), valid_window=1):
             await record_login(
-                db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=False, reason="两步验证码错误"
+                db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, method="password", success=False, reason="两步验证码错误"
             )
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="两步验证码错误")
+        used_2fa = True
 
     device = _parse_device(ua)
     is_new = not await login_alert.is_known_login(db, user.uid, ip, device)
-    await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=True)
+    await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, method="password", used_2fa=used_2fa, success=True)
     await update_last_login(db, user, ip)
     if is_new:
         login_alert.schedule_login_alert(user.uid, user.email, ip, ua, device)

@@ -285,6 +285,7 @@ async def oauth_exchange(payload: OAuthExchangeRequest, request: Request, db: As
     ua = _client_ua(request)
 
     # 2FA：开启时校验 TOTP（未通过不消耗 OTC，允许重试，最多 5 次）
+    used_2fa = False
     if user.totp_enabled:
         if not payload.totp_code:
             _pending[payload.code] = entry  # 放回，等前端补 TOTP
@@ -295,9 +296,10 @@ async def oauth_exchange(payload: OAuthExchangeRequest, request: Request, db: As
             entry["attempts"] += 1
             _pending[payload.code] = entry
             await record_login(
-                db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=False, reason="两步验证码错误"
+                db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, method="sso", success=False, reason="两步验证码错误"
             )
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="两步验证码错误")
+        used_2fa = True
 
     # 签发 token（复用 auth.py：refresh 入库、设备解析）
     tokens = await _issue_tokens(db, user, request)
@@ -305,7 +307,9 @@ async def oauth_exchange(payload: OAuthExchangeRequest, request: Request, db: As
     # 登录记录 + 新设备告警（与密码登录完全一致）
     device = _parse_device(ua)
     is_new = not await login_alert.is_known_login(db, user.uid, ip, device)
-    await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=True, reason="GitHub 登录")
+    await record_login(
+        db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, method="sso", used_2fa=used_2fa, success=True, reason="GitHub 登录"
+    )
     await update_last_login(db, user, ip)
     if is_new:
         login_alert.schedule_login_alert(user.uid, user.email, ip, ua, device)

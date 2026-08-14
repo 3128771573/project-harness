@@ -124,6 +124,8 @@ class LoginLog(Base):
     ip_location: Mapped[str | None] = mapped_column(String(128), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
     device: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    method: Mapped[str | None] = mapped_column(String(16), nullable=True)  # password / code / sso / register / reset
+    used_2fa: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     success: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     reason: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

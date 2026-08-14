@@ -77,6 +77,14 @@
               >
                 重置密码
               </button>
+              <button
+                v-if="u.uid !== me?.uid"
+                class="action-btn danger"
+                title="删除该用户及其全部关联数据"
+                @click="deleteUser(u)"
+              >
+                删除
+              </button>
               <span v-else class="muted" style="font-size:12.5px">当前账号</span>
             </td>
           </tr>
@@ -173,6 +181,16 @@ async function changeRole(u, e) {
     Object.assign(u, data)
   } catch (err) {
     alert(err.response?.data?.detail || '修改角色失败')
+  }
+}
+
+async function deleteUser(u) {
+  if (!confirm(`确定删除用户「${u.username}」吗？\n\n其登录会话、AI 对话、设备、绑定等全部关联数据将被永久删除，且无法恢复！`)) return
+  try {
+    await api.delete(`/admin/users/${u.uid}`)
+    await load(page.value)
+  } catch (e) {
+    alert(e.response?.data?.detail || '删除失败')
   }
 }
 

@@ -85,6 +85,8 @@ async def record_login(
     uid: str | None = None,
     ip: str | None = None,
     user_agent: str | None = None,
+    method: str | None = None,
+    used_2fa: bool = False,
     success: bool,
     reason: str | None = None,
 ):
@@ -95,6 +97,8 @@ async def record_login(
         ip_location="未知",
         user_agent=user_agent,
         device=_parse_device(user_agent),
+        method=method,
+        used_2fa=used_2fa,
         success=success,
         reason=reason,
     )
