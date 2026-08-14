@@ -9,9 +9,9 @@
       </header>
 
       <div class="status-card overall">
-        <span class="big-dot ok"></span>
+        <span :class="['big-dot', overallOk ? 'ok' : 'warn']"></span>
         <div>
-          <b>All Systems Operational</b>
+          <b>{{ overallOk ? 'All Systems Operational' : '部分服务异常' }}</b>
           <span>所有服务正常运行</span>
         </div>
       </div>
@@ -19,33 +19,55 @@
       <div class="status-list">
         <div v-for="s in services" :key="s.name" class="status-item">
           <div class="s-left">
-            <span :class="['s-dot', s.status === 'Operational' ? 'ok' : 'warn']"></span>
+            <span :class="['s-dot', s.ok ? 'ok' : 'warn']"></span>
             <div>
               <b>{{ s.name }}</b>
               <span class="s-desc">{{ s.desc }}</span>
             </div>
           </div>
-          <span class="s-status" :class="s.status === 'Operational' ? 'ok' : 'warn'">{{ s.status }}</span>
+          <span class="s-status" :class="s.ok ? 'ok' : 'warn'">{{ s.ok ? 'Operational' : 'Degraded' }}</span>
         </div>
       </div>
 
-      <p class="hint">实时监控 · 最近检查：{{ lastCheck }}</p>
+      <p class="hint">实时监控 · 最近检查：{{ lastCheck }} · 累计访问 {{ visitsText }} · 今日 {{ todayVisitsText }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import SiteNav from '../components/SiteNav.vue'
+import api from '../api/client'
 
-const lastCheck = new Date().toLocaleTimeString('zh-CN', { hour12: false })
+const status = ref(null)
 
-const services = [
-  { name: 'API', desc: '/api/v1 REST 接口', status: 'Operational' },
-  { name: 'Database', desc: 'PostgreSQL 16', status: 'Operational' },
-  { name: 'AI Service', desc: '大模型接入 · Mock/真实模式', status: 'Operational' },
-  { name: 'IoT', desc: '设备接入平台（建设中）', status: 'Operational' },
-  { name: 'Frontend', desc: 'Vue 3 Web 应用', status: 'Operational' },
-]
+const services = computed(() => {
+  if (!status.value) return []
+  const s = status.value
+  return [
+    { name: 'API', desc: '/api/v1 REST 接口', ok: true },
+    { name: 'Database', desc: 'PostgreSQL 16', ok: !!s.db },
+    { name: 'AI Service', desc: '大模型接入 · Mock/真实模式', ok: true },
+    { name: 'Frontend', desc: 'Vue 3 Web 应用', ok: true },
+    { name: '访问统计', desc: `累计 ${s.visits?.toLocaleString() ?? '—'} · 今日 ${s.today_visits ?? '—'}`, ok: true },
+  ]
+})
+
+const overallOk = computed(() => services.value.every((x) => x.ok))
+const lastCheck = computed(() =>
+  status.value ? new Date(status.value.checked_at).toLocaleTimeString('zh-CN', { hour12: false }) : '—'
+)
+const visitsText = computed(() => status.value?.visits?.toLocaleString() ?? '—')
+const todayVisitsText = computed(() => status.value?.today_visits ?? '—')
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/public/status')
+    status.value = data
+  } catch {
+    status.value = { db: false, checked_at: new Date().toISOString(), visits: 0, today_visits: 0 }
+  }
+})
 </script>
 
 <style scoped>

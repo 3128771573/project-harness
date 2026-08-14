@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 from .config import settings
 from .database import SessionLocal, engine
@@ -82,4 +82,32 @@ async def public_stats():
         "started_at": START_TIME.isoformat(),
         "uptime_seconds": max(0, int((now - START_TIME).total_seconds())),
         "visits": visits,
+    }
+
+
+@app.get("/api/v1/public/status", tags=["system"])
+async def public_status():
+    """公开服务状态：数据库连通性 / 版本 / 访问统计（Status 页真实数据源）"""
+    db_ok = True
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception:
+        db_ok = False
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    async with SessionLocal() as db:
+        total_visits = await db.scalar(select(func.count()).select_from(VisitLog)) or 0
+        today_visits = (
+            await db.scalar(
+                select(func.count()).select_from(VisitLog).where(VisitLog.created_time >= today_start)
+            )
+        ) or 0
+    return {
+        "version": app.version,
+        "db": db_ok,
+        "uptime_seconds": max(0, int((now - START_TIME).total_seconds())),
+        "visits": total_visits,
+        "today_visits": today_visits,
+        "checked_at": now.isoformat(),
     }

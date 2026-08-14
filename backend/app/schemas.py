@@ -110,10 +110,57 @@ class Token(BaseModel):
     user: UserOut
 
 
+class ConversationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    title: str
+    created_time: datetime
+    updated_time: datetime
+    message_count: int = 0
+
+
+class ConversationList(BaseModel):
+    items: list[ConversationOut]
+    total: int
+
+
+class ConversationCreate(BaseModel):
+    title: str | None = Field(default=None, max_length=120)
+
+
+class ConversationUpdate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
+
+
 class AiChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
     stream: bool = False
     reasoning: bool = False
+    conversation_id: str | None = Field(default=None, max_length=36, description="所属会话；缺省自动新建会话"),
+
+
+class ConversationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    title: str
+    created_time: datetime
+    updated_time: datetime
+    message_count: int = 0
+
+
+class ConversationList(BaseModel):
+    items: list[ConversationOut]
+    total: int
+
+
+class ConversationCreate(BaseModel):
+    title: str | None = Field(default=None, max_length=120)
+
+
+class ConversationUpdate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
 
 
 class AiChatResponse(BaseModel):

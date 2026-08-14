@@ -46,6 +46,30 @@
       </header>
 
       <div class="chat-body">
+        <!-- 会话列表 -->
+        <aside class="conv-side">
+          <div class="conv-head">
+            <span>会话</span>
+            <button class="conv-new" title="新建对话" @click="newConversation">＋</button>
+          </div>
+          <div class="conv-list">
+            <div
+              v-for="c in conversations"
+              :key="c.id"
+              class="conv-item"
+              :class="{ active: c.id === activeConvId }"
+              @click="switchConversation(c)"
+            >
+              <span class="conv-title" :title="c.title">{{ c.title }}</span>
+              <span class="conv-actions">
+                <button class="conv-act" title="重命名" @click.stop="renameConversation(c)">✎</button>
+                <button class="conv-act" title="删除" @click.stop="removeConversation(c)">🗑</button>
+              </span>
+            </div>
+            <div v-if="conversations.length === 0" class="conv-empty">暂无会话，点 ＋ 新建</div>
+          </div>
+        </aside>
+
         <!-- 聊天区 -->
         <section class="chat-panel" ref="chatBox" @click="onChatClick">
           <div v-if="messages.length === 0" class="chat-empty">
@@ -154,6 +178,8 @@ import { renderMarkdown } from '../utils/markdown'
 
 const router = useRouter()
 const messages = ref([])
+const conversations = ref([])
+const activeConvId = ref(null)
 const question = ref('')
 const loading = ref(false)
 const models = ref([])
@@ -264,9 +290,11 @@ async function loadModels() {
   } catch { /* ignore */ }
 }
 
-async function loadHistory() {
+async function loadHistory(convId) {
   try {
-    const { data } = await api.get('/ai/history', { params: { limit: 20 } })
+    const params = { limit: 100 }
+    if (convId) params.conversation_id = convId
+    const { data } = await api.get('/ai/history', { params })
     historyTotal.value = data.total
     messages.value = data.items
       .slice()
@@ -284,6 +312,69 @@ async function loadHistory() {
       .flat()
     await scrollBottom()
   } catch { /* ignore */ }
+}
+
+async function loadConversations() {
+  try {
+    const { data } = await api.get('/ai/conversations')
+    conversations.value = data.items
+    if (conversations.value.length === 0) {
+      await createConversation()
+    } else if (!activeConvId.value) {
+      await switchConversation(conversations.value[0])
+    }
+  } catch { /* ignore */ }
+}
+
+async function createConversation() {
+  try {
+    const { data } = await api.post('/ai/conversations')
+    conversations.value.unshift(data)
+    activeConvId.value = data.id
+    messages.value = []
+    historyTotal.value = 0
+  } catch { /* ignore */ }
+}
+
+async function newConversation() {
+  messages.value = []
+  historyTotal.value = 0
+  await createConversation()
+}
+
+async function switchConversation(c) {
+  if (c.id === activeConvId.value) return
+  activeConvId.value = c.id
+  await loadHistory(c.id)
+}
+
+async function renameConversation(c) {
+  const title = prompt('重命名会话', c.title)
+  if (!title || title.trim() === c.title) return
+  try {
+    const { data } = await api.put(`/ai/conversations/${c.id}`, { title: title.trim() })
+    c.title = data.title
+  } catch (e) {
+    alert(e.response?.data?.detail || '重命名失败')
+  }
+}
+
+async function removeConversation(c) {
+  if (!confirm(`删除会话「${c.title}」？其所有消息将被删除`)) return
+  try {
+    await api.delete(`/ai/conversations/${c.id}`)
+    conversations.value = conversations.value.filter((x) => x.id !== c.id)
+    if (activeConvId.value === c.id) {
+      activeConvId.value = null
+      if (conversations.value.length > 0) {
+        await switchConversation(conversations.value[0])
+      } else {
+        await createConversation()
+      }
+    }
+  } catch (e) {
+    alert(e.response?.data?.detail || '删除失败')
+  }
 }
 
 function clearChat() {
@@ -314,7 +405,7 @@ async function send() {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ question: q, stream: true, reasoning: deepThink.value }),
+      body: JSON.stringify({ question: q, stream: true, reasoning: deepThink.value, conversation_id: activeConvId.value }),
       signal: controller.signal,
     })
 
@@ -356,6 +447,24 @@ async function send() {
           await scrollBottom()
         } else if (evt.type === 'done') {
           historyTotal.value += 1
+          // 后端可能为新会话（此前无 conversation_id），把它插到列表顶部
+          if (evt.conversation_id) {
+            if (!conversations.value.some((c) => c.id === evt.conversation_id)) {
+              conversations.value.unshift({
+                id: evt.conversation_id,
+                title: evt.title || '新对话',
+                updated_time: new Date().toISOString(),
+                message_count: 1,
+              })
+              activeConvId.value = evt.conversation_id
+            } else {
+              const idx = conversations.value.findIndex((c) => c.id === evt.conversation_id)
+              if (idx > 0) {
+                const [item] = conversations.value.splice(idx, 1)
+                conversations.value.unshift(item)
+              }
+            }
+          }
         } else if (evt.type === 'error') {
           aiMsg.content = '⚠️ ' + (evt.content || '请求失败')
         }
@@ -415,7 +524,7 @@ function logout() {
 
 onMounted(() => {
   loadModels()
-  loadHistory()
+  loadConversations()
   loadUsage()
 })
 
@@ -1115,6 +1224,122 @@ onBeforeUnmount(() => {
   font-size: 11.5px;
   color: var(--warning);
   margin-top: 6px;
+}
+
+/* ===== 会话列表 ===== */
+.conv-side {
+  width: 208px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 12px;
+  min-height: 0;
+}
+
+.conv-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  padding: 2px 4px 10px;
+}
+
+.conv-new {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.conv-new:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.conv-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conv-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: background 0.15s;
+}
+
+.conv-item:hover {
+  background: var(--bg-hover);
+}
+
+.conv-item.active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.conv-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conv-actions {
+  display: none;
+  gap: 2px;
+}
+
+.conv-item:hover .conv-actions,
+.conv-item.active .conv-actions {
+  display: inline-flex;
+}
+
+.conv-act {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 3px;
+  border-radius: 5px;
+}
+
+.conv-act:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.conv-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 10px 6px;
+}
+
+@media (max-width: 1100px) {
+  .conv-side {
+    display: none;
+  }
 }
 
 .md-hint {

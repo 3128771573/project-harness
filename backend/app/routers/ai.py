@@ -6,13 +6,22 @@ from datetime import datetime, timezone
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
 from ..deps import get_current_user
-from ..models import AiHistory, User
-from ..schemas import AiChatRequest, AiChatResponse, AiHistoryItem, AiHistoryList
+from ..models import AiHistory, Conversation, User
+from ..schemas import (
+    AiChatRequest,
+    AiChatResponse,
+    AiHistoryItem,
+    AiHistoryList,
+    ConversationCreate,
+    ConversationList,
+    ConversationOut,
+    ConversationUpdate,
+)
 from ..security import ROLE_ADMIN, ROLE_SUPER_ADMIN
 from ..services import settings as settings_svc
 
@@ -45,6 +54,15 @@ async def _quota_of(db: AsyncSession) -> int:
 
 def _is_admin(user: User) -> bool:
     return bool(user.role and user.role.name in (ROLE_ADMIN, ROLE_SUPER_ADMIN))
+
+
+async def _get_own_conv(db: AsyncSession, uid: str, cid: str) -> Conversation:
+    """获取当前用户自己的会话，否则 404"""
+    conv = await db.get(Conversation, cid)
+    if conv is None or conv.uid != uid:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="会话不存在")
+    return conv
+
 
 MOCK_REASONING = "（演示思考过程）用户的问题是技术类提问。我将拆解问题、检索相关知识、组织语言回答。"
 
@@ -122,8 +140,9 @@ async def _stream_generator(
     payload: AiChatRequest,
     current_user: User,
     db: AsyncSession,
+    conv: Conversation,
 ) -> AsyncGenerator[str, None]:
-    """SSE 生成器：流式输出 + 结束后保存历史"""
+    """SSE 生成器：流式输出 + 结束后保存历史（挂会话）"""
     full_answer: list[str] = []
     model_used = "mock"
 
@@ -159,17 +178,21 @@ async def _stream_generator(
             return
 
     answer = "".join(full_answer)
-    # 保存历史
+    # 保存历史（挂会话）
     history = AiHistory(
         uid=current_user.uid,
+        conversation_id=conv.id,
         question=payload.question,
         answer=answer,
         model=model_used,
     )
     db.add(history)
+    conv.updated_time = datetime.now(timezone.utc)
     await db.commit()
 
-    yield _sse({"type": "done", "model": model_used})
+    yield _sse(
+        {"type": "done", "model": model_used, "conversation_id": conv.id, "title": conv.title}
+    )
 
 
 @router.get("/usage", summary="今日 AI 用量与每日配额")
@@ -182,6 +205,77 @@ async def usage(
         "quota": await _quota_of(db),
         "unlimited": _is_admin(current_user),
     }
+
+
+@router.get("/conversations", response_model=ConversationList, summary="会话列表（按最近使用排序）")
+async def list_conversations(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    convs = (
+        (
+            await db.execute(
+                select(Conversation)
+                .where(Conversation.uid == current_user.uid)
+                .order_by(Conversation.updated_time.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    counts: dict[str, int] = {}
+    if convs:
+        rows = await db.execute(
+            select(AiHistory.conversation_id, func.count())
+            .where(AiHistory.conversation_id.in_([c.id for c in convs]))
+            .group_by(AiHistory.conversation_id)
+        )
+        counts = dict(rows.all())
+    items = []
+    for c in convs:
+        out = ConversationOut.model_validate(c)
+        out.message_count = counts.get(c.id, 0)
+        items.append(out)
+    return ConversationList(items=items, total=len(items))
+
+
+@router.post("/conversations", response_model=ConversationOut, summary="新建会话")
+async def create_conversation(
+    payload: ConversationCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    conv = Conversation(uid=current_user.uid, title=payload.title or "新对话")
+    db.add(conv)
+    await db.commit()
+    await db.refresh(conv)
+    return ConversationOut.model_validate(conv)
+
+
+@router.put("/conversations/{cid}", response_model=ConversationOut, summary="重命名会话")
+async def rename_conversation(
+    cid: str,
+    payload: ConversationUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    conv = await _get_own_conv(db, current_user.uid, cid)
+    conv.title = payload.title
+    await db.commit()
+    await db.refresh(conv)
+    return ConversationOut.model_validate(conv)
+
+
+@router.delete("/conversations/{cid}", status_code=status.HTTP_204_NO_CONTENT, summary="删除会话及其历史")
+async def delete_conversation(
+    cid: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_own_conv(db, current_user.uid, cid)
+    await db.execute(delete(AiHistory).where(AiHistory.conversation_id == cid))
+    await db.execute(delete(Conversation).where(Conversation.id == cid))
+    await db.commit()
 
 
 @router.post("/chat", response_model=AiChatResponse)
@@ -199,10 +293,19 @@ async def chat(
                 detail=f"今日免费额度已用完（{quota} 次/天），请明天再试，或联系管理员提升额度",
             )
 
+    # 会话解析：指定会话则校验归属；未指定则自动新建（首句自动标题）
+    if payload.conversation_id:
+        conv = await _get_own_conv(db, current_user.uid, payload.conversation_id)
+    else:
+        title = payload.question[:24] + ("…" if len(payload.question) > 24 else "")
+        conv = Conversation(uid=current_user.uid, title=title)
+        db.add(conv)
+        await db.flush()
+
     # 流式模式
     if payload.stream:
         return StreamingResponse(
-            _stream_generator(payload, current_user, db),
+            _stream_generator(payload, current_user, db, conv),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -231,11 +334,13 @@ async def chat(
 
     history = AiHistory(
         uid=current_user.uid,
+        conversation_id=conv.id,
         question=payload.question,
         answer=answer,
         model=model,
     )
     db.add(history)
+    conv.updated_time = datetime.now(timezone.utc)
     await db.commit()
     return AiChatResponse(answer=answer, model=model)
 
@@ -253,10 +358,20 @@ async def list_models(db: AsyncSession = Depends(get_db)):
 async def history(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    conversation_id: str | None = Query(default=None, max_length=36),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     base = select(AiHistory).where(AiHistory.uid == current_user.uid)
+    if conversation_id:
+        # 归属校验：非本人会话返回空
+        try:
+            conv = await db.get(Conversation, conversation_id)
+        except Exception:
+            conv = None
+        if conv is None or conv.uid != current_user.uid:
+            return AiHistoryList(items=[], total=0)
+        base = base.where(AiHistory.conversation_id == conversation_id)
     total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
 
     result = await db.execute(

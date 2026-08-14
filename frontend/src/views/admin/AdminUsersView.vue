@@ -69,6 +69,14 @@
               >
                 {{ u.is_active ? '禁用' : '启用' }}
               </button>
+              <button
+                v-if="u.uid !== me?.uid"
+                class="action-btn"
+                title="重置该用户的密码并吊销其全部会话"
+                @click="resetPwd(u)"
+              >
+                重置密码
+              </button>
               <span v-else class="muted" style="font-size:12.5px">当前账号</span>
             </td>
           </tr>
@@ -165,6 +173,27 @@ async function changeRole(u, e) {
     Object.assign(u, data)
   } catch (err) {
     alert(err.response?.data?.detail || '修改角色失败')
+  }
+}
+
+async function resetPwd(u) {
+  const pwd = prompt(`为 ${u.username} 设置新密码（至少 8 位，含大小写/数字/符号中 3 类）`)
+  if (!pwd) return
+  if (pwd.length < 8) {
+    alert('密码至少 8 位')
+    return
+  }
+  const classes = [/[a-z]/, /[A-Z]/, /\d/, /[^a-zA-Z0-9]/].filter((re) => re.test(pwd)).length
+  if (classes < 3) {
+    alert('密码需包含大写字母/小写字母/数字/符号中至少 3 类')
+    return
+  }
+  if (!confirm(`确认将 ${u.username} 的密码重置为新密码？其全部会话将被吊销`)) return
+  try {
+    await api.post(`/admin/users/${u.uid}/reset-password`, { new_password: pwd })
+    alert('密码已重置，该用户所有会话已下线')
+  } catch (e) {
+    alert(e.response?.data?.detail || '重置失败')
   }
 }
 
