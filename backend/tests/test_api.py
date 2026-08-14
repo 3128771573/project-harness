@@ -62,16 +62,35 @@ async def client():
         await global_engine.dispose()
 
 
+async def _register(client, username, email=None, password="TestPass123", with_code=True):
+    """注册 helper：先获取邮箱验证码（dev_code），再带 code 注册"""
+    email = email or f"{username}@test.com"
+    if with_code:
+        send = await client.post(
+            "/api/v1/auth/send-code",
+            json={"email": email, "purpose": "register"},
+        )
+        assert send.status_code == 200, send.text
+        data = send.json()
+        code = data.get("dev_code")
+        assert code, f"应返回 dev_code（开发模式），实际: {data}"
+    else:
+        code = None
+
+    payload = {"username": username, "email": email, "password": password}
+    if code:
+        payload["code"] = code
+    resp = await client.post("/api/v1/auth/register", json=payload)
+    return resp
+
+
 @pytest.fixture
 async def auth_user(client):
     """注册一个普通用户并返回 (token, user)"""
     import uuid
 
     suf = uuid.uuid4().hex[:8]
-    resp = await client.post(
-        "/api/v1/auth/register",
-        json={"username": f"tester_{suf}", "email": f"t_{suf}@test.com", "password": "TestPass123"},
-    )
+    resp = await _register(client, f"tester_{suf}")
     assert resp.status_code == 201, resp.text
     data = resp.json()
     return data["access_token"], data["user"]
@@ -90,21 +109,15 @@ async def test_register_login_refresh(client):
     import uuid
 
     suf = uuid.uuid4().hex[:8]
-    reg = await client.post(
-        "/api/v1/auth/register",
-        json={"username": f"u_{suf}", "email": f"e_{suf}@test.com", "password": "Secret123"},
-    )
-    assert reg.status_code == 201
+    reg = await _register(client, f"u_{suf}", email=f"e_{suf}@test.com", password="Secret123")
+    assert reg.status_code == 201, reg.text
     data = reg.json()
     assert data["access_token"] and data["refresh_token"]
     assert data["user"]["role"] == "user"
     assert data["user"]["uid"]
 
-    # 重复注册
-    dup = await client.post(
-        "/api/v1/auth/register",
-        json={"username": f"u_{suf}", "email": f"e_{suf}@test.com", "password": "Secret123"},
-    )
+    # 重复注册（同一邮箱，需新验证码）
+    dup = await _register(client, f"u_{suf}", email=f"e_{suf}@test.com", password="Secret123")
     assert dup.status_code == 409
 
     # 登录
@@ -195,10 +208,8 @@ async def test_admin_endpoints_as_admin(client):
     import uuid
 
     suf = uuid.uuid4().hex[:8]
-    reg = await client.post(
-        "/api/v1/auth/register",
-        json={"username": f"adm_{suf}", "email": f"adm_{suf}@test.com", "password": "AdminPass123"},
-    )
+    reg = await _register(client, f"adm_{suf}", email=f"adm_{suf}@test.com", password="AdminPass123")
+    assert reg.status_code == 201, reg.text
     token = reg.json()["access_token"]
     uid = reg.json()["user"]["uid"]
 
@@ -241,17 +252,13 @@ async def test_super_admin_guard(client):
     suf = uuid.uuid4().hex[:8]
 
     # 普通用户 adminA
-    reg_a = await client.post(
-        "/api/v1/auth/register",
-        json={"username": f"a_{suf}", "email": f"a_{suf}@test.com", "password": "Pass12345"},
-    )
+    reg_a = await _register(client, f"a_{suf}", email=f"a_{suf}@test.com", password="Pass12345")
+    assert reg_a.status_code == 201, reg_a.text
     uid_a = reg_a.json()["user"]["uid"]
 
     # adminB（提升为 admin）
-    reg_b = await client.post(
-        "/api/v1/auth/register",
-        json={"username": f"b_{suf}", "email": f"b_{suf}@test.com", "password": "Pass12345"},
-    )
+    reg_b = await _register(client, f"b_{suf}", email=f"b_{suf}@test.com", password="Pass12345")
+    assert reg_b.status_code == 201, reg_b.text
     token_b = reg_b.json()["access_token"]
     uid_b = reg_b.json()["user"]["uid"]
 
