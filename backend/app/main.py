@@ -121,6 +121,19 @@ async def public_stats():
     }
 
 
+@app.get("/api/v1/public/maintenance", tags=["system"])
+async def public_maintenance():
+    """公开维护状态（维护页 / 路由守卫轮询；维护模式白名单放行）"""
+    from .services import settings as settings_svc
+    from .services.maintenance import is_maintenance
+
+    async with SessionLocal() as db:
+        return {
+            "maintenance": await is_maintenance(db),
+            "message": await settings_svc.get_setting(db, "site.maintenance_message", default="系统正在升级维护，请稍后再试。"),
+        }
+
+
 @app.get("/api/v1/public/notices", tags=["system"])
 async def public_notices(limit: int = 5):
     """已发布的公告（最新在前），供前台横幅与铃铛使用"""
