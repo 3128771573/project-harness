@@ -12,6 +12,7 @@ from ..schemas import (
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
+    ResetPasswordRequest,
     SendCodeRequest,
     Token,
     UserOut,
@@ -65,14 +66,11 @@ async def register(payload: RegisterRequest, request: Request, db: AsyncSession 
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="用户名或邮箱已被注册")
 
-    # 邮箱验证码校验（若配置了 SMTP 则强制要求）
-    from ..config import settings as cfg
-
-    if cfg.smtp_enabled:
-        if not payload.code:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="请先获取并填写邮箱验证码")
-        if not await verify_code(db, payload.email, payload.code, "register"):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
+    # 邮箱验证码校验（无论 SMTP 是否配置，只要注册就必须验证码）
+    if not payload.code:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="请先获取并填写邮箱验证码")
+    if not await verify_code(db, payload.email, payload.code, "register"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
 
     role = await get_role_by_name(db, ROLE_USER)
     user = User(
@@ -84,8 +82,7 @@ async def register(payload: RegisterRequest, request: Request, db: AsyncSession 
     )
     db.add(user)
     await db.flush()
-    if cfg.smtp_enabled:
-        await invalidate_codes(db, payload.email, "register")
+    await invalidate_codes(db, payload.email, "register")
     await record_login(
         db, uid=user.uid, email=user.email, ip=_client_ip(request), user_agent=_client_ua(request), success=True
     )
@@ -99,6 +96,53 @@ async def send_code(payload: SendCodeRequest, db: AsyncSession = Depends(get_db)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return result
+
+
+@router.post("/forgot-password", summary="请求密码重置（发送邮箱验证码）")
+async def forgot_password(
+    payload: SendCodeRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """发送重置密码验证码到邮箱"""
+    from sqlalchemy import select as _select
+
+    result = await db.execute(_select(User).where(User.email == payload.email.lower()))
+    user = result.scalar_one_or_none()
+    if user is None:
+        return {"message": "如果该邮箱已注册，验证码已发送", "sent": False}
+    resp = await send_verification_code(db, payload.email, "reset")
+    return {"message": "验证码已发送到邮箱" if resp["sent"] else resp["message"], "sent": resp["sent"]}
+
+
+@router.post("/reset-password", summary="使用邮箱验证码设置新密码")
+async def reset_password(payload: ResetPasswordRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    from ..security import hash_password as _hp, validate_password_policy
+
+    if not await verify_code(db, payload.email, payload.code, "reset"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
+
+    result = await db.execute(select(User).where(User.email == payload.email.lower()))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="用户不存在")
+
+    policy_error = validate_password_policy(payload.new_password)
+    if policy_error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=policy_error)
+
+    user.password_hash = _hp(payload.new_password)
+    user.password_changed_at = datetime.now(timezone.utc)
+    await invalidate_codes(db, payload.email, "reset")
+
+    result = await db.execute(
+        select(RefreshToken).where(RefreshToken.uid == user.uid, RefreshToken.revoked.is_(False))
+    )
+    for t in result.scalars().all():
+        t.revoked = True
+
+    await db.commit()
+    await record_login(db, uid=user.uid, email=user.email, ip=_client_ip(request), user_agent=_client_ua(request), success=True, reason="密码重置")
+    return {"message": "密码已重置，请重新登录"}
 
 
 @router.post("/login-code", response_model=Token, summary="邮箱验证码登录")
