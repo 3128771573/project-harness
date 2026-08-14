@@ -73,9 +73,14 @@ async def health():
 
 @app.get("/api/v1/public/stats", tags=["system"])
 async def public_stats():
-    """公开站点统计：版本 / 启动时间 / 稳定运行时长 / 累计访问"""
+    """公开站点统计：版本 / 启动时间 / 稳定运行时长 / 累计页面访问（仅 PAGE，API/刷新/重复点击不计）"""
     async with SessionLocal() as db:
-        visits = await db.scalar(select(func.count()).select_from(VisitLog)) or 0
+        visits = (
+            await db.scalar(
+                select(func.count()).select_from(VisitLog).where(VisitLog.method == "PAGE")
+            )
+            or 0
+        )
     now = datetime.now(timezone.utc)
     return {
         "version": app.version,
@@ -117,10 +122,15 @@ async def public_status():
     now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     async with SessionLocal() as db:
-        total_visits = await db.scalar(select(func.count()).select_from(VisitLog)) or 0
+        page_only = VisitLog.method == "PAGE"
+        total_visits = (
+            await db.scalar(select(func.count()).select_from(VisitLog).where(page_only)) or 0
+        )
         today_visits = (
             await db.scalar(
-                select(func.count()).select_from(VisitLog).where(VisitLog.created_time >= today_start)
+                select(func.count())
+                .select_from(VisitLog)
+                .where(page_only, VisitLog.created_time >= today_start)
             )
         ) or 0
     return {

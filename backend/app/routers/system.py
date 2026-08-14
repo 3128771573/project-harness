@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db
 from ..deps import get_optional_user
 from ..models import User
-from ..services.visitlog import parse_client, record_visit
+from ..services.visitlog import parse_client, record_visit, schedule_location_lookup
 
 router = APIRouter(prefix="/system", tags=["system"])
 
@@ -24,7 +24,7 @@ async def report_visit(
     current_user: User | None = Depends(get_optional_user),
 ):
     ip, ua = parse_client(request)
-    await record_visit(
+    row = await record_visit(
         db,
         path=payload.path,
         method="PAGE",
@@ -33,5 +33,7 @@ async def report_visit(
         uid=current_user.uid if current_user else None,
         referer=payload.referer,
     )
-    await db.commit()
+    if row is not None:
+        await db.commit()
+        schedule_location_lookup(row.id, ip)
     return None

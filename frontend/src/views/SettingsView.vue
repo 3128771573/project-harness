@@ -101,7 +101,9 @@
         <div v-for="l in logs" :key="l.id" class="session-row">
           <div class="session-info">
             <b>{{ l.device || '未知设备' }}</b>
-            <span class="muted small">{{ l.ip || '—' }} · {{ fmtTime(l.created_time) }}</span>
+            <span class="muted small">
+              {{ l.ip || '—' }}<template v-if="l.ip_location"> · {{ l.ip_location }}</template> · {{ fmtTime(l.created_time) }}
+            </span>
           </div>
           <span :class="['badge', l.success ? 'ok' : 'disabled']">
             {{ l.success ? '成功' : (l.reason || '失败') }}

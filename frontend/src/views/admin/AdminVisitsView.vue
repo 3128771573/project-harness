@@ -53,7 +53,7 @@
         <thead>
           <tr>
             <th>时间</th>
-            <th>IP</th>
+            <th>IP / 属地</th>
             <th>类型</th>
             <th>路径</th>
             <th>设备</th>
@@ -64,7 +64,10 @@
         <tbody>
           <tr v-for="v in items" :key="v.id">
             <td class="muted" style="white-space:nowrap">{{ fmtTime(v.created_time) }}</td>
-            <td class="uid-cell">{{ v.ip || '—' }}</td>
+            <td>
+              <span class="uid-cell">{{ v.ip || '—' }}</span>
+              <span v-if="v.ip_location" class="geo-loc">{{ v.ip_location }}</span>
+            </td>
             <td>
               <span :class="['type-tag', v.method === 'PAGE' ? 'page' : 'api']">
                 {{ v.method === 'PAGE' ? '页面' : (v.method || 'API') }}
@@ -164,5 +167,16 @@ onMounted(() => load(1))
   font-size: 11.5px;
   color: var(--admin-text-muted);
   margin-top: 4px;
+}
+
+.geo-loc {
+  display: block;
+  font-size: 11px;
+  color: var(--admin-text-muted);
+  margin-top: 2px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
