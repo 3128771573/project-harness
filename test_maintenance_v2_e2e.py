@@ -19,6 +19,20 @@ from app.services import maintenance as maint  # noqa: E402
 async def main():
     from sqlalchemy import delete as _delete, select
 
+    # 清理历史测试数据
+    from app.models import EmailCode as _EC
+    from app.models import LoginLog as _LL
+    from app.models import RefreshToken as _RT
+
+    async with SessionLocal() as db:
+        await db.execute(_delete(_EC).where(_EC.email == "maintv2@example.com"))
+        u = (await db.execute(select(User).where(User.email == "maintv2@example.com"))).scalar_one_or_none()
+        if u:
+            await db.execute(_delete(_RT).where(_RT.uid == u.uid))
+            await db.execute(_delete(_LL).where(_LL.uid == u.uid))
+            await db.delete(u)
+        await db.commit()
+
     async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
         # superadmin token
         async with SessionLocal() as db:
@@ -39,7 +53,7 @@ async def main():
         # 确保关闭
         async with SessionLocal() as db:
             await maint.disable(db, by="test")
-        await maint.invalidate()
+        maint.invalidate()
 
         print("1. 四模式拦截矩阵")
         matrix = [
@@ -77,7 +91,7 @@ async def main():
         print("3. 倒计时自动关闭（优先级 1）")
         async with SessionLocal() as db:
             await maint._set(db, "auto_close_at", (datetime.now(timezone.utc) + timedelta(seconds=1)).isoformat(), "test")
-        await maint.invalidate()
+        maint.invalidate()
         await asyncio.sleep(1.5)
         async with SessionLocal() as db:
             result = await maint.maintenance_tick(db)
@@ -89,7 +103,7 @@ async def main():
         async with SessionLocal() as db:
             await maint.enable(db, mode="full", reason="超时测试", duration_minutes=None, by="test")
             await maint._set(db, "start_at", (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat(), "test")
-        await maint.invalidate()
+        maint.invalidate()
         async with SessionLocal() as db:
             result = await maint.maintenance_tick(db)
         assert result.get("action") == "auto_close" and "120" in result.get("detail", ""), result
@@ -102,7 +116,7 @@ async def main():
             await maint._set(db, "scheduled_enabled", "true", "test")
             await maint._set(db, "scheduled_time", now_minute, "test")
             await maint._set(db, "scheduled_duration", "60", "test")
-        await maint.invalidate()
+        maint.invalidate()
         async with SessionLocal() as db:
             result = await maint.maintenance_tick(db)
         assert result.get("action") == "scheduled_start", result
@@ -113,7 +127,7 @@ async def main():
         async with SessionLocal() as db:
             await maint.disable(db, by="test")
             await maint._set(db, "scheduled_enabled", "false", "test")
-        await maint.invalidate()
+        maint.invalidate()
 
         print("6. 紧急令牌")
         r = await c.post("/api/v1/admin/maintenance/regenerate-token", headers=h)
@@ -137,24 +151,27 @@ async def main():
         assert r.json()["maintenance"] is False
 
         print("7. 审计记录 + 站内通知")
+        # 经 API 开启（写审计 + 通知管理员）
+        r = await c.post("/api/v1/admin/maintenance/enable", json={"mode": "full", "reason": "审计通知测试", "duration_minutes": 10}, headers=h)
+        assert r.status_code == 200, r.text
         r = await c.get("/api/v1/admin/maintenance/history?limit=20", headers=h)
-        items = r.json()
-        actions = {x["action"] for x in items}
+        actions = {x["action"] for x in r.json()}
         assert "maintenance.enable" in actions and "maintenance.emergency_close" in actions, actions
-        # 开启一次 → 管理员收到机器人私信
-        async with SessionLocal() as db:
-            await maint.enable(db, mode="full", reason="通知测试", duration_minutes=10, by="superadmin")
+        # 管理员收到机器人私信
         r = await c.get("/api/v1/im/conversations", headers=h)
         bot_conv = [x for x in r.json()["items"] if x["other"]["uid"] == "bot-harness-official"]
         assert bot_conv and "维护模式通知" in bot_conv[0]["last_message"]["content"], "管理员应收到站内维护通知"
-        async with SessionLocal() as db:
-            await maint.disable(db, by="test")
+        r = await c.post("/api/v1/admin/maintenance/disable", headers=h)
+        assert r.status_code == 200
+        r = await c.get("/api/v1/admin/maintenance/history?limit=20", headers=h)
+        actions = {x["action"] for x in r.json()}
+        assert "maintenance.disable" in actions, actions
 
         print("8. 服务器重启检测（遗留超 30 分钟自动关闭）")
         async with SessionLocal() as db:
             await maint.enable(db, mode="full", reason="重启检测测试", duration_minutes=None, by="test")
             await maint._set(db, "start_at", (datetime.now(timezone.utc) - timedelta(minutes=45)).isoformat(), "test")
-        await maint.invalidate()
+        maint.invalidate()
         async with SessionLocal() as db:
             result = await maint.on_server_start(db)
         assert result.get("action") == "auto_close", result
@@ -162,7 +179,7 @@ async def main():
         async with SessionLocal() as db:
             await maint.enable(db, mode="full", reason="重启检测测试2", duration_minutes=None, by="test")
             await maint._set(db, "start_at", (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat(), "test")
-        await maint.invalidate()
+        maint.invalidate()
         async with SessionLocal() as db:
             result = await maint.on_server_start(db)
         assert result.get("action") == "keep", result
