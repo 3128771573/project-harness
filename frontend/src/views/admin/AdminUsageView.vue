@@ -135,13 +135,13 @@ onMounted(() => load(1))
   border-radius: 999px;
   font-size: 12.5px;
   font-weight: 700;
-  background: #f1f2f6;
-  color: #6b7280;
+  background: var(--admin-border);
+  color: var(--admin-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .count-badge.used {
-  background: #eef2ff;
-  color: #4338ca;
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--primary-color);
 }
 </style>

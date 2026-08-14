@@ -168,13 +168,13 @@ const services = [
 }
 
 .s-status.ok {
-  background: #ecfdf5;
-  color: #15803d;
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  color: var(--success);
 }
 
 .s-status.warn {
-  background: #fffbeb;
-  color: #b45309;
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  color: var(--warning);
 }
 
 .hint {

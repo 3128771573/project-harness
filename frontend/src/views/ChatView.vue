@@ -113,7 +113,7 @@
           :disabled="loading"
           maxlength="4000"
           rows="1"
-          @keydown.enter.exact.prevent="onEnter"
+          @keydown.enter.exact="onEnter"
           @input="autoResize"
         ></textarea>
         <button type="submit" class="send-btn" :disabled="loading || !question">
@@ -177,6 +177,7 @@ async function scrollBottom() {
 // Enter 发送 / Shift+Enter 换行（IME 组合输入期间不触发）
 function onEnter(e) {
   if (e.isComposing) return
+  e.preventDefault()
   send()
 }
 
@@ -441,7 +442,7 @@ onMounted(() => {
 
 .think-toggle.on {
   border-color: var(--accent);
-  background: #f5f3ff;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .think-toggle input {
@@ -513,8 +514,8 @@ onMounted(() => {
 }
 
 .clear-btn:hover {
-  background: #fef2f2;
-  border-color: #fecaca;
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  border-color: color-mix(in srgb, var(--error) 35%, transparent);
 }
 
 /* ===== 聊天区 ===== */

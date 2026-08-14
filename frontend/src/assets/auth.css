@@ -117,7 +117,7 @@
   color: var(--error);
   font-size: 13px;
   text-align: center;
-  background: #fef2f2;
+  background: color-mix(in srgb, var(--error) 10%, transparent);
   padding: 9px 12px;
   border-radius: 8px;
 }

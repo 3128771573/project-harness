@@ -273,8 +273,8 @@ onMounted(() => {
 
 .btn.tiny.danger {
   color: var(--error);
-  border-color: #fecaca;
-  background: #fef2f2;
+  border-color: color-mix(in srgb, var(--error) 35%, transparent);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
 }
 
 .msg {
@@ -283,8 +283,8 @@ onMounted(() => {
   border-radius: 8px;
 }
 
-.msg.ok { background: #ecfdf5; color: #059669; }
-.msg.err { background: #fef2f2; color: #dc2626; }
+.msg.ok { background: color-mix(in srgb, var(--success) 10%, transparent); color: var(--success); }
+.msg.err { background: color-mix(in srgb, var(--error) 10%, transparent); color: var(--error); }
 
 .session-row {
   display: flex;

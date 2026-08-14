@@ -87,7 +87,7 @@ onMounted(() => load(1))
 <style scoped>
 .action-tag {
   display: inline-block;
-  background: #f1f2f6;
+  background: var(--admin-border);
   color: var(--text-secondary);
   padding: 3px 10px;
   border-radius: 6px;

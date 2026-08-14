@@ -309,7 +309,7 @@ onMounted(load)
 
 .role-chip {
   background: var(--bg-active);
-  color: #4338ca;
+  color: var(--primary-color);
   font-size: 11.5px;
   font-weight: 600;
   padding: 3px 10px;
@@ -472,7 +472,7 @@ onMounted(load)
 }
 
 .act-icon.ai { background: var(--bg-active); }
-.act-icon.login { background: #ecfdf5; }
+.act-icon.login { background: color-mix(in srgb, var(--success) 12%, transparent); }
 
 .act-body {
   flex: 1;

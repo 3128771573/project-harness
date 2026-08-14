@@ -121,13 +121,13 @@ function stateText(s) {
   font-weight: 600;
   padding: 4px 12px;
   border-radius: 999px;
-  background: #f3f4f6;
+  background: var(--bg-code);
   color: var(--text-muted);
 }
 
 .demo-card.active .demo-state {
-  background: #dcfce7;
-  color: #15803d;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
 }
 
 .hint {

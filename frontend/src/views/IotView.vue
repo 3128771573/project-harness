@@ -97,7 +97,7 @@ const linePoints = computed(() => {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
-  color: #059669;
+  color: var(--success);
 }
 
 .page-head h1 {

@@ -158,7 +158,7 @@ import SiteNav from '../components/SiteNav.vue'
 }
 
 .doc-hint code {
-  background: #f3f4f6;
+  background: var(--bg-code);
   padding: 2px 6px;
   border-radius: 5px;
   font-size: 12px;

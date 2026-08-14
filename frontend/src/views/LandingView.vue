@@ -405,10 +405,10 @@ const demos = [
   flex-shrink: 0;
 }
 
-.quick-card.ai .q-icon { background: var(--bg-active); color: #4338ca; }
-.quick-card.iot .q-icon { background: #ecfdf5; color: #059669; }
-.quick-card.demo .q-icon { background: #f5f3ff; color: #7c3aed; }
-.quick-card.settings .q-icon { background: #fffbeb; color: #b45309; }
+.quick-card.ai .q-icon { background: var(--bg-active); color: var(--primary-color); }
+.quick-card.iot .q-icon { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
+.quick-card.demo .q-icon { background: color-mix(in srgb, var(--accent-color) 12%, transparent); color: var(--accent-color); }
+.quick-card.settings .q-icon { background: color-mix(in srgb, var(--warning) 12%, transparent); color: var(--warning); }
 
 .quick-card b {
   font-size: 15px;
@@ -887,7 +887,7 @@ const demos = [
 .core-card:hover {
   box-shadow: var(--shadow);
   transform: translateY(-3px);
-  border-color: #dbe2ee;
+  border-color: var(--border-color);
 }
 
 .cc-icon {
@@ -901,9 +901,9 @@ const demos = [
   margin-bottom: 6px;
 }
 
-.cc-icon.ai { background: var(--bg-active); color: #4338ca; }
-.cc-icon.iot { background: #ecfdf5; color: #059669; }
-.cc-icon.dev { background: #f5f3ff; color: #7c3aed; }
+.cc-icon.ai { background: var(--bg-active); color: var(--primary-color); }
+.cc-icon.iot { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
+.cc-icon.dev { background: color-mix(in srgb, var(--accent-color) 12%, transparent); color: var(--accent-color); }
 
 .core-card b {
   font-size: 16.5px;
@@ -1060,7 +1060,7 @@ const demos = [
 }
 
 .module-feats li::first-letter {
-  color: #059669;
+  color: var(--success);
 }
 
 /* AI 对话 demo */
