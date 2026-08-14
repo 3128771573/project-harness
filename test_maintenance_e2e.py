@@ -73,6 +73,17 @@ async def main():
         r = await c.get("/api/v1/captcha")
         assert r.status_code == 200
 
+        print("3b. 维护中管理员从零重新登录（模拟全部退出后的恢复路径）")
+        r = await c.post("/api/v1/auth/login", json={"email": "superadmin@platformharness.ltd", "password": "SuAdmin@2026Cloud", "totp_code": otp})
+        assert r.status_code == 200, "维护中管理员必须能重新登录"
+        ts2 = r.json()["access_token"]
+        h2 = {"Authorization": f"Bearer {ts2}"}
+        r = await c.get("/api/v1/admin/settings", headers=h2)
+        assert r.status_code == 200, "重新登录后的管理员应可直接使用后台"
+        # SSO 登录链路可达（authorize 端点维护中放行）
+        r = await c.get("/api/v1/auth/oauth/github/authorize", follow_redirects=False)
+        assert r.status_code in (200, 302, 307), "OAuth authorize 应可达"
+
         print("4. 管理员完全放行")
         r = await c.get("/api/v1/admin/settings", headers=h)
         assert r.status_code == 200 and r.json()["maintenance_mode"] is True

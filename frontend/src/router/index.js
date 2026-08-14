@@ -119,9 +119,12 @@ function isAdminUser() {
   return !!(u && ['admin', 'super_admin'].includes(u.role))
 }
 
+// 维护模式下仍必须可达的路径：维护页 / 登录 / 注册 / OAuth 回调（否则管理员退出后无法再登录，造成死锁）
+const MAINT_FREE_PATHS = ['/maintenance', '/login', '/register', '/oauth/callback']
+
 router.beforeEach(async (to) => {
-  // 维护模式：非管理员重定向到维护页（维护页本身放行）
-  if (to.path !== '/maintenance' && !isAdminUser()) {
+  // 维护模式：非管理员重定向到维护页（登录链路始终放行，保证管理员可重新登录解除维护）
+  if (!MAINT_FREE_PATHS.includes(to.path) && !isAdminUser()) {
     const maint = await checkMaintenance()
     if (maint) {
       return { path: '/maintenance' }

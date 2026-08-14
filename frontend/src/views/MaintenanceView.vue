@@ -6,15 +6,28 @@
       <p class="maint-msg">{{ message }}</p>
       <p class="maint-sub">我们正在升级服务，预计很快恢复。给您带来不便，敬请谅解。</p>
       <button class="btn" @click="refresh">刷新状态</button>
-      <p class="maint-tip">管理员可在维护结束后正常访问后台（无需拦截）</p>
+      <div class="maint-admin-entry" v-if="!isAdmin">
+        <p>如果您是管理员，请先登录后再进入后台</p>
+        <router-link to="/login" class="btn primary">管理员登录</router-link>
+      </div>
+      <p v-else class="maint-tip">您已以管理员身份登录，维护模式下可正常访问后台（系统设置中可关闭维护模式）</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 const message = ref('系统正在升级维护，请稍后再试。')
+
+const isAdmin = computed(() => {
+  try {
+    const u = JSON.parse(localStorage.getItem('harness_user') || 'null')
+    return !!(u && ['admin', 'super_admin'].includes(u.role))
+  } catch {
+    return false
+  }
+})
 
 async function refresh() {
   try {
@@ -81,5 +94,21 @@ onMounted(refresh)
   margin-top: 18px;
   font-size: 12px;
   color: var(--text-muted, #aaa);
+}
+
+.maint-admin-entry {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border-color, #e5e7eb);
+  font-size: 13px;
+  color: var(--text-secondary, #555);
+}
+
+.maint-admin-entry p {
+  margin: 0 0 10px;
+}
+
+.maint-admin-entry .btn {
+  display: inline-block;
 }
 </style>
