@@ -203,7 +203,8 @@ async function runExport() {
     }
     lastSha = resp.headers.get('X-Export-SHA256') || ''
     const rows = resp.headers.get('X-Export-Rows') || '0'
-    const sourceLabel = resp.headers.get('X-Export-Source') || form.source
+    const srcKey = resp.headers.get('X-Export-Source') || form.source
+    const sourceLabel = ({ audit: '操作审计', login: '登录日志', visit: '访问记录', watermark: '水印取证', report: '举报记录', bot: '机器人消息' })[srcKey] || srcKey
     const cd = resp.headers.get('Content-Disposition') || ''
     const m = cd.match(/filename="([^"]+)"/)
     const filename = m ? m[1] : 'harness-export.csv'

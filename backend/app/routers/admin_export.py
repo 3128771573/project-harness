@@ -100,7 +100,7 @@ async def export_run(
             "Content-Disposition": f'attachment; filename="{filename}"',
             "X-Export-SHA256": digest,
             "X-Export-Rows": str(len(rows)),
-            "X-Export-Source": SOURCE_LABELS.get(payload.source, payload.source),
+            "X-Export-Source": payload.source,  # 英文标识（HTTP 头须 latin-1），前端映射中文
         },
     )
 
