@@ -38,11 +38,10 @@ def _parse_device(user_agent: str | None) -> str:
     else:
         device = "桌面端"
 
-    # 操作系统
+    # 操作系统（注意：部分 UA 是 "Windows NT; U; ..." 无版本号，需 None 保护）
     if "windows nt" in ua:
-        ver = {"10.0": "10", "6.3": "8.1", "6.2": "8", "6.1": "7"}.get(
-            re.search(r"windows nt ([d.]+)", ua).group(1), ""
-        )
+        m = re.search(r"windows nt ([d.]+)", ua)
+        ver = {"10.0": "10", "6.3": "8.1", "6.2": "8", "6.1": "7"}.get(m.group(1), "") if m else ""
         os_name = f"Windows{ver}" if ver else "Windows"
     elif "mac os x" in ua or "macintosh" in ua:
         os_name = "macOS"
