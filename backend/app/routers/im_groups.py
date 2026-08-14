@@ -8,7 +8,7 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -375,17 +375,16 @@ async def disband_group(
 ):
     group = await _require_group(db, gid)
     await _require_owner(db, gid, current_user.uid)
-    members = (await db.execute(select(GroupMember).where(GroupMember.group_id == gid))).scalars().all()
-    for m in members:
-        await db.delete(m)
-    msgs = (await db.execute(select(GroupMessage).where(GroupMessage.group_id == gid))).scalars().all()
-    for m in msgs:
-        await db.delete(m)
-    await db.delete(group)
+    # 按 FK 顺序 bulk 删除（ORM 逐对象 delete 无 relationship 时不保证顺序）
+    member_rows = (await db.execute(select(GroupMember.user_id).where(GroupMember.group_id == gid))).all()
+    member_uids = [r for (r,) in member_rows]
+    await db.execute(delete(GroupMember).where(GroupMember.group_id == gid))
+    await db.execute(delete(GroupMessage).where(GroupMessage.group_id == gid))
+    await db.execute(delete(GroupChat).where(GroupChat.id == gid))
     await db.commit()
     await record_audit(db, actor=current_user, action="im.group_disband", resource=f"group:{gid}", detail="解散群聊")
-    for m in members:
-        await manager.broadcast(f"user:{m.user_id}", {"type": "im.group_disbanded", "group_id": gid})
+    for uid in member_uids:
+        await manager.broadcast(f"user:{uid}", {"type": "im.group_disbanded", "group_id": gid})
     return None
 
 
