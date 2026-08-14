@@ -151,3 +151,20 @@ class AppSetting(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+
+
+class VisitLog(Base):
+    """访客访问记录（页面访问 + API 请求）"""
+
+    __tablename__ = "visit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    uid: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    ip: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    device: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    path: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
+    method: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    referer: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    status_code: Mapped[int | None] = mapped_column(nullable=True)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

@@ -271,3 +271,32 @@ class AuditLogList(BaseModel):
 
 class AdminResetPasswordRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
+
+
+class VisitLogItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    uid: str | None = None
+    username: str | None = None
+    ip: str | None = None
+    device: str | None = None
+    path: str
+    method: str | None = None
+    referer: str | None = None
+    status_code: int | None = None
+    created_time: datetime
+
+
+class VisitStats(BaseModel):
+    total_visits: int
+    today_visits: int
+    unique_ips: int
+    today_unique_ips: int
+    page_views: int
+
+
+class VisitLogList(BaseModel):
+    items: list[VisitLogItem]
+    total: int
+    stats: VisitStats

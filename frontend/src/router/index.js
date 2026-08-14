@@ -21,6 +21,7 @@ import AdminRolesView from '../views/admin/AdminRolesView.vue'
 import AdminAuditView from '../views/admin/AdminAuditView.vue'
 import AdminSecurityView from '../views/admin/AdminSecurityView.vue'
 import AdminSettingsView from '../views/admin/AdminSettingsView.vue'
+import AdminVisitsView from '../views/admin/AdminVisitsView.vue'
 
 const routes = [
   { path: '/', name: 'home', component: LandingView },
@@ -49,6 +50,7 @@ const routes = [
       { path: 'audit', name: 'admin-audit', component: AdminAuditView },
       { path: 'security', name: 'admin-security', component: AdminSecurityView },
       { path: 'settings', name: 'admin-settings', component: AdminSettingsView },
+      { path: 'visits', name: 'admin-visits', component: AdminVisitsView },
     ],
   },
 ]
@@ -80,6 +82,27 @@ router.beforeEach((to) => {
   }
   if ((to.name === 'login' || to.name === 'register') && token) {
     return { name: 'dashboard' }
+  }
+})
+
+// ===== 页面访问上报（节流 2s，不记录 admin 内部路由） =====
+let lastReport = 0
+router.afterEach((to) => {
+  const now = Date.now()
+  if (now - lastReport < 2000) return
+  if (to.path.startsWith('/admin')) return
+  lastReport = now
+  const token = localStorage.getItem('harness_access')
+  const body = JSON.stringify({ path: to.path, referer: document.referrer || null })
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon('/api/v1/system/visit', new Blob([body], { type: 'application/json' }))
+  } else {
+    fetch('/api/v1/system/visit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body,
+      keepalive: true,
+    }).catch(() => {})
   }
 })
 

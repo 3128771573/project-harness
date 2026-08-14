@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
 from ..deps import get_current_user, get_role_by_name, require_roles
-from ..models import AiHistory, AuditLog, LoginLog, RefreshToken, Role, User
+from ..models import AiHistory, AuditLog, LoginLog, RefreshToken, Role, User, VisitLog
 from ..schemas import (
     AdminLoginLogItem,
     AdminLoginLogList,
@@ -27,6 +27,9 @@ from ..schemas import (
     UserStatusUpdate,
     UserUsageItem,
     UserUsageList,
+    VisitLogItem,
+    VisitLogList,
+    VisitStats,
 )
 from ..security import ROLE_ADMIN, ROLE_SUPER_ADMIN
 from ..services import monitor
@@ -460,8 +463,7 @@ async def admin_audit_logs(
 # ---------- 管理员重置密码 ----------
 
 
-@router.post("/users/{uid}/reset-password", summary="管理员重置密码")
-async def admin_reset_password(
+@router.post("/users/{uid}/reset-password", summary="管理员重置密码")async def admin_reset_password(
     uid: str,
     payload: AdminResetPasswordRequest,
     request: Request,
@@ -492,3 +494,78 @@ async def admin_reset_password(
         ip=_client_ip(request),
     )
     return {"message": f"已重置 {target.username} 的密码，该用户所有设备已下线"}
+
+
+# ---------- 流量访问记录 ----------
+
+
+@router.get("/visits", response_model=VisitLogList, summary="访客访问记录")
+async def admin_visits(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    keyword: str | None = Query(default=None, max_length=64),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    now = datetime.now(timezone.utc)
+    today_start = datetime.combine(now.date(), time.min, tzinfo=timezone.utc)
+
+    base = select(VisitLog)
+    if keyword:
+        like = f"%{keyword}%"
+        base = base.where(VisitLog.ip.ilike(like) | VisitLog.path.ilike(like))
+
+    # 统计
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
+    today_total = (
+        await db.execute(
+            select(func.count()).select_from(VisitLog).where(VisitLog.created_time >= today_start)
+        )
+    ).scalar_one()
+    unique_ips = (
+        await db.execute(select(func.count(func.distinct(VisitLog.ip))).select_from(VisitLog))
+    ).scalar_one()
+    today_unique_ips = (
+        await db.execute(
+            select(func.count(func.distinct(VisitLog.ip)))
+            .select_from(VisitLog)
+            .where(VisitLog.created_time >= today_start)
+        )
+    ).scalar_one()
+    page_views = (
+        await db.execute(
+            select(func.count()).select_from(VisitLog).where(VisitLog.method == "PAGE")
+        )
+    ).scalar_one()
+
+    # 列表（关联用户名）
+    stmt = (
+        select(VisitLog, User.username)
+        .outerjoin(User, User.uid == VisitLog.uid)
+        .order_by(VisitLog.created_time.desc())
+        .limit(page_size)
+        .offset((page - 1) * page_size)
+    )
+    if keyword:
+        like = f"%{keyword}%"
+        stmt = stmt.where(VisitLog.ip.ilike(like) | VisitLog.path.ilike(like))
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    items = []
+    for v, username in rows:
+        item = VisitLogItem.model_validate(v)
+        item.username = username
+        items.append(item)
+
+    return VisitLogList(
+        items=items,
+        total=total,
+        stats=VisitStats(
+            total_visits=total,
+            today_visits=today_total,
+            unique_ips=unique_ips,
+            today_unique_ips=today_unique_ips,
+            page_views=page_views,
+        ),
+    )

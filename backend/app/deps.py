@@ -28,6 +28,22 @@ async def get_current_user(
     return user
 
 
+async def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    """可选登录：未登录或 token 无效时返回 None（不报错）"""
+    if credentials is None:
+        return None
+    payload = decode_token(credentials.credentials)
+    if payload is None or payload.get("type") != "access":
+        return None
+    user = await db.get(User, payload.get("sub"))
+    if user is None or not user.is_active:
+        return None
+    return user
+
+
 def require_roles(*roles: str):
     """RBAC: 要求当前用户拥有指定角色之一（返回 FastAPI 依赖）"""
 
