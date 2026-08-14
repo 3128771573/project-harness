@@ -76,6 +76,45 @@
         </form>
       </section>
 
+      <!-- 两步验证 -->
+      <section class="panel">
+        <div class="panel-head">
+          <h3>两步验证（TOTP）</h3>
+          <span v-if="twofa.enabled" class="badge ok">已开启</span>
+        </div>
+        <p class="sub">使用 iPhone 密码本 / Google Authenticator 等应用扫码绑定，登录时额外输入 6 位动态验证码</p>
+
+        <div v-if="!twofa.enabled">
+          <button class="btn small" :disabled="twofaLoading" @click="start2faSetup">
+            {{ twofaLoading ? '处理中…' : '开启两步验证' }}
+          </button>
+        </div>
+        <div v-else>
+          <button class="btn tiny danger" :disabled="twofaLoading" @click="disable2fa">关闭两步验证</button>
+        </div>
+
+        <!-- 设置向导 -->
+        <div v-if="setupState" class="twofa-setup">
+          <img :src="setupState.qr_data_uri" alt="两步验证二维码" class="twofa-qr" />
+          <p class="muted small">无法扫码？手动输入密钥：<code class="twofa-secret">{{ setupState.secret }}</code></p>
+          <form @submit.prevent="confirm2fa" class="form-stack">
+            <label class="field">
+              <span>输入验证码确认绑定</span>
+              <input
+                v-model.trim="twofaCode"
+                placeholder="6 位动态验证码"
+                maxlength="8"
+                required
+                inputmode="numeric"
+                autocomplete="one-time-code"
+              />
+            </label>
+            <p v-if="twofaMsg" :class="['msg', twofaMsgOk ? 'ok' : 'err']">{{ twofaMsg }}</p>
+            <button type="submit" class="btn small" :disabled="twofaLoading">{{ twofaLoading ? '验证中…' : '验证并开启' }}</button>
+          </form>
+        </div>
+      </section>
+
       <!-- 登录设备 -->
       <section class="panel">
         <div class="panel-head">
@@ -105,6 +144,7 @@
               {{ l.ip || '—' }}<template v-if="l.ip_location"> · {{ l.ip_location }}</template> · {{ fmtTime(l.created_time) }}
             </span>
           </div>
+          <span class="badge new" v-if="l.success && l.is_new_device" title="此前 30 天内未在该设备/IP 登录">新设备</span>
           <span :class="['badge', l.success ? 'ok' : 'disabled']">
             {{ l.success ? '成功' : (l.reason || '失败') }}
           </span>
@@ -136,6 +176,71 @@ const pwdMsgOk = ref(false)
 const pwdSaving = ref(false)
 const sessions = ref([])
 const logs = ref([])
+
+// ===== 两步验证（TOTP） =====
+const twofa = ref({ enabled: false })
+const setupState = ref(null)
+const twofaCode = ref('')
+const twofaMsg = ref('')
+const twofaMsgOk = ref(false)
+const twofaLoading = ref(false)
+
+async function loadTwofa() {
+  try {
+    const { data } = await api.get('/user/2fa/status')
+    twofa.value = data
+  } catch { /* ignore */ }
+}
+
+async function start2faSetup() {
+  const password = prompt('请输入当前密码以开启两步验证')
+  if (!password) return
+  twofaLoading.value = true
+  try {
+    const { data } = await api.post('/user/2fa/setup', { password })
+    setupState.value = data
+  } catch (e) {
+    alert(e.response?.data?.detail || '操作失败')
+  } finally {
+    twofaLoading.value = false
+  }
+}
+
+async function confirm2fa() {
+  if (!twofaCode.value) return
+  twofaLoading.value = true
+  twofaMsg.value = ''
+  try {
+    const { data } = await api.post('/user/2fa/verify', { code: twofaCode.value })
+    twofa.value = data
+    setupState.value = null
+    twofaCode.value = ''
+    twofaMsgOk.value = true
+    twofaMsg.value = '两步验证已开启 ✓'
+  } catch (e) {
+    twofaMsgOk.value = false
+    twofaMsg.value = e.response?.data?.detail || '验证失败'
+  } finally {
+    twofaLoading.value = false
+  }
+}
+
+async function disable2fa() {
+  const password = prompt('请输入当前密码')
+  if (!password) return
+  const code = prompt('请输入当前动态验证码')
+  if (!code) return
+  twofaLoading.value = true
+  try {
+    const { data } = await api.post('/user/2fa/disable', { password, code })
+    twofa.value = data
+    alert('两步验证已关闭')
+  } catch (e) {
+    alert(e.response?.data?.detail || '操作失败')
+  } finally {
+    twofaLoading.value = false
+  }
+}
 
 // ===== 个人资料 =====
 const profile = reactive({ nickname: '', bio: '', avatar: '' })
@@ -291,6 +396,7 @@ function logout() {
 
 onMounted(() => {
   loadProfile()
+  loadTwofa()
   loadSessions()
   loadLogs()
 })
@@ -348,6 +454,46 @@ onMounted(() => {
   background: linear-gradient(135deg, var(--primary), #7aa5f0);
   color: #fff;
   border: none;
+}
+
+/* 两步验证 */
+.twofa-setup {
+  margin-top: 18px;
+  padding: 18px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.twofa-qr {
+  width: 180px;
+  height: 180px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.twofa-secret {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  padding: 1px 6px;
+  border-radius: 5px;
+  word-break: break-all;
+}
+
+.twofa-setup .form-stack {
+  width: 100%;
+  max-width: 320px;
+}
+
+.badge.new {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
 }
 
 .field {

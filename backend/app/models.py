@@ -62,6 +62,8 @@ class User(Base):
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
     role_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("roles.id"), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_ip: Mapped[str | None] = mapped_column(String(64), nullable=True)

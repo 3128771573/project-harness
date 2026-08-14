@@ -26,6 +26,7 @@ from ..security import (
     verify_password,
 )
 from ..services.emailcode import invalidate_codes, send_verification_code, verify_code
+from ..services import login_alert
 from ..services.loginlog import _parse_device, record_login, update_last_login
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -160,8 +161,24 @@ async def login_with_code(payload: CodeLoginRequest, request: Request, db: Async
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用")
 
+    # 两步验证（若已开启）
+    if user.totp_enabled:
+        if not payload.totp_code:
+            raise HTTPException(status_code=status.HTTP_428_PRECONDITION_REQUIRED, detail="需要两步验证码")
+        import pyotp
+
+        if not pyotp.TOTP(user.totp_secret or "").verify(payload.totp_code.strip(), valid_window=1):
+            await record_login(
+                db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=False, reason="两步验证码错误"
+            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="两步验证码错误")
+
+    device = _parse_device(ua)
+    is_new = not await login_alert.is_known_login(db, user.uid, ip, device)
     await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=True)
     await update_last_login(db, user, ip)
+    if is_new:
+        login_alert.schedule_login_alert(user.uid, user.email, ip, ua, device)
     return await _issue_tokens(db, user, request)
 
 
@@ -179,8 +196,25 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
     if not user.is_active:
         await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=False, reason="账号已禁用")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用")
+
+    # 两步验证（若已开启）
+    if user.totp_enabled:
+        if not payload.totp_code:
+            raise HTTPException(status_code=status.HTTP_428_PRECONDITION_REQUIRED, detail="需要两步验证码")
+        import pyotp
+
+        if not pyotp.TOTP(user.totp_secret or "").verify(payload.totp_code.strip(), valid_window=1):
+            await record_login(
+                db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=False, reason="两步验证码错误"
+            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="两步验证码错误")
+
+    device = _parse_device(ua)
+    is_new = not await login_alert.is_known_login(db, user.uid, ip, device)
     await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=True)
     await update_last_login(db, user, ip)
+    if is_new:
+        login_alert.schedule_login_alert(user.uid, user.email, ip, ua, device)
     return await _issue_tokens(db, user, request)
 
 

@@ -16,9 +16,20 @@
         <span>密码</span>
         <input v-model="form.password" type="password" placeholder="••••••••" required autocomplete="current-password" />
       </label>
+      <label v-if="need2fa" class="field">
+        <span>两步验证码</span>
+        <input
+          v-model.trim="form.totp_code"
+          placeholder="6 位动态验证码"
+          maxlength="8"
+          required
+          inputmode="numeric"
+          autocomplete="one-time-code"
+        />
+      </label>
       <p v-if="error" class="error">{{ error }}</p>
       <button type="submit" class="btn" :disabled="loading">
-        {{ loading ? '登录中…' : '登 录' }}
+        {{ loading ? '登录中…' : need2fa ? '验证并登录' : '登 录' }}
       </button>
       <p class="switch">
         <router-link to="/forgot" class="forgot-link">忘记密码？</router-link>
@@ -40,6 +51,17 @@
         <span>验证码</span>
         <input v-model.trim="form.code" placeholder="6 位邮箱验证码" maxlength="8" required inputmode="numeric" />
       </label>
+      <label v-if="need2fa" class="field">
+        <span>两步验证码</span>
+        <input
+          v-model.trim="form.totp_code"
+          placeholder="6 位动态验证码"
+          maxlength="8"
+          required
+          inputmode="numeric"
+          autocomplete="one-time-code"
+        />
+      </label>
       <p v-if="error" class="error">{{ error }}</p>
       <p v-if="msg" class="success-msg">{{ msg }}</p>
       <button type="submit" class="btn" :disabled="loading">
@@ -58,9 +80,10 @@ import AuthLayout from '../layouts/AuthLayout.vue'
 
 const router = useRouter()
 const mode = ref('password')
-const form = reactive({ email: '', password: '', code: '' })
+const form = reactive({ email: '', password: '', code: '', totp_code: '' })
 const error = ref('')
 const msg = ref('')
+const need2fa = ref(false)
 const loading = ref(false)
 const sending = ref(false)
 const cooldown = ref(0)
@@ -77,10 +100,19 @@ async function onSubmit() {
   error.value = ''
   loading.value = true
   try {
-    const { data } = await api.post('/auth/login', { email: form.email, password: form.password })
+    const { data } = await api.post('/auth/login', {
+      email: form.email,
+      password: form.password,
+      totp_code: need2fa.value ? form.totp_code : undefined,
+    })
     saveSession(data)
   } catch (e) {
-    error.value = e.response?.data?.detail || '登录失败，请稍后重试'
+    if (e.response?.status === 428) {
+      need2fa.value = true
+      error.value = '该账号已开启两步验证，请输入动态验证码'
+    } else {
+      error.value = e.response?.data?.detail || '登录失败，请稍后重试'
+    }
   } finally {
     loading.value = false
   }
@@ -113,10 +145,19 @@ async function onCodeSubmit() {
   error.value = ''
   loading.value = true
   try {
-    const { data } = await api.post('/auth/login-code', { email: form.email, code: form.code })
+    const { data } = await api.post('/auth/login-code', {
+      email: form.email,
+      code: form.code,
+      totp_code: need2fa.value ? form.totp_code : undefined,
+    })
     saveSession(data)
   } catch (e) {
-    error.value = e.response?.data?.detail || '登录失败'
+    if (e.response?.status === 428) {
+      need2fa.value = true
+      error.value = '该账号已开启两步验证，请输入动态验证码'
+    } else {
+      error.value = e.response?.data?.detail || '登录失败'
+    }
   } finally {
     loading.value = false
   }

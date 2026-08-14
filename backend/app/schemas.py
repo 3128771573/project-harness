@@ -19,6 +19,7 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    totp_code: str | None = Field(default=None, max_length=8, description="两步验证码（账号开启 2FA 后必填）")
 
 
 class SendCodeRequest(BaseModel):
@@ -29,6 +30,7 @@ class SendCodeRequest(BaseModel):
 class CodeLoginRequest(BaseModel):
     email: EmailStr
     code: str = Field(min_length=6, max_length=8)
+    totp_code: str | None = Field(default=None, max_length=8, description="两步验证码（账号开启 2FA 后必填）")
 
 
 class RefreshRequest(BaseModel):
@@ -70,6 +72,7 @@ class LoginLogItem(BaseModel):
     success: bool
     reason: str | None = None
     created_time: datetime
+    is_new_device: bool = False
 
 
 class LoginLogList(BaseModel):
@@ -109,6 +112,29 @@ class Token(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class TwoFactorStatus(BaseModel):
+    enabled: bool = False
+
+
+class TwoFactorSetupRequest(BaseModel):
+    password: str = Field(..., min_length=1, max_length=128)
+
+
+class TwoFactorSetupOut(BaseModel):
+    secret: str
+    uri: str
+    qr_data_uri: str
+
+
+class TwoFactorVerifyRequest(BaseModel):
+    code: str = Field(min_length=6, max_length=8)
+
+
+class TwoFactorDisableRequest(BaseModel):
+    password: str = Field(..., min_length=1, max_length=128)
+    code: str = Field(min_length=6, max_length=8)
 
 
 class ConversationOut(BaseModel):
