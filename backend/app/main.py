@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 
 from .config import settings
 from .database import SessionLocal, engine
+from .errors import validation_error_handler
 from .middleware import VisitLogMiddleware
 from .models import Base, Role
 from .routers import admin, ai, auth, security, system, user
