@@ -1,5 +1,10 @@
+import asyncio
+import json
+from collections.abc import AsyncGenerator
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,35 +16,130 @@ from ..services import settings as settings_svc
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
+MOCK_REASONING = "（演示思考过程）用户的问题是技术类提问。我将拆解问题、检索相关知识、组织语言回答。"
 
-async def _call_ai(question: str, db: AsyncSession) -> tuple[str, str]:
-    """调用 OpenAI 兼容的 AI API；配置优先来自 DB（admin 在线配置），未配置 key 时 mock"""
+
+def _mock_answer(question: str) -> str:
+    return (
+        "（Mock 模式回复）我已收到你的问题：\n\n"
+        f"「{question[:80]}」\n\n"
+        "> 当前未配置 AI_API_KEY，系统运行在演示模式。\n\n"
+        "**在 `.env` 或后台「AI 配置」中填入密钥后**，即可接入真实大模型，并获得流式输出与深度思考能力。\n\n"
+        "```python\n# 示例：配置后你将收到\nprint('Hello Harness ✨')\n```\n\n"
+        "支持 **Markdown**、`行内代码`、$E=mc^2$ 与 $$\\frac{1}{2}+\\frac{1}{3}=\\frac{5}{6}$$ 渲染。"
+    )
+
+
+def _sse(event: dict) -> str:
+    return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+
+async def _call_ai_real_stream(
+    question: str, model: str, reasoning: bool, db: AsyncSession
+) -> AsyncGenerator[tuple[str, str], None]:
+    """调用 OpenAI 兼容接口流式输出，yield (type, content)，type ∈ {reasoning, content}"""
     cfg = await settings_svc.get_ai_config(db)
     eff = settings_svc.ai_effective(cfg)
-
     if not settings_svc.ai_configured(cfg):
-        return (
-            "（Mock 模式回复）我已收到你的问题："
-            f"「{question[:80]}」\n\n"
-            "当前未配置 AI_API_KEY。请管理员在后台「AI 配置」中填写密钥，"
-            "或设置环境变量 AI_API_KEY 后即可接入真实大模型。"
-        ), "mock"
+        return
 
     url = f"{eff['base_url'].rstrip('/')}/chat/completions"
     headers = {"Authorization": f"Bearer {eff['api_key']}", "Content-Type": "application/json"}
     payload = {
-        "model": eff["model"],
+        "model": model,
         "messages": [{"role": "user", "content": question}],
         "temperature": 0.7,
+        "stream": True,
     }
+    if reasoning:
+        # 部分兼容接口支持 thinking 参数；不强制，reasoner 模型本身会输出 reasoning_content
+        payload["reasoning_effort"] = "medium"
+
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            resp = await client.post(url, json=payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            return data["choices"][0]["message"]["content"], eff["model"]
+        async with httpx.AsyncClient(timeout=180) as client:
+            async with client.stream("POST", url, json=payload, headers=headers) as resp:
+                if resp.status_code != 200:
+                    body = (await resp.aread()).decode("utf-8", "ignore")[:300]
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail=f"AI 服务返回 {resp.status_code}: {body}",
+                    )
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                    except json.JSONDecodeError:
+                        continue
+                    choices = chunk.get("choices") or []
+                    if not choices:
+                        continue
+                    delta = choices[0].get("delta") or {}
+                    reasoning_content = delta.get("reasoning_content")
+                    if reasoning_content:
+                        yield "reasoning", reasoning_content
+                    content = delta.get("content")
+                    if content:
+                        yield "content", content
     except httpx.HTTPError as e:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI 服务调用失败: {e}")
+
+
+async def _stream_generator(
+    payload: AiChatRequest,
+    current_user: User,
+    db: AsyncSession,
+) -> AsyncGenerator[str, None]:
+    """SSE 生成器：流式输出 + 结束后保存历史"""
+    full_answer: list[str] = []
+    model_used = "mock"
+
+    cfg = await settings_svc.get_ai_config(db)
+    eff = settings_svc.ai_effective(cfg)
+    configured = settings_svc.ai_configured(cfg)
+
+    if not configured:
+        # Mock 流式：模拟思考 + 分块输出
+        model_used = "mock"
+        if payload.reasoning:
+            for i in range(0, len(MOCK_REASONING), 12):
+                yield _sse({"type": "reasoning", "content": MOCK_REASONING[i : i + 12]})
+                await asyncio.sleep(0.02)
+        text = _mock_answer(payload.question)
+        for i in range(0, len(text), 8):
+            chunk = text[i : i + 8]
+            full_answer.append(chunk)
+            yield _sse({"type": "content", "content": chunk})
+            await asyncio.sleep(0.015)
+    else:
+        model_used = eff["model"]
+        if payload.reasoning:
+            # 深度思考：切换到 reasoner 模型
+            model_used = await settings_svc.get_setting(db, "ai.reasoner_model", default="deepseek-reasoner")
+        try:
+            async for etype, chunk in _call_ai_real_stream(payload.question, model_used, payload.reasoning, db):
+                if etype == "content":
+                    full_answer.append(chunk)
+                yield _sse({"type": etype, "content": chunk})
+        except HTTPException:
+            yield _sse({"type": "error", "content": "AI 服务调用失败，请检查后台 AI 配置"})
+            return
+
+    answer = "".join(full_answer)
+    # 保存历史
+    history = AiHistory(
+        uid=current_user.uid,
+        question=payload.question,
+        answer=answer,
+        model=model_used,
+    )
+    db.add(history)
+    await db.commit()
+
+    yield _sse({"type": "done", "model": model_used})
 
 
 @router.post("/chat", response_model=AiChatResponse)
@@ -48,7 +148,35 @@ async def chat(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    answer, model = await _call_ai(payload.question, db)
+    # 流式模式
+    if payload.stream:
+        return StreamingResponse(
+            _stream_generator(payload, current_user, db),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    # 非流式：调用真实模型（带 reasoning 支持）或 mock
+    cfg = await settings_svc.get_ai_config(db)
+    eff = settings_svc.ai_effective(cfg)
+    configured = settings_svc.ai_configured(cfg)
+
+    if not configured:
+        answer = _mock_answer(payload.question)
+        model = "mock"
+    else:
+        model = eff["model"]
+        if payload.reasoning:
+            model = await settings_svc.get_setting(db, "ai.reasoner_model", default="deepseek-reasoner")
+        collected: list[str] = []
+        async for etype, chunk in _call_ai_real_stream(payload.question, model, payload.reasoning, db):
+            if etype == "content":
+                collected.append(chunk)
+        answer = "".join(collected)
 
     history = AiHistory(
         uid=current_user.uid,
@@ -58,7 +186,6 @@ async def chat(
     )
     db.add(history)
     await db.commit()
-
     return AiChatResponse(answer=answer, model=model)
 
 

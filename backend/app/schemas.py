@@ -100,6 +100,8 @@ class Token(BaseModel):
 
 class AiChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
+    stream: bool = False
+    reasoning: bool = False
 
 
 class AiChatResponse(BaseModel):
