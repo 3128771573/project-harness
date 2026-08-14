@@ -1,67 +1,94 @@
 <template>
   <div>
-    <header class="topbar">
-      <h1>用户管理</h1>
-      <div class="search-row">
-        <input v-model.trim="keyword" placeholder="搜索用户名 / 邮箱" @keyup.enter="load(1)" />
-        <button class="btn small" @click="load(1)">搜索</button>
+    <header class="page-head">
+      <div>
+        <h1>用户管理</h1>
+        <p class="sub">共 {{ total }} 位用户</p>
+      </div>
+      <div class="actions">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input v-model.trim="keyword" placeholder="搜索用户名 / 邮箱" @keyup.enter="search" />
+        </div>
+        <button class="btn primary" @click="search">搜索</button>
       </div>
     </header>
 
-    <section class="panel table-panel">
+    <div class="table-wrap">
       <table class="table">
         <thead>
           <tr>
+            <th>用户</th>
             <th>UID</th>
-            <th>用户名</th>
-            <th>邮箱</th>
             <th>角色</th>
             <th>注册时间</th>
             <th>状态</th>
-            <th>操作</th>
+            <th style="text-align:right">操作</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="u in items" :key="u.uid">
-            <td class="mono uid-cell" :title="u.uid">{{ shortUid(u.uid) }}</td>
-            <td>{{ u.username }}</td>
-            <td>{{ u.email }}</td>
             <td>
-              <select :value="u.role || 'user'" class="role-select" @change="changeRole(u, $event)">
+              <div class="user-cell">
+                <span class="user-avatar">{{ initial(u.username) }}</span>
+                <div>
+                  <div class="name">{{ u.username }}</div>
+                  <div class="email">{{ u.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="uid-cell" :title="u.uid">{{ shortUid(u.uid) }}</span>
+            </td>
+            <td>
+              <span :class="['role-badge', roleClass(u.role)]">{{ u.role || 'user' }}</span>
+            </td>
+            <td class="muted">{{ formatTime(u.created_time) }}</td>
+            <td>
+              <span :class="['status-badge', u.is_active ? 'active' : 'disabled']">
+                {{ u.is_active ? '正常' : '已禁用' }}
+              </span>
+            </td>
+            <td style="text-align:right; white-space:nowrap">
+              <select
+                v-if="u.uid !== me?.uid"
+                :value="u.role || 'user'"
+                class="role-select"
+                title="修改角色"
+                @change="changeRole(u, $event)"
+              >
                 <option value="user">user</option>
                 <option value="admin">admin</option>
                 <option value="super_admin">super_admin</option>
               </select>
-            </td>
-            <td>{{ formatTime(u.created_time) }}</td>
-            <td>
-              <span :class="['badge', u.is_active ? 'ok' : 'disabled']">
-                {{ u.is_active ? '正常' : '已禁用' }}
-              </span>
-            </td>
-            <td>
               <button
                 v-if="u.uid !== me?.uid"
-                class="btn tiny"
-                :class="u.is_active ? 'danger' : 'primary'"
+                class="action-btn"
+                :class="u.is_active ? 'danger' : ''"
                 @click="toggleStatus(u)"
               >
                 {{ u.is_active ? '禁用' : '启用' }}
               </button>
-              <span v-else class="muted">自己</span>
+              <span v-else class="muted" style="font-size:12.5px">当前账号</span>
             </td>
+          </tr>
+          <tr v-if="items.length === 0">
+            <td colspan="6" style="text-align:center; padding:36px 0" class="muted">没有找到用户</td>
           </tr>
         </tbody>
       </table>
 
-      <div v-if="error" class="error-text">{{ error }}</div>
+      <div v-if="error" class="error-text" style="padding:12px 18px">{{ error }}</div>
 
-      <div class="pager">
-        <button class="btn tiny" :disabled="page <= 1" @click="load(page - 1)">上一页</button>
-        <span>第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 人</span>
-        <button class="btn tiny" :disabled="page >= totalPages" @click="load(page + 1)">下一页</button>
+      <div class="table-footer">
+        <span>第 {{ page }} / {{ totalPages }} 页</span>
+        <div class="pager">
+          <button class="page-btn" :disabled="page <= 1" @click="load(page - 1)">‹</button>
+          <span class="page-info">{{ page }} / {{ totalPages }}</span>
+          <button class="page-btn" :disabled="page >= totalPages" @click="load(page + 1)">›</button>
+        </div>
       </div>
-    </section>
+    </div>
   </div>
 </template>
 
@@ -72,7 +99,7 @@ import api from '../../api/client'
 const items = ref([])
 const total = ref(0)
 const page = ref(1)
-const pageSize = 20
+const pageSize = 10
 const keyword = ref('')
 const error = ref('')
 const me = computed(() => {
@@ -85,13 +112,23 @@ const me = computed(() => {
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
 
+function initial(name) {
+  return (name || '?')[0].toUpperCase()
+}
+
 function shortUid(uid) {
   return uid ? uid.slice(0, 8) + '…' : ''
 }
 
+function roleClass(role) {
+  return ['user', 'admin', 'super_admin'].includes(role) ? role : 'user'
+}
+
 function formatTime(iso) {
   if (!iso) return '-'
-  return new Date(iso).toLocaleString('zh-CN', { hour12: false })
+  const d = new Date(iso)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 async function load(p) {
@@ -106,6 +143,10 @@ async function load(p) {
   } catch (e) {
     error.value = e.response?.data?.detail || '加载失败'
   }
+}
+
+function search() {
+  load(1)
 }
 
 async function toggleStatus(u) {
@@ -124,8 +165,6 @@ async function changeRole(u, e) {
     Object.assign(u, data)
   } catch (err) {
     alert(err.response?.data?.detail || '修改角色失败')
-    // 回滚选择
-    u.role = u.role || 'user'
   }
 }
 
