@@ -82,6 +82,13 @@
                 <span v-else>{{ m.content }}</span>
                 <span v-if="m.role === 'assistant' && loading && i === messages.length - 1" class="cursor">▍</span>
               </div>
+              <button
+                v-if="m.content"
+                type="button"
+                class="msg-copy"
+                @click="copyMessage(m)"
+                :title="m.copied ? '已复制' : '复制消息'"
+              >{{ m.copied ? '✓' : '⧉' }}</button>
             </div>
           </div>
         </section>
@@ -94,6 +101,15 @@
             <div class="side-row"><span>对话历史</span><b>{{ historyTotal }}</b></div>
             <div class="side-row"><span>深度思考</span><b :class="deepThink ? 'ok' : ''">{{ deepThink ? '开启' : '关闭' }}</b></div>
             <div class="side-row"><span>状态</span><b class="ok">{{ loading ? '思考中…' : '就绪' }}</b></div>
+          </div>
+          <div class="side-card">
+            <div class="side-head"><span class="side-dot"></span> 今日用量</div>
+            <div v-if="usage.unlimited" class="usage-row"><span>额度</span><b>无限（管理员）</b></div>
+            <template v-else>
+              <div class="usage-row"><span>已用</span><b>{{ usage.today_count }} / {{ usage.quota }}</b></div>
+              <div class="usage-bar"><div class="usage-fill" :style="{ width: usagePct + '%' }"></div></div>
+              <div class="usage-hint" v-if="usagePct >= 100">今日额度已用完，明天再来或联系管理员提升</div>
+            </template>
           </div>
           <div class="side-card">
             <div class="side-head">Markdown 支持</div>
@@ -118,9 +134,9 @@
             @keydown.enter.exact="onEnter"
             @input="autoResize"
           ></textarea>
-          <button type="submit" class="send-btn" :disabled="loading || !question">
-            <svg v-if="!loading" viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            <span v-else class="send-dots"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span></span>
+          <button v-if="loading" type="button" class="send-btn stop" @click="stopGenerate" title="停止生成">■</button>
+          <button v-else type="submit" class="send-btn" :disabled="!question">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
           </button>
         </div>
       </form>
@@ -129,7 +145,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BrandLogo from '../components/BrandLogo.vue'
 import ThemeSwitcher from '../components/ThemeSwitcher.vue'
@@ -146,6 +162,7 @@ const deepThink = ref(false)
 const historyTotal = ref(0)
 const chatBox = ref(null)
 const inputEl = ref(null)
+let controller = null
 
 const prompts = [
   '帮我写一段 Python 代码',
@@ -153,6 +170,19 @@ const prompts = [
   '讲一个物理公式的推导',
   '生成一个 JSON 示例',
 ]
+
+const usage = ref({ today_count: 0, quota: 10, unlimited: false })
+const usagePct = computed(() => {
+  if (usage.value.unlimited || !usage.value.quota) return 0
+  return Math.min(100, Math.round((usage.value.today_count / usage.value.quota) * 100))
+})
+
+async function loadUsage() {
+  try {
+    const { data } = await api.get('/ai/usage')
+    usage.value = data
+  } catch { /* ignore */ }
+}
 
 const isAdmin = computed(() => {
   try {
@@ -274,6 +304,8 @@ async function send() {
   messages.value.push(aiMsg)
   await scrollBottom()
 
+  // 可中止的流式请求（停止生成 / 离开页面时 abort）
+  controller = new AbortController()
   try {
     const token = localStorage.getItem('harness_access')
     const resp = await fetch('/api/v1/ai/chat', {
@@ -283,6 +315,7 @@ async function send() {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ question: q, stream: true, reasoning: deepThink.value }),
+      signal: controller.signal,
     })
 
     if (!resp.ok) {
@@ -342,11 +375,35 @@ async function send() {
     }
     aiMsg.showReasoning = !!aiMsg.reasoning
   } catch (e) {
-    aiMsg.content = '⚠️ 网络错误，请重试'
+    if (e?.name === 'AbortError') {
+      // 用户主动停止：保留已生成内容
+      aiMsg.showReasoning = !!aiMsg.reasoning
+      if (!aiMsg.content && !aiMsg.reasoning) aiMsg.content = '⚠️ 已停止生成'
+    } else {
+      aiMsg.content = '⚠️ 网络错误，请重试'
+    }
   } finally {
+    controller = null
     loading.value = false
     await scrollBottom()
+    loadUsage()
   }
+}
+
+// 停止生成
+function stopGenerate() {
+  controller?.abort()
+}
+
+// 复制整条消息
+function copyMessage(m) {
+  navigator.clipboard
+    ?.writeText(m.content || '')
+    .then(() => {
+      m.copied = true
+      setTimeout(() => { m.copied = false }, 1500)
+    })
+    .catch(() => {})
 }
 
 function logout() {
@@ -359,6 +416,12 @@ function logout() {
 onMounted(() => {
   loadModels()
   loadHistory()
+  loadUsage()
+})
+
+// 离开页面时中止仍在进行的流式请求
+onBeforeUnmount(() => {
+  controller?.abort()
 })
 </script>
 
@@ -657,6 +720,37 @@ onMounted(() => {
 .bubble-wrap {
   max-width: 82%;
   min-width: 0;
+  position: relative;
+}
+
+.msg-copy {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+
+.msg:hover .msg-copy,
+.msg-copy:focus-visible {
+  opacity: 1;
+}
+
+.msg-copy:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+@media (hover: none) {
+  .msg-copy { opacity: 0.6; }
 }
 
 .bubble {
@@ -984,6 +1078,45 @@ onMounted(() => {
   color: var(--success);
 }
 
+/* 今日用量 */
+.usage-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  padding: 6px 0;
+}
+
+.usage-row span {
+  color: var(--text-muted);
+}
+
+.usage-row b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.usage-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.4s ease;
+}
+
+.usage-hint {
+  font-size: 11.5px;
+  color: var(--warning);
+  margin-top: 6px;
+}
+
 .md-hint {
   font-size: 12px;
   color: var(--text-muted);
@@ -1043,6 +1176,18 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s;
+}
+
+.send-btn.stop {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.send-btn.stop:hover {
+  background: var(--bg-hover);
 }
 
 .send-btn:disabled {

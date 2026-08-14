@@ -16,6 +16,35 @@
         <h1>安全设置</h1>
       </header>
 
+      <!-- 个人资料 -->
+      <section class="panel">
+        <div class="panel-head"><h3>个人资料</h3></div>
+        <p class="sub">昵称、简介与头像会展示在平台各处</p>
+        <form @submit.prevent="saveProfile" class="profile-form">
+          <div class="avatar-row">
+            <img v-if="profile.avatar" :src="profile.avatar" class="profile-avatar" alt="头像" />
+            <div v-else class="profile-avatar placeholder">{{ initial }}</div>
+            <div>
+              <label class="avatar-upload">
+                上传头像
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden @change="onAvatarChange" />
+              </label>
+              <p class="upload-msg" v-if="uploadMsg">{{ uploadMsg }}</p>
+            </div>
+          </div>
+          <label class="field">
+            <span>昵称</span>
+            <input v-model.trim="profile.nickname" maxlength="64" placeholder="你的昵称" />
+          </label>
+          <label class="field">
+            <span>简介</span>
+            <textarea v-model.trim="profile.bio" maxlength="2000" rows="3" placeholder="一句话介绍自己"></textarea>
+          </label>
+          <p v-if="profileMsg" :class="['msg', profileMsgOk ? 'ok' : 'err']">{{ profileMsg }}</p>
+          <button type="submit" class="btn small" :disabled="profileSaving">{{ profileSaving ? '保存中…' : '保存资料' }}</button>
+        </form>
+      </section>
+
       <!-- 主题设置 -->
       <section class="panel">
         <div class="panel-head">
@@ -106,6 +135,83 @@ const pwdSaving = ref(false)
 const sessions = ref([])
 const logs = ref([])
 
+// ===== 个人资料 =====
+const profile = reactive({ nickname: '', bio: '', avatar: '' })
+const profileMsg = ref('')
+const profileMsgOk = ref(false)
+const profileSaving = ref(false)
+const uploadMsg = ref('')
+
+const initial = computed(() => {
+  try {
+    const u = JSON.parse(localStorage.getItem('harness_user') || 'null')
+    return (u?.nickname || u?.username || u?.email || '?')[0].toUpperCase()
+  } catch {
+    return '?'
+  }
+})
+
+function syncUser(data) {
+  try {
+    const u = JSON.parse(localStorage.getItem('harness_user') || 'null') || {}
+    u.nickname = data.nickname
+    u.avatar = data.avatar
+    u.bio = data.bio
+    localStorage.setItem('harness_user', JSON.stringify(u))
+  } catch { /* ignore */ }
+}
+
+async function loadProfile() {
+  try {
+    const { data } = await api.get('/user/profile')
+    profile.nickname = data.nickname || ''
+    profile.bio = data.bio || ''
+    profile.avatar = data.avatar || ''
+  } catch { /* ignore */ }
+}
+
+async function saveProfile() {
+  profileMsg.value = ''
+  profileSaving.value = true
+  try {
+    const { data } = await api.put('/user/profile', {
+      nickname: profile.nickname || null,
+      bio: profile.bio || null,
+    })
+    profileMsgOk.value = true
+    profileMsg.value = '资料已保存'
+    syncUser(data)
+  } catch (e) {
+    profileMsgOk.value = false
+    profileMsg.value = e.response?.data?.detail || '保存失败'
+  } finally {
+    profileSaving.value = false
+  }
+}
+
+async function onAvatarChange(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (file.size > 2 * 1024 * 1024) {
+    uploadMsg.value = '头像不能超过 2MB'
+    e.target.value = ''
+    return
+  }
+  uploadMsg.value = ''
+  const fd = new FormData()
+  fd.append('file', file)
+  try {
+    const { data } = await api.post('/user/avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    profile.avatar = data.avatar
+    uploadMsg.value = '头像已更新 ✓'
+    syncUser(data)
+  } catch (err) {
+    uploadMsg.value = err.response?.data?.detail || '上传失败'
+  } finally {
+    e.target.value = ''
+  }
+}
+
 function fmtTime(iso) {
   if (!iso) return '-'
   return new Date(iso).toLocaleString('zh-CN', { hour12: false })
@@ -182,6 +288,7 @@ function logout() {
 }
 
 onMounted(() => {
+  loadProfile()
   loadSessions()
   loadLogs()
 })
@@ -220,6 +327,25 @@ onMounted(() => {
   flex-direction: column;
   gap: 14px;
   max-width: 420px;
+}
+
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.profile-avatar.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary), #7aa5f0);
+  color: #fff;
+  border: none;
 }
 
 .field {

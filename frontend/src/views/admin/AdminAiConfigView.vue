@@ -41,6 +41,12 @@
           <input v-model.trim="form.model" placeholder="deepseek-chat" />
         </label>
 
+        <label class="field">
+          <span>每日免费额度（普通用户）</span>
+          <input v-model.number="form.daily_quota" type="number" min="0" max="100000" />
+          <small class="field-hint">普通用户每天可发起的 AI 对话次数；0 = 不限制；管理员不受限</small>
+        </label>
+
         <label class="checkbox-row">
           <input v-model="form.clear_api_key" type="checkbox" />
           <span>清除当前 API Key（回退 Mock 模式）</span>
@@ -72,7 +78,7 @@ const testing = ref(false)
 const msg = ref('')
 const msgOk = ref(true)
 
-const form = reactive({ api_key: '', base_url: '', model: '', clear_api_key: false })
+const form = reactive({ api_key: '', base_url: '', model: '', clear_api_key: false, daily_quota: 10 })
 
 async function load() {
   try {
@@ -80,6 +86,7 @@ async function load() {
     cfg.value = data
     form.base_url = data.base_url
     form.model = data.model
+    form.daily_quota = data.daily_quota
   } catch (e) {
     error.value = e.response?.data?.detail || '加载失败'
   }
@@ -93,6 +100,7 @@ async function save() {
       base_url: form.base_url || undefined,
       model: form.model || undefined,
       clear_api_key: form.clear_api_key,
+      daily_quota: form.daily_quota,
     }
     if (form.api_key) payload.api_key = form.api_key
     const { data } = await api.put('/admin/settings/ai', payload)

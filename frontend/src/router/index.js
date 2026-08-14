@@ -1,28 +1,30 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import LandingView from '../views/LandingView.vue'
-import LoginView from '../views/LoginView.vue'
-import RegisterView from '../views/RegisterView.vue'
-import ForgotView from '../views/ForgotView.vue'
-import DashboardView from '../views/DashboardView.vue'
-import ChatView from '../views/ChatView.vue'
-import SettingsView from '../views/SettingsView.vue'
-import DemoView from '../views/DemoView.vue'
-import IotView from '../views/IotView.vue'
-import DocsView from '../views/DocsView.vue'
-import PricingView from '../views/PricingView.vue'
-import StatusView from '../views/StatusView.vue'
-import AdminLayout from '../layouts/AdminLayout.vue'
-import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
-import AdminUsersView from '../views/admin/AdminUsersView.vue'
-import AdminSystemView from '../views/admin/AdminSystemView.vue'
-import AdminAiConfigView from '../views/admin/AdminAiConfigView.vue'
-import AdminUsageView from '../views/admin/AdminUsageView.vue'
-import AdminRolesView from '../views/admin/AdminRolesView.vue'
-import AdminAuditView from '../views/admin/AdminAuditView.vue'
-import AdminSecurityView from '../views/admin/AdminSecurityView.vue'
-import AdminSettingsView from '../views/admin/AdminSettingsView.vue'
-import AdminVisitsView from '../views/admin/AdminVisitsView.vue'
+// 路由懒加载：页面级分包，首屏只加载当前路由
+const LandingView = () => import('../views/LandingView.vue')
+const LoginView = () => import('../views/LoginView.vue')
+const RegisterView = () => import('../views/RegisterView.vue')
+const ForgotView = () => import('../views/ForgotView.vue')
+const DashboardView = () => import('../views/DashboardView.vue')
+const ChatView = () => import('../views/ChatView.vue')
+const SettingsView = () => import('../views/SettingsView.vue')
+const DemoView = () => import('../views/DemoView.vue')
+const IotView = () => import('../views/IotView.vue')
+const DocsView = () => import('../views/DocsView.vue')
+const PricingView = () => import('../views/PricingView.vue')
+const StatusView = () => import('../views/StatusView.vue')
+const NotFoundView = () => import('../views/NotFoundView.vue')
+const AdminLayout = () => import('../layouts/AdminLayout.vue')
+const AdminDashboardView = () => import('../views/admin/AdminDashboardView.vue')
+const AdminUsersView = () => import('../views/admin/AdminUsersView.vue')
+const AdminSystemView = () => import('../views/admin/AdminSystemView.vue')
+const AdminAiConfigView = () => import('../views/admin/AdminAiConfigView.vue')
+const AdminUsageView = () => import('../views/admin/AdminUsageView.vue')
+const AdminRolesView = () => import('../views/admin/AdminRolesView.vue')
+const AdminAuditView = () => import('../views/admin/AdminAuditView.vue')
+const AdminSecurityView = () => import('../views/admin/AdminSecurityView.vue')
+const AdminSettingsView = () => import('../views/admin/AdminSettingsView.vue')
+const AdminVisitsView = () => import('../views/admin/AdminVisitsView.vue')
 
 const routes = [
   { path: '/', name: 'home', component: LandingView },
@@ -37,6 +39,7 @@ const routes = [
   { path: '/docs', name: 'docs', component: DocsView },
   { path: '/pricing', name: 'pricing', component: PricingView },
   { path: '/status', name: 'status', component: StatusView },
+  { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
   {
     path: '/admin',
     component: AdminLayout,

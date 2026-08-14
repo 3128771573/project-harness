@@ -206,11 +206,17 @@ async def get_ai_config(
 ):
     cfg = await settings_svc.get_ai_config(db)
     eff = settings_svc.ai_effective(cfg)
+    quota_raw = await settings_svc.get_setting(db, "ai.daily_quota", default="10")
+    try:
+        quota = int(quota_raw)
+    except (TypeError, ValueError):
+        quota = 10
     return AiConfigOut(
         api_key=None,  # 不回显明文
         api_key_set=settings_svc.ai_configured(cfg),
         base_url=eff["base_url"],
         model=eff["model"],
+        daily_quota=quota,
     )
 
 
@@ -224,13 +230,21 @@ async def update_ai_config(
     cfg = await settings_svc.get_ai_config(db)
     new_key = payload.api_key if payload.api_key else (None if payload.clear_api_key else cfg.get("api_key"))
     await settings_svc.set_ai_config(db, api_key=new_key, base_url=payload.base_url, model=payload.model)
+    if payload.daily_quota is not None:
+        await settings_svc.set_setting(db, "ai.daily_quota", str(payload.daily_quota))
     cfg = await settings_svc.get_ai_config(db)
     eff = settings_svc.ai_effective(cfg)
+    quota_raw = await settings_svc.get_setting(db, "ai.daily_quota", default="10")
+    try:
+        quota = int(quota_raw)
+    except (TypeError, ValueError):
+        quota = 10
     return AiConfigOut(
         api_key=None,
         api_key_set=settings_svc.ai_configured(cfg),
         base_url=eff["base_url"],
         model=eff["model"],
+        daily_quota=quota,
     )
 
 

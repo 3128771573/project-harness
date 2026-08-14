@@ -185,6 +185,7 @@ class AiConfigUpdate(BaseModel):
     base_url: str | None = Field(default=None, max_length=512)
     model: str | None = Field(default=None, max_length=128)
     clear_api_key: bool = Field(default=False, description="置 true 时清除 api_key（回退 mock）")
+    daily_quota: int | None = Field(default=None, ge=0, le=100000, description="普通用户每日 AI 调用上限（0=不限制）")
 
 
 class AiConfigOut(BaseModel):
@@ -192,6 +193,7 @@ class AiConfigOut(BaseModel):
     api_key_set: bool = False
     base_url: str
     model: str
+    daily_quota: int = 10
 
 
 class UserUsageItem(BaseModel):

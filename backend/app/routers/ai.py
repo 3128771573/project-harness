@@ -1,6 +1,7 @@
 import asyncio
 import json
 from collections.abc import AsyncGenerator
+from datetime import datetime, timezone
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -12,9 +13,38 @@ from ..database import get_db
 from ..deps import get_current_user
 from ..models import AiHistory, User
 from ..schemas import AiChatRequest, AiChatResponse, AiHistoryItem, AiHistoryList
+from ..security import ROLE_ADMIN, ROLE_SUPER_ADMIN
 from ..services import settings as settings_svc
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+
+# 每日配额 key（0 = 不限制；管理员豁免）
+QUOTA_KEY = "ai.daily_quota"
+DEFAULT_QUOTA = 10
+
+
+async def _today_usage_count(db: AsyncSession, uid: str) -> int:
+    """今日（UTC 零点起）该用户的 AI 调用次数"""
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    return (
+        await db.execute(
+            select(func.count()).select_from(AiHistory).where(
+                AiHistory.uid == uid, AiHistory.created_time >= today_start
+            )
+        )
+    ).scalar_one() or 0
+
+
+async def _quota_of(db: AsyncSession) -> int:
+    raw = await settings_svc.get_setting(db, QUOTA_KEY, default=str(DEFAULT_QUOTA))
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return DEFAULT_QUOTA
+
+
+def _is_admin(user: User) -> bool:
+    return bool(user.role and user.role.name in (ROLE_ADMIN, ROLE_SUPER_ADMIN))
 
 MOCK_REASONING = "（演示思考过程）用户的问题是技术类提问。我将拆解问题、检索相关知识、组织语言回答。"
 
@@ -142,12 +172,33 @@ async def _stream_generator(
     yield _sse({"type": "done", "model": model_used})
 
 
+@router.get("/usage", summary="今日 AI 用量与每日配额")
+async def usage(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return {
+        "today_count": await _today_usage_count(db, current_user.uid),
+        "quota": await _quota_of(db),
+        "unlimited": _is_admin(current_user),
+    }
+
+
 @router.post("/chat", response_model=AiChatResponse)
 async def chat(
     payload: AiChatRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # 免费额度校验（管理员豁免；quota=0 表示不限制）
+    if not _is_admin(current_user):
+        quota = await _quota_of(db)
+        if quota > 0 and await _today_usage_count(db, current_user.uid) >= quota:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"今日免费额度已用完（{quota} 次/天），请明天再试，或联系管理员提升额度",
+            )
+
     # 流式模式
     if payload.stream:
         return StreamingResponse(
