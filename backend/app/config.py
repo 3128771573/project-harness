@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "/app/uploads"
     MAX_AVATAR_SIZE: int = 2 * 1024 * 1024  # 2MB
 
+    # MQTT（IoT 遥测；容器内用服务名 mqtt，本地开发用 127.0.0.1）
+    MQTT_HOST: str = "mqtt"
+    MQTT_PORT: int = 1883
+    MQTT_TOPIC_PREFIX: str = "harness"
+
     # 邮箱验证码 / SMTP
     SMTP_HOST: str = ""
     SMTP_PORT: int = 465

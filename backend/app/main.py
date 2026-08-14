@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -11,7 +12,8 @@ from .database import SessionLocal, engine
 from .errors import validation_error_handler
 from .middleware import VisitLogMiddleware
 from .models import Base, Notice, Role, VisitLog
-from .routers import admin, ai, auth, security, system, user
+from .routers import admin, ai, auth, iot, security, system, user
+from .services.iot_mqtt import mqtt_worker
 from .security import ROLE_ADMIN, ROLE_SUPER_ADMIN, ROLE_USER
 
 # 进程启动时间（用于公开统计接口的「稳定运行时长」）
@@ -34,7 +36,10 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await seed_roles()
+    # 启动 MQTT 遥测订阅（任务挂在 app.state 防止被 GC；broker 未就绪会自动重连）
+    app.state.mqtt_task = asyncio.create_task(mqtt_worker())
     yield
+    app.state.mqtt_task.cancel()
     await engine.dispose()
 
 
@@ -64,6 +69,7 @@ app.include_router(security.router, prefix="/api/v1")
 app.include_router(ai.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 app.include_router(system.router, prefix="/api/v1")
+app.include_router(iot.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health", tags=["system"])

@@ -36,7 +36,7 @@ const routes = [
   { path: '/ai', name: 'ai', component: ChatView, meta: { requiresAuth: true } },
   { path: '/settings', name: 'settings', component: SettingsView, meta: { requiresAuth: true } },
   { path: '/demo', name: 'demo', component: DemoView },
-  { path: '/iot', name: 'iot', component: IotView },
+  { path: '/iot', name: 'iot', component: IotView, meta: { requiresAuth: true } },
   { path: '/docs', name: 'docs', component: DocsView },
   { path: '/pricing', name: 'pricing', component: PricingView },
   { path: '/status', name: 'status', component: StatusView },

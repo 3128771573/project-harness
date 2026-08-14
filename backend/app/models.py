@@ -185,6 +185,30 @@ class Notice(Base):
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class Device(Base):
+    """IoT 设备（每位用户自己的设备，token 用于上报鉴权）"""
+
+    __tablename__ = "devices"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    uid: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(64), nullable=False)
+    token: Mapped[str] = mapped_column(String(64), nullable=False)
+    last_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class DeviceTelemetry(Base):
+    """设备遥测数据（payload 为 JSON 字符串，保持字段可扩展）"""
+
+    __tablename__ = "device_telemetry"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    device_id: Mapped[str] = mapped_column(String(36), ForeignKey("devices.id"), index=True, nullable=False)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 class VisitLog(Base):
     """访客访问记录（页面访问 + API 请求）"""
 

@@ -342,6 +342,49 @@ class NoticeUpdate(BaseModel):
     is_published: bool | None = None
 
 
+class DeviceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    token: str
+    last_seen: datetime | None = None
+    created_time: datetime
+    last_payload: dict | None = None
+
+
+class DeviceList(BaseModel):
+    items: list[DeviceOut]
+    total: int
+
+
+class DeviceCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=64)
+
+
+class DeviceUpdate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=64)
+
+
+class TelemetryIn(BaseModel):
+    token: str = Field(..., min_length=1, max_length=64)
+    data: dict = Field(default_factory=dict)
+
+
+class TelemetryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    device_id: str
+    payload: dict
+    created_time: datetime
+
+
+class TelemetryList(BaseModel):
+    items: list[TelemetryOut]
+    total: int
+
+
 class VisitLogItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
