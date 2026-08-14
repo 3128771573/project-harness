@@ -37,13 +37,13 @@ async def main():
         # 0) 确保关闭
         await set_maintenance(False)
         await asyncio.sleep(2.5)
-        r = await c.get("/api/v1/system/public/maintenance")
+        r = await c.get("/api/v1/public/maintenance")
         assert r.json()["maintenance"] is False
 
         print("1. 开启维护模式")
         await set_maintenance(True)
         await asyncio.sleep(2.5)
-        r = await c.get("/api/v1/system/public/maintenance")
+        r = await c.get("/api/v1/public/maintenance")
         assert r.json()["maintenance"] is True and r.json()["message"]
 
         print("2. 普通用户请求 → 503")
@@ -86,13 +86,13 @@ async def main():
         print("5. 维护说明更新")
         r = await c.put("/api/v1/admin/settings", json={"maintenance_message": "数据库升级中，预计 30 分钟"}, headers=h)
         assert r.status_code == 200
-        r = await c.get("/api/v1/system/public/maintenance")
+        r = await c.get("/api/v1/public/maintenance")
         assert r.json()["message"] == "数据库升级中，预计 30 分钟"
 
         print("6. 关闭维护 → 恢复")
         await set_maintenance(False)
         await asyncio.sleep(2.5)
-        r = await c.get("/api/v1/system/public/maintenance")
+        r = await c.get("/api/v1/public/maintenance")
         assert r.json()["maintenance"] is False
         r = await c.get("/api/v1/user/profile", headers=hn)
         assert r.status_code == 200, "关闭后普通用户恢复"

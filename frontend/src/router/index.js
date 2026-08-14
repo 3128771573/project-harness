@@ -102,7 +102,7 @@ async function checkMaintenance() {
   const now = Date.now()
   if (now - maintCache.ts < 60000) return maintCache.mode
   try {
-    const resp = await fetch('/api/v1/system/public/maintenance', {
+    const resp = await fetch('/api/v1/public/maintenance', {
       headers: { 'Cache-Control': 'no-cache' },
     })
     if (!resp.ok) return false

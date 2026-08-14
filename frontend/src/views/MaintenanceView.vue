@@ -18,7 +18,7 @@ const message = ref('系统正在升级维护，请稍后再试。')
 
 async function refresh() {
   try {
-    const resp = await fetch('/api/v1/system/public/maintenance')
+    const resp = await fetch('/api/v1/public/maintenance')
     const d = await resp.json()
     message.value = d.message || message.value
     if (!d.maintenance) {
