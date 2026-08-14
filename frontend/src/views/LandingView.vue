@@ -1,114 +1,281 @@
 <template>
   <div class="landing">
-    <!-- 导航 -->
-    <header class="nav">
-      <div class="nav-inner">
-        <div class="brand">
-          <div class="brand-logo">H</div>
-          <span class="brand-name">Harness</span>
-        </div>
-        <nav class="nav-links">
-          <a href="#features">功能</a>
-          <a href="#modules">模块</a>
-          <a href="#roadmap">路线</a>
-        </nav>
-        <div class="nav-actions">
-          <router-link to="/login" class="btn ghost">登录</router-link>
-          <router-link to="/register" class="btn primary">免费注册</router-link>
-        </div>
-      </div>
-    </header>
+    <SiteNav />
 
-    <!-- Hero -->
-    <section class="hero">
-      <div class="hero-badge">🚀 个人智能服务平台</div>
-      <h1>一个平台，承载你的<br /><span class="grad">AI 能力与创意 Demo</span></h1>
-      <p class="hero-sub">
-        从用户系统到 AI 服务，从 IoT 实验到商业化的完整链路。
-        基于 Vue 3 + FastAPI + PostgreSQL，全容器化部署。
-      </p>
-      <div class="hero-actions">
-        <router-link to="/register" class="btn primary lg">立即开始 →</router-link>
-        <router-link to="/login" class="btn ghost lg">已有账号登录</router-link>
-      </div>
-      <div class="hero-stats">
-        <div class="stat"><b>3</b><span>服务模块</span></div>
-        <div class="stat"><b>7</b><span>API 模块</span></div>
-        <div class="stat"><b>0.9</b><span>当前版本</span></div>
-      </div>
-    </section>
+    <!-- ===== 已登录：个人控制中心 ===== -->
+    <div v-if="user" class="home-shell">
+      <section class="welcome">
+        <h1>欢迎回来，{{ user.nickname || user.username }}</h1>
+        <p class="welcome-sub">继续你的智能体验</p>
+      </section>
 
-    <!-- 功能特性 -->
-    <section id="features" class="section">
-      <h2 class="section-title">核心能力</h2>
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="f-icon blue">🔐</div>
-          <h3>完整用户体系</h3>
-          <p>注册登录、JWT 双 Token、RBAC 权限、密码安全、登录日志，企业级账号系统。</p>
+      <div class="quick-grid">
+        <router-link to="/ai" class="quick-card ai">
+          <div class="q-icon">✦</div>
+          <div>
+            <b>AI 助手</b>
+            <span>继续对话</span>
+          </div>
+          <span class="q-arrow">→</span>
+        </router-link>
+        <router-link to="/demo" class="quick-card demo">
+          <div class="q-icon">◫</div>
+          <div>
+            <b>Demo 实验室</b>
+            <span>探索实验</span>
+          </div>
+          <span class="q-arrow">→</span>
+        </router-link>
+        <router-link to="/iot" class="quick-card iot">
+          <div class="q-icon">◎</div>
+          <div>
+            <b>IoT 平台</b>
+            <span>设备接入</span>
+          </div>
+          <span class="q-arrow">→</span>
+        </router-link>
+        <router-link to="/settings" class="quick-card settings">
+          <div class="q-icon">⚙</div>
+          <div>
+            <b>安全设置</b>
+            <span>账号管理</span>
+          </div>
+          <span class="q-arrow">→</span>
+        </router-link>
+      </div>
+
+      <section class="panel-row">
+        <div class="panel-card">
+          <h3>我的 AI</h3>
+          <p class="panel-num">—</p>
+          <p class="panel-sub">对话统计接入中</p>
         </div>
-        <div class="feature-card">
-          <div class="f-icon violet">🤖</div>
-          <h3>AI 服务</h3>
-          <p>对话聊天、历史记录、模型切换、用量统计，兼容主流大模型 API。</p>
+        <div class="panel-card">
+          <h3>我的设备</h3>
+          <p class="panel-num">0</p>
+          <p class="panel-sub">IoT 设备管理</p>
         </div>
-        <div class="feature-card">
-          <div class="f-icon green">📊</div>
-          <h3>运营控制中心</h3>
-          <p>用户管理、AI 配置、系统监控、日志审计、安全中心，一站式运维。</p>
+        <div class="panel-card">
+          <h3>平台状态</h3>
+          <p class="panel-num"><span class="live-dot"></span></p>
+          <p class="panel-sub">服务运行正常</p>
         </div>
-        <div class="feature-card">
-          <div class="f-icon amber">📡</div>
-          <h3>IoT 扩展</h3>
-          <p>设备接入、实时数据、仪表盘展示，为智能测控专业量身设计。</p>
+      </section>
+    </div>
+
+    <!-- ===== 未登录：营销首页 ===== -->
+    <template v-else>
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero-bg" aria-hidden="true">
+          <div class="grid-layer"></div>
+          <div class="glow glow-1"></div>
+          <div class="glow glow-2"></div>
         </div>
-      </div>
-    </section>
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="badge-dot"></span>
+            持续进化的智能服务平台
+          </div>
+          <h1 class="hero-title">
+            Harness
+            <span class="hero-sub-title">连接 AI · IoT · 数字服务</span>
+          </h1>
+          <p class="hero-desc">
+            Connect AI, Devices and Digital Experiences.
+            <br />
+            一个平台，承载你的智能能力与创意实验。
+          </p>
+          <div class="hero-actions">
+            <router-link to="/register" class="btn dark lg">开始体验 →</router-link>
+            <router-link to="/demo" class="btn outline lg">探索 Demo</router-link>
+          </div>
+          <div class="hero-flow">
+            <span class="flow-node ai">AI</span>
+            <span class="flow-line"></span>
+            <span class="flow-node api">API</span>
+            <span class="flow-line"></span>
+            <span class="flow-node data">DATA</span>
+            <span class="flow-line"></span>
+            <span class="flow-node dev">DEVICE</span>
+          </div>
+        </div>
+      </section>
 
-    <!-- 技术栈 -->
-    <section id="modules" class="section alt">
-      <h2 class="section-title">技术架构</h2>
-      <div class="stack-row">
-        <div class="stack-chip" v-for="s in stack" :key="s">{{ s }}</div>
-      </div>
-      <div class="arch-diagram">
-        <div class="arch-box">Client<br /><small>Web / App</small></div>
-        <div class="arch-arrow">↓</div>
-        <div class="arch-box">Nginx<br /><small>前端 + 反代</small></div>
-        <div class="arch-arrow">↓</div>
-        <div class="arch-box">FastAPI<br /><small>鉴权 · RBAC</small></div>
-        <div class="arch-arrow">↓</div>
-        <div class="arch-box">PostgreSQL<br /><small>数据持久化</small></div>
-      </div>
-    </section>
+      <!-- 快速入口 -->
+      <section class="section quick">
+        <div class="quick-grid">
+          <router-link to="/ai" class="quick-card ai">
+            <div class="q-icon">✦</div>
+            <div><b>AI</b><span>智能助手 · 多模型对话</span></div>
+            <span class="q-arrow">→</span>
+          </router-link>
+          <router-link to="/iot" class="quick-card iot">
+            <div class="q-icon">◎</div>
+            <div><b>IoT</b><span>设备接入 · 实时数据</span></div>
+            <span class="q-arrow">→</span>
+          </router-link>
+          <router-link to="/demo" class="quick-card demo">
+            <div class="q-icon">◫</div>
+            <div><b>Demo</b><span>实验展示 · 技术试验场</span></div>
+            <span class="q-arrow">→</span>
+          </router-link>
+        </div>
+      </section>
 
-    <!-- 路线图 -->
-    <section id="roadmap" class="section">
-      <h2 class="section-title">发展路线</h2>
-      <div class="roadmap">
-        <div class="rm-item done"><span class="rm-dot">✅</span><b>v0.1-0.6</b> 基础平台 · 用户中心 · AI 模块</div>
-        <div class="rm-item done"><span class="rm-dot">✅</span><b>v0.7-0.8</b> Admin 后台 · 运维增强 · /hdd 备份</div>
-        <div class="rm-item current"><span class="rm-dot">🔨</span><b>v0.9</b> 整体优化 · 用户安全体系</div>
-        <div class="rm-item"><span class="rm-dot">⬜</span><b>v1.0</b> IoT Demo · 云部署 · HTTPS</div>
-        <div class="rm-item"><span class="rm-dot">⬜</span><b>v2.0</b> 多端 App · 商业化</div>
-      </div>
-    </section>
+      <!-- AI 模块 -->
+      <section class="module">
+        <div class="module-text">
+          <span class="module-tag">AI ASSISTANT</span>
+          <h2>让信息处理更简单</h2>
+          <p class="module-desc">接入主流大模型，支持对话历史与多模型切换。为你的每个问题，找到答案。</p>
+          <ul class="module-feats">
+            <li>✓ 多模型支持</li>
+            <li>✓ 对话历史</li>
+            <li>✓ 个性化助手</li>
+          </ul>
+          <router-link to="/ai" class="btn dark">进入 AI →</router-link>
+        </div>
+        <div class="module-visual">
+          <div class="chat-demo">
+            <div class="chat-line user">如何监控设备温度？</div>
+            <div class="chat-line ai">可通过 MQTT 接入传感器，实时上报数据到平台，即可在 Dashboard 查看温度曲线与告警。</div>
+            <div class="chat-line user">明白了，谢谢！</div>
+          </div>
+        </div>
+      </section>
 
-    <!-- CTA -->
-    <section class="cta">
-      <h2>准备好开始了吗？</h2>
-      <p>注册账号，体验完整平台能力</p>
-      <router-link to="/register" class="btn primary lg">创建账号</router-link>
-    </section>
+      <!-- IoT 模块 -->
+      <section class="module reverse">
+        <div class="module-text">
+          <span class="module-tag">IOT PLATFORM</span>
+          <h2>连接现实世界</h2>
+          <p class="module-desc">通过传感器、设备与数据，构建智能应用。专为智能测控与工业互联网场景设计。</p>
+          <ul class="module-feats">
+            <li>✓ 设备接入管理</li>
+            <li>✓ 实时数据采集</li>
+            <li>✓ 可视化仪表盘</li>
+          </ul>
+          <router-link to="/iot" class="btn dark">进入 IoT →</router-link>
+        </div>
+        <div class="module-visual">
+          <div class="device-demo">
+            <div class="dev-head"><span class="live-dot"></span> 设备状态</div>
+            <div class="dev-grid">
+              <div class="dev-metric"><span>温度</span><b>26.5<small>℃</small></b></div>
+              <div class="dev-metric"><span>湿度</span><b>60<small>%</small></b></div>
+              <div class="dev-metric"><span>在线</span><b class="ok">🟢</b></div>
+            </div>
+          </div>
+        </div>
+      </section>
 
+      <!-- Demo 实验室 -->
+      <section class="section lab">
+        <div class="lab-head">
+          <span class="module-tag">DEMO LABORATORY</span>
+          <h2>实验展示 · 技术试验场</h2>
+        </div>
+        <div class="lab-grid">
+          <div class="lab-card" v-for="d in demos" :key="d.name">
+            <div class="lab-icon">{{ d.icon }}</div>
+            <b>{{ d.name }}</b>
+            <span>{{ d.desc }}</span>
+          </div>
+        </div>
+        <div class="lab-cta">
+          <router-link to="/demo" class="btn outline">进入实验室 →</router-link>
+        </div>
+      </section>
+
+      <!-- 开发者区域 -->
+      <section class="module reverse">
+        <div class="module-text">
+          <span class="module-tag">DEVELOPER</span>
+          <h2>API First Architecture</h2>
+          <p class="module-desc">RESTful API 设计，统一鉴权与版本管理。开放、可扩展，为未来的开放平台与 SDK 做好准备。</p>
+          <ul class="module-feats">
+            <li>✓ REST API /api/v1</li>
+            <li>✓ JWT + RBAC</li>
+            <li>✓ 版本化演进</li>
+          </ul>
+          <router-link to="/docs" class="btn dark">查看文档 →</router-link>
+        </div>
+        <div class="module-visual">
+          <div class="code-demo">
+            <div class="code-line"><span class="c-k">POST</span> <span class="c-u">/api/v1/ai/chat</span></div>
+            <div class="code-line"><span class="c-k">Authorization:</span> <span class="c-v">Bearer</span> eyJ...</div>
+            <div class="code-line br"></div>
+            <div class="code-line"><span class="c-p">{</span></div>
+            <div class="code-line">&nbsp;&nbsp;<span class="c-k">"question"</span>: <span class="c-v">"你好"</span>,</div>
+            <div class="code-line">&nbsp;&nbsp;<span class="c-k">"model"</span>: <span class="c-v">"deepseek-chat"</span></div>
+            <div class="code-line"><span class="c-p">}</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 技术栈 -->
+      <section class="section trust">
+        <p class="trust-label">POWERED BY</p>
+        <div class="trust-row">
+          <span v-for="t in stack" :key="t" class="trust-chip">{{ t }}</span>
+        </div>
+      </section>
+    </template>
+
+    <!-- Footer -->
     <footer class="footer">
-      <span>Project Harness · 个人智能服务平台</span>
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <b>Harness Platform</b>
+          <span>AI · IoT · Digital Services</span>
+        </div>
+        <div class="footer-cols">
+          <div class="footer-col">
+            <b>产品</b>
+            <router-link to="/ai">AI</router-link>
+            <router-link to="/demo">Demo</router-link>
+            <router-link to="/iot">IoT</router-link>
+          </div>
+          <div class="footer-col">
+            <b>开发者</b>
+            <router-link to="/docs">API 文档</router-link>
+            <a href="https://github.com/3128771573/project-harness" target="_blank" rel="noopener">GitHub</a>
+          </div>
+          <div class="footer-col">
+            <b>账号</b>
+            <router-link to="/login">登录</router-link>
+            <router-link to="/register">注册</router-link>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2026 Harness Platform · 个人智能服务平台</div>
     </footer>
   </div>
 </template>
 
 <script setup>
-const stack = ['Vue 3', 'Vite', 'FastAPI', 'SQLAlchemy', 'PostgreSQL 16', 'Docker', 'Nginx', 'JWT', 'bcrypt', 'GitHub Actions']
+import { computed } from 'vue'
+import SiteNav from '../components/SiteNav.vue'
+
+const user = computed(() => {
+  try {
+    return JSON.parse(localStorage.getItem('harness_user') || 'null')
+  } catch {
+    return null
+  }
+})
+
+const stack = ['Vue 3', 'FastAPI', 'PostgreSQL', 'Docker', 'Nginx', 'Linux']
+
+const demos = [
+  { icon: '💳', name: '支付 Demo', desc: '订单 · 支付流程模拟' },
+  { icon: '🎬', name: '视频播放器', desc: '媒体播放组件' },
+  { icon: '🎵', name: '音乐播放器', desc: '在线音频体验' },
+  { icon: '🧠', name: 'AI 组件', desc: '对话式交互组件' },
+  { icon: '🧩', name: '交互组件', desc: 'UI 实验集合' },
+  { icon: '📈', name: '数据可视化', desc: '图表与曲线' },
+]
 </script>
 
 <style scoped>
@@ -116,152 +283,228 @@ const stack = ['Vue 3', 'Vite', 'FastAPI', 'SQLAlchemy', 'PostgreSQL 16', 'Docke
   min-height: 100vh;
   background: #fff;
   color: #111827;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
-/* 导航 */
-.nav {
-  position: sticky;
-  top: 0;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid #f0f1f5;
-  z-index: 10;
-}
-
-.nav-inner {
-  max-width: 1080px;
+/* ===== 已登录控制中心 ===== */
+.home-shell {
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 14px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  padding: 64px 28px;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.welcome h1 {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
-.brand-logo {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #4f7cf7, #7aa5f0);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 17px;
-}
-
-.brand-name {
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.nav-links {
-  display: flex;
-  gap: 28px;
-}
-
-.nav-links a {
+.welcome-sub {
   color: #6b7280;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
+  margin-top: 8px;
+  font-size: 15px;
 }
 
-.nav-links a:hover {
-  color: #111827;
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 32px 0;
 }
 
-.nav-actions {
+.quick-card {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #eef0f5;
+  border-radius: 16px;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
 }
 
-/* 按钮 */
-.btn {
-  display: inline-flex;
+.quick-card:hover {
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+  border-color: #e2e8f0;
+}
+
+.q-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 9px 18px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.15s;
-  cursor: pointer;
-  border: 1px solid transparent;
+  font-size: 20px;
+  flex-shrink: 0;
 }
 
-.btn.primary {
-  background: #2b6de9;
-  color: #fff;
-}
+.quick-card.ai .q-icon { background: #eef2ff; color: #4338ca; }
+.quick-card.iot .q-icon { background: #ecfdf5; color: #059669; }
+.quick-card.demo .q-icon { background: #f5f3ff; color: #7c3aed; }
+.quick-card.settings .q-icon { background: #fffbeb; color: #b45309; }
 
-.btn.primary:hover {
-  background: #1f5ad0;
-}
-
-.btn.ghost {
-  background: transparent;
-  color: #374151;
-  border-color: #e5e7eb;
-}
-
-.btn.ghost:hover {
-  background: #f8f9fc;
-}
-
-.btn.lg {
-  padding: 12px 26px;
+.quick-card b {
   font-size: 15px;
-  border-radius: 12px;
+  font-weight: 700;
+  display: block;
 }
 
-/* Hero */
+.quick-card span {
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+.q-arrow {
+  margin-left: auto;
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+.panel-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.panel-card {
+  border: 1px solid #eef0f5;
+  border-radius: 16px;
+  padding: 22px;
+}
+
+.panel-card h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.panel-num {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 10px 0 4px;
+}
+
+.panel-sub {
+  font-size: 12.5px;
+  color: #9ca3af;
+}
+
+.live-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2);
+}
+
+/* ===== Hero ===== */
 .hero {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 88px 24px 60px;
+  position: relative;
+  overflow: hidden;
+  background: #fafbfd;
+  min-height: 620px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
+.hero-bg {
+  position: absolute;
+  inset: 0;
+}
+
+.grid-layer {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
+}
+
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.35;
+}
+
+.glow-1 {
+  width: 480px;
+  height: 480px;
+  background: #2b6de9;
+  top: -160px;
+  left: -120px;
+}
+
+.glow-2 {
+  width: 420px;
+  height: 420px;
+  background: #8b5cf6;
+  bottom: -180px;
+  right: -100px;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 80px 28px;
+  max-width: 780px;
+}
+
 .hero-badge {
-  display: inline-block;
-  background: #eef2ff;
-  color: #4338ca;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  padding: 6px 16px;
+  color: #4b5563;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #e5e7eb;
   border-radius: 999px;
-  margin-bottom: 24px;
+  padding: 7px 16px;
+  margin-bottom: 28px;
 }
 
-.hero h1 {
-  font-size: 44px;
+.badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.hero-title {
+  font-size: 64px;
   font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  margin-bottom: 20px;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  margin-bottom: 18px;
 }
 
-.grad {
+.hero-sub-title {
+  display: block;
+  font-size: 30px;
+  font-weight: 600;
   background: linear-gradient(135deg, #2b6de9, #8b5cf6);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  margin-top: 10px;
+  letter-spacing: -0.02em;
 }
 
-.hero-sub {
+.hero-desc {
   font-size: 17px;
   color: #6b7280;
-  line-height: 1.7;
-  max-width: 560px;
-  margin: 0 auto 32px;
+  line-height: 1.75;
+  margin-bottom: 34px;
 }
 
 .hero-actions {
@@ -271,214 +514,408 @@ const stack = ['Vue 3', 'Vite', 'FastAPI', 'SQLAlchemy', 'PostgreSQL 16', 'Docke
   margin-bottom: 48px;
 }
 
-.hero-stats {
-  display: flex;
-  justify-content: center;
-  gap: 48px;
-}
-
-.hero-stats .stat {
-  display: flex;
-  flex-direction: column;
+.btn {
+  display: inline-flex;
   align-items: center;
-}
-
-.hero-stats b {
-  font-size: 28px;
-  font-weight: 800;
-  color: #111827;
-}
-
-.hero-stats span {
-  font-size: 13px;
-  color: #9ca3af;
-  margin-top: 2px;
-}
-
-/* 区块 */
-.section {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 64px 24px;
-}
-
-.section.alt {
-  background: #f8f9fc;
-  border-radius: 24px;
-  max-width: 960px;
-}
-
-.section-title {
-  font-size: 28px;
-  font-weight: 800;
-  text-align: center;
-  margin-bottom: 40px;
-  letter-spacing: -0.01em;
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
-}
-
-.feature-card {
-  border: 1px solid #f0f1f5;
-  border-radius: 16px;
-  padding: 26px 22px;
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-
-.feature-card:hover {
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
-  transform: translateY(-3px);
-}
-
-.f-icon {
-  width: 44px;
-  height: 44px;
+  justify-content: center;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  margin-bottom: 16px;
-}
-
-.f-icon.blue { background: #eef2ff; }
-.f-icon.violet { background: #f5f3ff; }
-.f-icon.green { background: #ecfdf5; }
-.f-icon.amber { background: #fffbeb; }
-
-.feature-card h3 {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.feature-card p {
-  font-size: 14px;
-  color: #6b7280;
-  line-height: 1.7;
-}
-
-/* 技术栈 */
-.stack-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 36px;
-}
-
-.stack-chip {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-  padding: 7px 16px;
-  font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
 }
 
-.arch-diagram {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
+.btn.lg {
+  padding: 14px 30px;
+  font-size: 15px;
 }
 
-.arch-box {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 16px 20px;
-  text-align: center;
-  font-weight: 700;
-  font-size: 14px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
-}
-
-.arch-box small {
-  font-weight: 400;
-  color: #9ca3af;
-  font-size: 12px;
-}
-
-.arch-arrow {
-  font-size: 20px;
-  color: #9ca3af;
-}
-
-/* 路线 */
-.roadmap {
-  max-width: 520px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.rm-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
-  border: 1px solid #f0f1f5;
-  border-radius: 12px;
-  font-size: 14px;
-}
-
-.rm-item.done { background: #f8faf8; }
-.rm-item.current { border-color: #bfdbfe; background: #eff6ff; }
-
-.rm-item b {
-  margin-right: 8px;
-}
-
-.rm-dot {
-  font-size: 16px;
-}
-
-/* CTA */
-.cta {
-  text-align: center;
-  padding: 72px 24px;
-  background: linear-gradient(135deg, #1e3a8a, #4f46e5);
+.btn.dark {
+  background: #111827;
   color: #fff;
 }
 
-.cta h2 {
-  font-size: 30px;
+.btn.dark:hover {
+  background: #1f2937;
+  transform: translateY(-1px);
+}
+
+.btn.outline {
+  background: transparent;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+.btn.outline:hover {
+  border-color: #111827;
+}
+
+.hero-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.flow-node {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.flow-node.ai { color: #4338ca; }
+.flow-node.api { color: #059669; }
+.flow-node.data { color: #b45309; }
+.flow-node.dev { color: #7c3aed; }
+
+.flow-line {
+  width: 36px;
+  height: 1px;
+  background: #d1d5db;
+  position: relative;
+}
+
+.flow-line::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -2px;
+  border: 3px solid transparent;
+  border-left-color: #d1d5db;
+}
+
+/* ===== 通用 section ===== */
+.section {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 80px 28px;
+}
+
+.module {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 72px 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.module.reverse {
+  direction: rtl;
+}
+
+.module.reverse > * {
+  direction: ltr;
+}
+
+.module-tag {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #2b6de9;
+}
+
+.module-text h2 {
+  font-size: 34px;
   font-weight: 800;
-  margin-bottom: 10px;
+  letter-spacing: -0.02em;
+  margin: 14px 0 16px;
 }
 
-.cta p {
-  opacity: 0.8;
-  margin-bottom: 26px;
+.module-desc {
+  font-size: 15.5px;
+  color: #6b7280;
+  line-height: 1.75;
+  margin-bottom: 22px;
 }
 
-.cta .btn.primary {
+.module-feats {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.module-feats li {
+  font-size: 14.5px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.module-feats li::first-letter {
+  color: #059669;
+}
+
+/* AI 对话 demo */
+.chat-demo {
   background: #fff;
-  color: #1e3a8a;
-}
-
-.cta .btn.primary:hover {
-  background: #f0f4ff;
-}
-
-.footer {
-  text-align: center;
+  border: 1px solid #eef0f5;
+  border-radius: 18px;
   padding: 24px;
-  color: #9ca3af;
-  font-size: 13px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-@media (max-width: 640px) {
-  .nav-links { display: none; }
-  .hero h1 { font-size: 32px; }
-  .hero-stats { gap: 24px; }
+.chat-line {
+  max-width: 82%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.chat-line.user {
+  align-self: flex-end;
+  background: #111827;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-line.ai {
+  align-self: flex-start;
+  background: #f3f4f6;
+  color: #374151;
+  border-bottom-left-radius: 4px;
+}
+
+/* IoT 设备 demo */
+.device-demo {
+  background: #111827;
+  border-radius: 18px;
+  padding: 24px;
+  color: #fff;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.25);
+}
+
+.dev-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9ca3af;
+  margin-bottom: 18px;
+}
+
+.dev-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.dev-metric {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.dev-metric span {
+  display: block;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 6px;
+}
+
+.dev-metric b {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.dev-metric b small {
+  font-size: 13px;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.dev-metric b.ok {
+  font-size: 18px;
+}
+
+/* 代码 demo */
+.code-demo {
+  background: #111827;
+  border-radius: 18px;
+  padding: 26px;
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 13px;
+  line-height: 2;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.25);
+}
+
+.code-line .c-k { color: #7aa5f0; }
+.code-line .c-u { color: #93c5fd; }
+.code-line .c-v { color: #6ee7b7; }
+.code-line .c-p { color: #f0abfc; }
+.code-line.br { height: 4px; }
+
+/* Demo 实验室 */
+.lab {
+  text-align: center;
+}
+
+.lab-head {
+  margin-bottom: 36px;
+}
+
+.lab-head h2 {
+  font-size: 32px;
+  font-weight: 800;
+  margin-top: 10px;
+}
+
+.lab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.lab-card {
+  border: 1px solid #eef0f5;
+  border-radius: 16px;
+  padding: 26px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.lab-card:hover {
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  transform: translateY(-3px);
+}
+
+.lab-icon {
+  font-size: 30px;
+}
+
+.lab-card b {
+  font-size: 15px;
+}
+
+.lab-card span {
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+.lab-cta {
+  margin-top: 36px;
+}
+
+/* 技术栈 */
+.trust {
+  text-align: center;
+  padding-top: 40px;
+  padding-bottom: 72px;
+}
+
+.trust-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #9ca3af;
+  margin-bottom: 20px;
+}
+
+.trust-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.trust-chip {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+  padding: 8px 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fafbfd;
+}
+
+/* Footer */
+.footer {
+  background: #0f1117;
+  color: #d1d5db;
+  padding: 56px 28px 24px;
+}
+
+.footer-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.footer-brand b {
+  font-size: 16px;
+  color: #fff;
+}
+
+.footer-brand span {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.footer-cols {
+  display: flex;
+  gap: 60px;
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-col b {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+.footer-col a {
+  font-size: 13.5px;
+  color: #d1d5db;
+  text-decoration: none;
+}
+
+.footer-col a:hover {
+  color: #fff;
+}
+
+.footer-bottom {
+  max-width: 1120px;
+  margin: 40px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+@media (max-width: 860px) {
+  .hero-title { font-size: 44px; }
+  .hero-sub-title { font-size: 22px; }
+  .module, .module.reverse { grid-template-columns: 1fr; gap: 32px; }
+  .footer-inner { flex-direction: column; }
 }
 </style>

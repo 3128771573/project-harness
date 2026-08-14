@@ -6,6 +6,9 @@ import RegisterView from '../views/RegisterView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import ChatView from '../views/ChatView.vue'
 import SettingsView from '../views/SettingsView.vue'
+import DemoView from '../views/DemoView.vue'
+import IotView from '../views/IotView.vue'
+import DocsView from '../views/DocsView.vue'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
 import AdminUsersView from '../views/admin/AdminUsersView.vue'
@@ -24,6 +27,9 @@ const routes = [
   { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
   { path: '/ai', name: 'ai', component: ChatView, meta: { requiresAuth: true } },
   { path: '/settings', name: 'settings', component: SettingsView, meta: { requiresAuth: true } },
+  { path: '/demo', name: 'demo', component: DemoView },
+  { path: '/iot', name: 'iot', component: IotView },
+  { path: '/docs', name: 'docs', component: DocsView },
   {
     path: '/admin',
     component: AdminLayout,
