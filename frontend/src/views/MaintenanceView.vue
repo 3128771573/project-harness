@@ -1,24 +1,42 @@
 <template>
   <div class="maint-page">
     <div class="maint-card">
-      <div class="maint-icon">🔧</div>
-      <h1>系统维护中</h1>
+      <div class="maint-icon">{{ icon }}</div>
+      <h1>{{ title }}</h1>
       <p class="maint-msg">{{ message }}</p>
-      <p class="maint-sub">我们正在升级服务，预计很快恢复。给您带来不便，敬请谅解。</p>
+      <p class="maint-sub" v-if="mode === 'block_new'">已登录用户可以正常访问，无需操作</p>
+      <p class="maint-sub" v-else-if="mode === 'admin_only'">当前仅管理员可访问</p>
+      <p class="maint-sub" v-else>我们正在升级服务，给您带来不便，敬请谅解。</p>
+      <div v-if="countdown > 0" class="countdown">
+        <span>预计恢复倒计时</span>
+        <b class="mono">{{ cdText }}</b>
+      </div>
       <button class="btn" @click="refresh">刷新状态</button>
       <div class="maint-admin-entry" v-if="!isAdmin">
         <p>如果您是管理员，请先登录后再进入后台</p>
         <router-link to="/login" class="btn primary">管理员登录</router-link>
       </div>
-      <p v-else class="maint-tip">您已以管理员身份登录，维护模式下可正常访问后台（系统设置中可关闭维护模式）</p>
+      <p v-else class="maint-tip">您已以管理员身份登录，维护模式下可正常访问后台（维护模式管理可关闭）</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
+const mode = ref('full')
 const message = ref('系统正在升级维护，请稍后再试。')
+const autoCloseAt = ref('')
+let countdown = ref(0)
+let timer = null
+
+const icon = computed(() => ({ full: '🔧', block_new: '🚪', scheduled: '⏰', admin_only: '🔒' })[mode.value] || '🔧')
+const title = computed(() => ({ full: '系统维护中', block_new: '站内调整中', scheduled: '定时维护中', admin_only: '仅管理员访问' })[mode.value] || '系统维护中')
+const cdText = computed(() => {
+  const s = Math.max(0, countdown.value)
+  const pad = (x) => String(x).padStart(2, '0')
+  return pad(Math.floor(s / 3600)) + ':' + pad(Math.floor((s % 3600) / 60)) + ':' + pad(s % 60)
+})
 
 const isAdmin = computed(() => {
   try {
@@ -33,16 +51,40 @@ async function refresh() {
   try {
     const resp = await fetch('/api/v1/public/maintenance')
     const d = await resp.json()
-    message.value = d.message || message.value
+    mode.value = d.mode || 'full'
+    message.value = d.reason || d.message || message.value
+    autoCloseAt.value = d.auto_close_at || ''
     if (!d.maintenance) {
       window.location.href = '/'
+      return
+    }
+    updateCountdown()
+    if (autoCloseAt.value) {
+      clearInterval(timer)
+      timer = setInterval(updateCountdown, 1000)
     }
   } catch {
     /* ignore */
   }
 }
 
-onMounted(refresh)
+function updateCountdown() {
+  if (!autoCloseAt.value) {
+    countdown.value = 0
+    return
+  }
+  countdown.value = Math.max(0, Math.floor((new Date(autoCloseAt.value).getTime() - Date.now()) / 1000))
+}
+
+onMounted(() => {
+  refresh()
+  clearInterval(timer)
+  timer = setInterval(() => {
+    if (!autoCloseAt.value) refresh()
+  }, 30000)
+})
+
+onUnmounted(() => clearInterval(timer))
 </script>
 
 <style scoped>
@@ -57,18 +99,18 @@ onMounted(refresh)
 
 .maint-card {
   text-align: center;
-  max-width: 460px;
+  max-width: 480px;
 }
 
 .maint-icon {
   font-size: 56px;
   margin-bottom: 16px;
-  animation: spin 6s linear infinite;
+  animation: float 3s ease-in-out infinite;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
 .maint-card h1 {
@@ -88,6 +130,26 @@ onMounted(refresh)
   font-size: 13px;
   color: var(--text-muted, #888);
   margin: 0 0 20px;
+}
+
+.countdown {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.countdown span {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  margin-bottom: 4px;
+}
+
+.countdown b {
+  font-size: 24px;
+  color: var(--primary-color, #2b6de9);
 }
 
 .maint-tip {
@@ -110,5 +172,9 @@ onMounted(refresh)
 
 .maint-admin-entry .btn {
   display: inline-block;
+}
+
+.mono {
+  font-family: var(--font-mono, ui-monospace, monospace);
 }
 </style>

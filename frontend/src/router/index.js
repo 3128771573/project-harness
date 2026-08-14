@@ -36,6 +36,7 @@ const AdminMessagesView = () => import('../views/admin/AdminMessagesView.vue')
 const AdminWatermarkView = () => import('../views/admin/AdminWatermarkView.vue')
 const AdminImView = () => import('../views/admin/AdminImView.vue')
 const AdminExportView = () => import('../views/admin/AdminExportView.vue')
+const AdminMaintenanceView = () => import('../views/admin/AdminMaintenanceView.vue')
 
 const routes = [
   { path: '/', name: 'home', component: LandingView },
@@ -78,6 +79,7 @@ const routes = [
       { path: 'watermark', name: 'admin-watermark', component: AdminWatermarkView, meta: { requiresSuperAdmin: true } },
       { path: 'im', name: 'admin-im', component: AdminImView },
       { path: 'exports', name: 'admin-exports', component: AdminExportView, meta: { requiresSuperAdmin: true } },
+      { path: 'maintenance', name: 'admin-maintenance', component: AdminMaintenanceView, meta: { requiresSuperAdmin: true } },
     ],
   },
 ]
@@ -95,22 +97,22 @@ function getUser() {
   }
 }
 
-// ===== 维护模式检查（60s 缓存；管理员豁免） =====
-let maintCache = { mode: false, ts: 0 }
+// ===== 维护模式检查（60s 缓存；管理员与 block_new 已登录用户豁免） =====
+let maintCache = { active: false, mode: 'none', ts: 0 }
 
 async function checkMaintenance() {
   const now = Date.now()
-  if (now - maintCache.ts < 60000) return maintCache.mode
+  if (now - maintCache.ts < 60000) return maintCache
   try {
     const resp = await fetch('/api/v1/public/maintenance', {
       headers: { 'Cache-Control': 'no-cache' },
     })
-    if (!resp.ok) return false
+    if (!resp.ok) return { active: false, mode: 'none' }
     const d = await resp.json()
-    maintCache = { mode: !!d.maintenance, ts: now }
-    return maintCache.mode
+    maintCache = { active: !!d.maintenance, mode: d.mode || 'none', ts: now }
+    return maintCache
   } catch {
-    return false
+    return { active: false, mode: 'none' }
   }
 }
 
@@ -119,15 +121,22 @@ function isAdminUser() {
   return !!(u && ['admin', 'super_admin'].includes(u.role))
 }
 
+function isLoggedIn() {
+  return !!localStorage.getItem('harness_access')
+}
+
 // 维护模式下仍必须可达的路径：维护页 / 登录 / 注册 / OAuth 回调（否则管理员退出后无法再登录，造成死锁）
 const MAINT_FREE_PATHS = ['/maintenance', '/login', '/register', '/oauth/callback']
 
 router.beforeEach(async (to) => {
-  // 维护模式：非管理员重定向到维护页（登录链路始终放行，保证管理员可重新登录解除维护）
+  // 维护模式：管理员与 block_new 已登录用户豁免；其余重定向到维护页（登录链路始终放行）
   if (!MAINT_FREE_PATHS.includes(to.path) && !isAdminUser()) {
     const maint = await checkMaintenance()
-    if (maint) {
-      return { path: '/maintenance' }
+    if (maint.active) {
+      const exemptLoggedIn = maint.mode === 'block_new' && isLoggedIn()
+      if (!exemptLoggedIn) {
+        return { path: '/maintenance' }
+      }
     }
   }
   const token = localStorage.getItem('harness_access')

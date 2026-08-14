@@ -443,6 +443,18 @@ class WatermarkLog(Base):
 
 
 
+class MaintenanceConfig(Base):
+    """企业级维护模式配置（key-value）"""
+
+    __tablename__ = "maintenance_config"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    config_key: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    config_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    updated_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
 class SensitiveWord(Base):
     """敏感词库（内容审核拦截；管理员可增删启停）"""
 

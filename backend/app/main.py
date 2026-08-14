@@ -12,10 +12,31 @@ from .database import SessionLocal, engine
 from .errors import validation_error_handler
 from .middleware import MaintenanceMiddleware, VisitLogMiddleware
 from .models import Base, Notice, Role, VisitLog
-from .routers import admin, admin_export, admin_im, ai, auth, guestbook, im, im_groups, iot, oauth, security, system, user
+from .routers import admin, admin_export, admin_im, admin_maintenance, ai, auth, guestbook, im, im_groups, iot, oauth, security, system, user
 from .services.bot import ensure_bot
 from .services.cleanup import cleanup_loop
 from .services.iot_mqtt import mqtt_worker
+from .services.maintenance import maintenance_tick as _maint_tick
+
+
+async def maintenance_loop() -> None:
+    """维护模式自动恢复循环：每 10s 执行一次检查；自动关闭/定时开启时审计+通知"""
+    from .services.audit import record_audit
+    from .services.maintenance import snapshot as _snap
+    from .services.notify import notify_admins
+
+    while True:
+        try:
+            async with SessionLocal() as db:
+                result = await _maint_tick(db)
+                if result:
+                    action = result.get("action", "")
+                    await record_audit(db, actor=None, action="maintenance." + action, detail=result.get("detail", ""))
+                    snap = await _snap(db)
+                    await notify_admins(db, action=action, snap=snap)
+        except Exception:
+            pass
+        await asyncio.sleep(10)
 from .security import ROLE_ADMIN, ROLE_SUPER_ADMIN, ROLE_USER
 
 # 版本号集中管理
@@ -50,13 +71,28 @@ async def lifespan(app: FastAPI):
     # 确保公告机器账号存在（uid 固定保留）
     async with SessionLocal() as db:
         await ensure_bot(db)
+    # 服务器重启后的遗留维护状态检测（开启超 30 分钟自动关闭）
+    async with SessionLocal() as db:
+        from .services.maintenance import on_server_start
+
+        try:
+            result = await on_server_start(db)
+            if result:
+                from .services.audit import record_audit
+
+                await record_audit(db, actor=None, action="maintenance.auto_close", detail=result.get("detail", "重启检测"))
+        except Exception:
+            pass
     # 启动 MQTT 遥测订阅（任务挂在 app.state 防止被 GC；broker 未就绪会自动重连）
     app.state.mqtt_task = asyncio.create_task(mqtt_worker())
     # 启动每日过期数据清理
     app.state.cleanup_task = asyncio.create_task(cleanup_loop())
+    # 维护模式自动恢复循环（倒计时 / 超时兜底 / 定时维护，每 10s 检查）
+    app.state.maint_task = asyncio.create_task(maintenance_loop())
     yield
     app.state.mqtt_task.cancel()
     app.state.cleanup_task.cancel()
+    app.state.maint_task.cancel()
     await engine.dispose()
 
 
@@ -95,6 +131,7 @@ app.include_router(im.router, prefix="/api/v1")
 app.include_router(im_groups.router, prefix="/api/v1")
 app.include_router(admin_im.router, prefix="/api/v1")
 app.include_router(admin_export.router, prefix="/api/v1")
+app.include_router(admin_maintenance.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health", tags=["system"])
@@ -125,12 +162,24 @@ async def public_stats():
 async def public_maintenance():
     """公开维护状态（维护页 / 路由守卫轮询；维护模式白名单放行）"""
     from .services import settings as settings_svc
-    from .services.maintenance import is_maintenance
+    from .services.maintenance import snapshot as _snap
 
     async with SessionLocal() as db:
+        snap = await _snap(db)
+        mode = snap["mode"]
+        default_msg = "系统正在升级维护，请稍后再试。"
+        if mode == "block_new":
+            default_msg = "站内正在调整，已登录用户可以正常访问。"
+        elif mode == "admin_only":
+            default_msg = "当前仅管理员可访问。"
+        elif mode == "scheduled":
+            default_msg = "系统正在进行定时维护，请稍后再试。"
         return {
-            "maintenance": await is_maintenance(db),
-            "message": await settings_svc.get_setting(db, "site.maintenance_message", default="系统正在升级维护，请稍后再试。"),
+            "maintenance": mode != "none",
+            "mode": mode,
+            "reason": snap.get("reason", "") or default_msg,
+            "auto_close_at": snap.get("auto_close_at", ""),
+            "message": snap.get("reason", "") or default_msg,
         }
 
 

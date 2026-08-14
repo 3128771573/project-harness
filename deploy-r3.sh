@@ -17,14 +17,14 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT
 -- 手工插入会与已推进的版本产生双行导致 overlaps 错误）
 DELETE FROM visit_logs WHERE method <> 'PAGE' OR method IS NULL;
 -- 维护模式：部署期间开启（新容器启动后生效），部署完成后关闭
-INSERT INTO app_settings (key, value, updated_at) VALUES ('site.maintenance','true', now())
-  ON CONFLICT (key) DO UPDATE SET value='true', updated_at=now();
+INSERT INTO maintenance_config (id, config_key, config_value, updated_by) VALUES (gen_random_uuid()::text, 'mode', 'full', 'deploy')
+  ON CONFLICT (config_key) DO UPDATE SET config_value='full', updated_by='deploy', updated_at=now();
 SQL
 scp -i $KEY -o StrictHostKeyChecking=accept-new /tmp/migrate.sql ubuntu@124.222.140.57:/tmp/migrate.sql
 echo "=== 生成维护关闭 SQL（部署完成后执行） ==="
 cat > /tmp/maint-off.sql <<'SQL'
-INSERT INTO app_settings (key, value, updated_at) VALUES ('site.maintenance','false', now())
-  ON CONFLICT (key) DO UPDATE SET value='false', updated_at=now();
+INSERT INTO maintenance_config (id, config_key, config_value, updated_by) VALUES (gen_random_uuid()::text, 'mode', 'none', 'deploy')
+  ON CONFLICT (config_key) DO UPDATE SET config_value='none', updated_by='deploy', updated_at=now();
 SQL
 scp -i $KEY -o StrictHostKeyChecking=accept-new /tmp/maint-off.sql ubuntu@124.222.140.57:/tmp/maint-off.sql
 echo "=== 云端解包 + 重建 backend + frontend ==="

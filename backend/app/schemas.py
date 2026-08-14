@@ -833,6 +833,40 @@ class SensitiveWordList(BaseModel):
     total: int
 
 
+# ==================== 企业级维护模式 ====================
+
+class MaintenanceEnableIn(BaseModel):
+    mode: str = Field(pattern=r"^(full|block_new|scheduled|admin_only)$")
+    reason: str = Field(min_length=1, max_length=200)
+    duration_minutes: int | None = Field(default=None, ge=1, le=1440)
+
+
+class MaintenanceExtendIn(BaseModel):
+    minutes: int = Field(ge=1, le=1440)
+
+
+class MaintenanceScheduleIn(BaseModel):
+    enabled: bool = True
+    time: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    duration: int | None = Field(default=None, ge=1, le=1440)
+    days: list[int] | None = Field(default=None, max_length=7)
+
+
+class MaintenanceStatusOut(BaseModel):
+    mode: str = "none"
+    reason: str = ""
+    operator: str = ""
+    start_at: str = ""
+    auto_close_at: str = ""
+    max_duration_minutes: int = 120
+    remaining_seconds: int = 0
+    emergency_configured: bool = False
+    scheduled_enabled: bool = False
+    scheduled_time: str = "03:00"
+    scheduled_duration: int = 60
+    scheduled_days: str = ""
+
+
 # ==================== 日志导出（企业级） ====================
 
 class ExportQueryIn(BaseModel):
