@@ -39,8 +39,9 @@
           </div>
           <p v-if="error" class="error">{{ error }}</p>
           <p v-if="successCode" class="success-msg">
-            提交成功！您的查询码是：<b class="qcode">{{ successCode }}</b><br />
-            请妥善保存，用于查看回复。
+            提交成功！您的留言档案号是：<b class="qcode">{{ successArchive }}</b><br />
+            查询码：<b class="qcode">{{ successCode }}</b><br />
+            请妥善保存查询码，用于查看回复与继续追问。
           </p>
           <button type="submit" class="btn" :disabled="submitting">{{ submitting ? '提交中…' : '提交留言' }}</button>
         </form>
@@ -61,17 +62,33 @@
         </form>
 
         <div v-if="result" class="result">
-          <div class="result-block">
-            <b class="result-label">留言内容</b>
-            <p class="result-content">{{ result.content }}</p>
-            <span class="muted small">{{ result.nickname ? result.nickname + ' · ' : '' }}{{ fmtTime(result.created_at) }}</span>
+          <div class="result-head">
+            <b class="archive-no">档案号 {{ result.archive_no || '—' }}</b>
+            <span :class="['status-pill', 'st-' + result.status]">{{ statusLabel(result.status) }}</span>
           </div>
-          <div class="result-block" :class="{ empty: !result.reply }">
-            <b class="result-label">作者回复</b>
-            <p v-if="result.reply" class="result-content">{{ result.reply }}</p>
-            <p v-else class="muted">暂无回复，作者看到后会尽快回复</p>
-            <span v-if="result.replied_at" class="muted small">{{ fmtTime(result.replied_at) }}</span>
+
+          <!-- 往来时间线 -->
+          <div class="timeline">
+            <div class="tl-item tl-visitor">
+              <b class="tl-who">{{ result.nickname || '我' }}</b>
+              <p class="result-content">{{ result.content }}</p>
+              <span class="muted small">{{ fmtTime(result.created_at) }}</span>
+            </div>
+            <div v-for="r in result.replies || []" :key="r.id" class="tl-item" :class="r.sender_type === 'admin' ? 'tl-admin' : 'tl-visitor'">
+              <b class="tl-who">{{ r.sender_type === 'admin' ? '作者' : (r.sender_name || '我') }}</b>
+              <p class="result-content">{{ r.content }}</p>
+              <span class="muted small">{{ fmtTime(r.created_time) }}</span>
+            </div>
           </div>
+
+          <!-- 追问（未关闭时可用） -->
+          <div v-if="result.status !== 'closed'" class="followup">
+            <textarea v-model.trim="followText" rows="2" maxlength="500" placeholder="继续追问（≤500 字）…"></textarea>
+            <button class="btn sm" :disabled="!followText || following" @click="sendFollowup">
+              {{ following ? '发送中…' : '追问' }}
+            </button>
+          </div>
+          <p v-else class="muted small">该留言已关闭，如需进一步联系请重新提交留言。</p>
         </div>
       </section>
     </div>
@@ -83,6 +100,16 @@ import SiteNav from '../components/SiteNav.vue'
 import api from '../api/client'
 
 const tab = ref('write')
+const successArchive = ref('')
+const followText = ref('')
+const following = ref(false)
+
+function statusLabel(s) {
+  if (s === 'pending') return '待回复'
+  if (s === 'replied') return '已回复'
+  if (s === 'closed') return '已关闭'
+  return s || '待回复'
+}
 
 // ===== 留言 =====
 const form = ref({ nickname: '', email: '', content: '', captcha: '' })
@@ -124,6 +151,7 @@ async function submit() {
       captcha: form.value.captcha,
     })
     successCode.value = data.query_code
+    successArchive.value = data.archive_no || ''
     form.value = { nickname: '', email: '', content: '', captcha: '' }
     refreshCaptcha()
   } catch (e) {
@@ -158,6 +186,24 @@ async function query() {
     qError.value = e.response?.data?.detail || '查询失败，请稍后重试'
   } finally {
     querying.value = false
+  }
+}
+
+async function sendFollowup() {
+  if (!followText.value.trim() || !result.value) return
+  following.value = true
+  try {
+    const { data } = await api.post('/query/reply', {
+      query_code: queryForm.value.code,
+      email: queryForm.value.email || undefined,
+      content: followText.value.trim(),
+    })
+    result.value = data.data
+    followText.value = ''
+  } catch (e) {
+    qError.value = e.response?.data?.detail || '追问失败，请稍后重试'
+  } finally {
+    following.value = false
   }
 }
 
@@ -397,6 +443,86 @@ refreshCaptcha()
   .field-row {
     flex-direction: column;
   }
+}
+
+.result-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.archive-no {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  color: var(--primary-color, #2b6de9);
+}
+
+.status-pill {
+  font-size: 11.5px;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-weight: 600;
+}
+
+.status-pill.st-pending {
+  background: #fff3e0;
+  color: #b36b00;
+}
+
+.status-pill.st-replied {
+  background: #e8f7ee;
+  color: var(--success, #30a46c);
+}
+
+.status-pill.st-closed {
+  background: var(--bg-secondary, #f1f3f5);
+  color: var(--text-muted, #888);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.tl-item {
+  border-left: 3px solid var(--border-color, #e5e7eb);
+  padding-left: 12px;
+}
+
+.tl-item.tl-visitor {
+  border-left-color: #f5a524;
+}
+
+.tl-item.tl-admin {
+  border-left-color: var(--primary-color, #2b6de9);
+}
+
+.tl-who {
+  font-size: 13px;
+}
+
+.followup {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  margin-top: 12px;
+  border-top: 1px dashed var(--border-color, #e5e7eb);
+  padding-top: 12px;
+}
+
+.followup textarea {
+  flex: 1;
+  resize: none;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--bg-secondary, #f1f3f5);
+  color: var(--text-primary, #111);
 }
 </style>
 

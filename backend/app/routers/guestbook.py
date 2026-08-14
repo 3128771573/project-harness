@@ -9,10 +9,18 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import or_
+
 from ..database import get_db
 from ..deps import require_roles
-from ..models import Message, User
+from ..models import GuestbookReply, GuestbookTemplate, Message, User
 from ..schemas import (
+    GuestbookReplyIn,
+    GuestbookReplyOut,
+    GuestbookTemplateIn,
+    GuestbookTemplateOut,
+    GuestbookTimelineOut,
+    GuestbookVisitorReplyIn,
     MessageAdminList,
     MessageAdminOut,
     MessageConfigIn,
@@ -54,6 +62,25 @@ def _client_ip(request: Request) -> str | None:
 
 def _gen_query_code() -> str:
     return "MSG-" + "".join(secrets.choice(CODE_CHARSET) for _ in range(8))
+
+
+async def _gen_archive_no(db: AsyncSession) -> str:
+    """生成档案号 GB-YYYYMMDD-NNN（当日序号，唯一索引防并发）"""
+    day = datetime.now(timezone.utc).strftime("%Y%m%d")
+    prefix = f"GB-{day}-"
+    for _ in range(5):
+        seq = (
+            await db.execute(
+                select(func.count()).select_from(Message).where(Message.archive_no.like(prefix + "%"))
+            )
+        ).scalar_one()
+        no = f"{prefix}{seq + 1:03d}"
+        exists = (
+            await db.execute(select(Message.id).where(Message.archive_no == no))
+        ).scalar_one_or_none()
+        if not exists:
+            return no
+    return f"{prefix}{secrets.randbelow(900) + 100:03d}"
 
 
 async def _cfg(db: AsyncSession) -> tuple[int, int, int]:
@@ -135,12 +162,14 @@ async def submit_message(
         email=payload.email,
         content=payload.content,
         query_code=code,
+        archive_no=await _gen_archive_no(db),
         ip=ip,
         user_agent=(request.headers.get("user-agent") or "")[:255],
     )
     db.add(msg)
     await db.commit()
-    return MessageSubmitOut(msg="success", query_code=code)
+    await db.refresh(msg)
+    return MessageSubmitOut(msg="success", query_code=code, archive_no=msg.archive_no)
 
 
 @router.post("/query", response_model=MessageQueryOut, summary="凭查询码查询留言与回复")
@@ -175,13 +204,88 @@ async def query_message(
         if not payload.email or msg.email.lower() != payload.email.strip().lower():
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="查询码或邮箱错误")
 
+    replies = (
+        await db.execute(
+            select(GuestbookReply)
+            .where(GuestbookReply.guestbook_id == msg.id)
+            .order_by(GuestbookReply.created_time.asc())
+        )
+    ).scalars().all()
     return MessageQueryOut(
         data={
+            "archive_no": msg.archive_no,
             "nickname": msg.nickname,
             "content": msg.content,
             "created_at": msg.created_time.isoformat() if msg.created_time else None,
+            "status": msg.status,
             "reply": msg.reply,
             "replied_at": msg.replied_at.isoformat() if msg.replied_at else None,
+            "replies": [
+                {
+                    "id": r.id,
+                    "sender_type": r.sender_type,
+                    "sender_name": r.sender_name,
+                    "content": r.content,
+                    "created_time": r.created_time.isoformat() if r.created_time else None,
+                }
+                for r in replies
+            ],
+        }
+    )
+
+
+@router.post("/query/reply", response_model=MessageQueryOut, summary="访客凭查询码追加追问")
+async def visitor_reply(
+    payload: GuestbookVisitorReplyIn,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """访客追问：写入时间线（sender_type=visitor），留言状态回到待回复"""
+    code = payload.query_code.strip().upper()
+    msg = (await db.execute(select(Message).where(Message.query_code == code))).scalar_one_or_none()
+    if msg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="查询码或邮箱错误")
+    if msg.email:
+        if not payload.email or msg.email.lower() != payload.email.strip().lower():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="查询码或邮箱错误")
+    if msg.status == "closed":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="该留言已关闭，无法继续追问")
+    db.add(
+        GuestbookReply(
+            guestbook_id=msg.id,
+            sender_type="visitor",
+            sender_name=msg.nickname or "访客",
+            content=payload.content,
+        )
+    )
+    msg.status = "pending"
+    msg.is_read = False
+    await db.commit()
+    # 返回最新时间线
+    replies = (
+        await db.execute(
+            select(GuestbookReply)
+            .where(GuestbookReply.guestbook_id == msg.id)
+            .order_by(GuestbookReply.created_time.asc())
+        )
+    ).scalars().all()
+    return MessageQueryOut(
+        data={
+            "archive_no": msg.archive_no,
+            "nickname": msg.nickname,
+            "content": msg.content,
+            "created_at": msg.created_time.isoformat() if msg.created_time else None,
+            "status": msg.status,
+            "replies": [
+                {
+                    "id": r.id,
+                    "sender_type": r.sender_type,
+                    "sender_name": r.sender_name,
+                    "content": r.content,
+                    "created_time": r.created_time.isoformat() if r.created_time else None,
+                }
+                for r in replies
+            ],
         }
     )
 
@@ -189,10 +293,12 @@ async def query_message(
 # ---------- 管理员：列表 / 已读 / 回复 / 删除 / 配置 ----------
 
 
-@router.get("/admin/messages", response_model=MessageAdminList, summary="留言列表（分页 + 统计）")
+@router.get("/admin/messages", response_model=MessageAdminList, summary="留言列表（分页 + 统计 + 筛选）")
 async def admin_messages(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=100),
+    status_filter: str | None = Query(default=None, description="pending / replied / closed"),
+    keyword: str | None = Query(default=None, description="按内容/昵称/档案号/查询码模糊搜索"),
     current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -204,10 +310,23 @@ async def admin_messages(
         )
     ).scalar_one()
     pending = (
-        await db.execute(select(func.count()).select_from(Message).where(Message.reply.is_(None)))
+        await db.execute(select(func.count()).select_from(Message).where(Message.status == "pending"))
     ).scalar_one()
+    q = select(Message)
+    if status_filter:
+        q = q.where(Message.status == status_filter)
+    if keyword:
+        kw = keyword.strip()
+        q = q.where(
+            or_(
+                Message.content.contains(kw, autoescape=True),
+                Message.nickname.contains(kw, autoescape=True),
+                Message.archive_no.contains(kw, autoescape=True),
+                Message.query_code.contains(kw, autoescape=True),
+            )
+        )
     result = await db.execute(
-        select(Message).order_by(Message.created_time.desc()).limit(page_size).offset((page - 1) * page_size)
+        q.order_by(Message.created_time.desc()).limit(page_size).offset((page - 1) * page_size)
     )
     items = [MessageAdminOut.model_validate(m) for m in result.scalars().all()]
     return MessageAdminList(
@@ -232,21 +351,142 @@ async def admin_toggle_read(
     return {"code": 0, "msg": "ok"}
 
 
-@router.put("/admin/messages/{mid}/reply", summary="回复留言")
-async def admin_reply(
+@router.get("/admin/messages/{mid}/replies", response_model=list[GuestbookReplyOut], summary="留言往来时间线")
+async def admin_timeline(
     mid: str,
-    payload: MessageReplyIn,
     current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     msg = await db.get(Message, mid)
     if msg is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="留言不存在")
+    replies = (
+        await db.execute(
+            select(GuestbookReply)
+            .where(GuestbookReply.guestbook_id == mid)
+            .order_by(GuestbookReply.created_time.asc())
+        )
+    ).scalars().all()
+    return [GuestbookReplyOut.model_validate(r) for r in replies]
+
+
+@router.put("/admin/messages/{mid}/reply", summary="回复留言（写入时间线 + 可选邮件通知）")
+async def admin_reply(
+    mid: str,
+    payload: MessageReplyIn,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    import asyncio
+
+    from ..services.mailer import send_email
+
+    msg = await db.get(Message, mid)
+    if msg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="留言不存在")
+    if msg.status == "closed":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="该留言已关闭，请先重新打开")
+    now = datetime.now(timezone.utc)
+    db.add(
+        GuestbookReply(
+            guestbook_id=msg.id,
+            sender_type="admin",
+            sender_name=current_user.username,
+            content=payload.reply,
+        )
+    )
     msg.reply = payload.reply
-    msg.replied_at = datetime.now(timezone.utc)
+    msg.replied_at = now
+    msg.status = "replied"
     msg.is_read = True
     await db.commit()
+    # 邮件通知（SMTP 未配置时静默跳过）
+    if msg.email:
+        try:
+            await asyncio.to_thread(
+                send_email,
+                msg.email,
+                f"【Harness】您的留言 {msg.archive_no or ''} 已回复",
+                f"<p>您好，{msg.nickname or '访客'}：</p>"
+                f"<p>您于 {msg.created_time.strftime('%Y-%m-%d %H:%M') if msg.created_time else ''} 提交的留言（档案号 <b>{msg.archive_no or ''}</b>）已收到回复：</p>"
+                f"<blockquote>{payload.reply.replace(chr(10), '<br>')}</blockquote>"
+                f"<p>您可凭查询码 <b>{msg.query_code}</b> 在留言板继续查看与追问。</p>",
+            )
+        except Exception:
+            pass
+    from ..services.audit import record_audit
+
+    await record_audit(db, actor=current_user, action="guestbook.reply", resource=f"message:{mid}", detail=f"回复留言 {msg.archive_no}")
     return {"code": 0, "msg": "ok"}
+
+
+@router.post("/admin/messages/{mid}/close", summary="关闭留言（不再接受追问）")
+async def admin_close(
+    mid: str,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    msg = await db.get(Message, mid)
+    if msg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="留言不存在")
+    msg.status = "closed"
+    await db.commit()
+    return {"code": 0, "msg": "ok"}
+
+
+@router.post("/admin/messages/{mid}/reopen", summary="重新打开留言")
+async def admin_reopen(
+    mid: str,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    msg = await db.get(Message, mid)
+    if msg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="留言不存在")
+    msg.status = "pending"
+    await db.commit()
+    return {"code": 0, "msg": "ok"}
+
+
+# ---------- 快捷回复模板 ----------
+
+
+@router.get("/admin/messages/templates", response_model=list[GuestbookTemplateOut], summary="回复模板列表")
+async def list_templates(
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (
+        await db.execute(select(GuestbookTemplate).order_by(GuestbookTemplate.created_time.asc()))
+    ).scalars().all()
+    return [GuestbookTemplateOut.model_validate(t) for t in rows]
+
+
+@router.post("/admin/messages/templates", response_model=GuestbookTemplateOut, status_code=status.HTTP_201_CREATED, summary="新增回复模板")
+async def create_template(
+    payload: GuestbookTemplateIn,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    t = GuestbookTemplate(name=payload.name, content=payload.content)
+    db.add(t)
+    await db.commit()
+    await db.refresh(t)
+    return GuestbookTemplateOut.model_validate(t)
+
+
+@router.delete("/admin/messages/templates/{tid}", status_code=status.HTTP_204_NO_CONTENT, summary="删除回复模板")
+async def delete_template(
+    tid: str,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    t = await db.get(GuestbookTemplate, tid)
+    if t is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模板不存在")
+    await db.delete(t)
+    await db.commit()
+    return None
 
 
 @router.delete("/admin/messages/{mid}", status_code=status.HTTP_204_NO_CONTENT, summary="删除留言")

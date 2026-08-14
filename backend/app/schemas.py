@@ -404,6 +404,7 @@ class MessageSubmitOut(BaseModel):
     code: int = 0
     msg: str = "success"
     query_code: str
+    archive_no: str | None = None
 
 
 class MessageQueryIn(BaseModel):
@@ -420,6 +421,7 @@ class MessageAdminOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    archive_no: str | None = None
     nickname: str | None = None
     email: str | None = None
     content: str
@@ -428,7 +430,51 @@ class MessageAdminOut(BaseModel):
     user_agent: str | None = None
     reply: str | None = None
     replied_at: datetime | None = None
+    status: str = "pending"
     is_read: bool
+    created_time: datetime
+
+
+class GuestbookReplyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    sender_type: str
+    sender_name: str | None = None
+    content: str
+    created_time: datetime
+
+
+class GuestbookTimelineOut(BaseModel):
+    archive_no: str | None = None
+    nickname: str | None = None
+    content: str
+    created_at: datetime | None = None
+    status: str = "pending"
+    replies: list[GuestbookReplyOut] = []
+
+
+class GuestbookReplyIn(BaseModel):
+    content: str = Field(..., min_length=1, max_length=2000)
+
+
+class GuestbookVisitorReplyIn(BaseModel):
+    query_code: str = Field(..., min_length=4, max_length=20)
+    email: str | None = Field(default=None, max_length=100)
+    content: str = Field(..., min_length=1, max_length=500)
+
+
+class GuestbookTemplateIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=64)
+    content: str = Field(..., min_length=1, max_length=2000)
+
+
+class GuestbookTemplateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    content: str
     created_time: datetime
 
 

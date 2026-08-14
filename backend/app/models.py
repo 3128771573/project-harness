@@ -222,15 +222,41 @@ class Message(Base):
     __tablename__ = "messages"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    archive_no: Mapped[str | None] = mapped_column(String(20), unique=True, index=True, nullable=True)  # 档案号 GB-YYYYMMDD-NNN
     nickname: Mapped[str | None] = mapped_column(String(20), nullable=True)
     email: Mapped[str | None] = mapped_column(String(100), nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     query_code: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=False)
     ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    reply: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reply: Mapped[str | None] = mapped_column(Text, nullable=True)  # 最后一条管理员回复（冗余，时间线以 guestbook_replies 为准）
     replied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(12), default="pending", nullable=False)  # pending / replied / closed
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class GuestbookReply(Base):
+    """留言往来记录（管理员回复 / 访客追问），多轮时间线"""
+
+    __tablename__ = "guestbook_replies"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    guestbook_id: Mapped[str] = mapped_column(String(36), ForeignKey("messages.id"), index=True, nullable=False)
+    sender_type: Mapped[str] = mapped_column(String(8), nullable=False)  # admin / visitor
+    sender_name: Mapped[str | None] = mapped_column(String(64), nullable=True)  # 管理员用户名或访客昵称
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class GuestbookTemplate(Base):
+    """快捷回复模板（管理员维护）"""
+
+    __tablename__ = "guestbook_templates"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name: Mapped[str] = mapped_column(String(64), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
     created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
