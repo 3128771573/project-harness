@@ -334,6 +334,35 @@ class AdminResetPasswordRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
+class NoticeOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    title: str
+    content: str
+    is_published: bool
+    created_time: datetime
+    updated_time: datetime
+    published_at: datetime | None = None
+
+
+class NoticeList(BaseModel):
+    items: list[NoticeOut]
+    total: int
+
+
+class NoticeCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
+    content: str = Field(..., min_length=1)
+    is_published: bool = False
+
+
+class NoticeUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    content: str | None = None
+    is_published: bool | None = None
+
+
 class VisitLogItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

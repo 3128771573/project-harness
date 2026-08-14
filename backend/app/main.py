@@ -10,7 +10,7 @@ from .config import settings
 from .database import SessionLocal, engine
 from .errors import validation_error_handler
 from .middleware import VisitLogMiddleware
-from .models import Base, Role, VisitLog
+from .models import Base, Notice, Role, VisitLog
 from .routers import admin, ai, auth, security, system, user
 from .security import ROLE_ADMIN, ROLE_SUPER_ADMIN, ROLE_USER
 
@@ -82,6 +82,26 @@ async def public_stats():
         "started_at": START_TIME.isoformat(),
         "uptime_seconds": max(0, int((now - START_TIME).total_seconds())),
         "visits": visits,
+    }
+
+
+@app.get("/api/v1/public/notices", tags=["system"])
+async def public_notices(limit: int = 5):
+    """已发布的公告（最新在前），供前台横幅与铃铛使用"""
+    async with SessionLocal() as db:
+        result = await db.execute(
+            select(Notice)
+            .where(Notice.is_published.is_(True))
+            .order_by(Notice.published_at.desc())
+            .limit(limit)
+        )
+        items = result.scalars().all()
+    return {
+        "items": [
+            {"id": n.id, "title": n.title, "content": n.content, "published_at": n.published_at}
+            for n in items
+        ],
+        "total": len(items),
     }
 
 

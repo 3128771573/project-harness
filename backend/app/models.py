@@ -168,6 +168,22 @@ class AppSetting(Base):
     )
 
 
+class Notice(Base):
+    """站内公告/通知（前台横幅 + 铃铛）"""
+
+    __tablename__ = "notices"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    title: Mapped[str] = mapped_column(String(120), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class VisitLog(Base):
     """访客访问记录（页面访问 + API 请求）"""
 

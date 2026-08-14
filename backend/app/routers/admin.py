@@ -6,10 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
 from ..deps import get_current_user, get_role_by_name, require_roles
-from ..models import AiHistory, AuditLog, LoginLog, RefreshToken, Role, User, VisitLog
+from ..models import AiHistory, AuditLog, LoginLog, Notice, RefreshToken, Role, User, VisitLog
 from ..schemas import (
     AdminLoginLogItem,
     AdminLoginLogList,
+    NoticeCreate,
+    NoticeList,
+    NoticeOut,
+    NoticeUpdate,
     AdminResetPasswordRequest,
     AdminStats,
     AiConfigOut,
@@ -584,3 +588,73 @@ async def admin_visits(
             page_views=page_views,
         ),
     )
+
+
+# ---------- 公告管理 ----------
+
+
+@router.get("/notices", response_model=NoticeList, summary="公告列表（含草稿）")
+async def list_notices(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    total = (await db.execute(select(func.count()).select_from(Notice))).scalar_one()
+    result = await db.execute(
+        select(Notice).order_by(Notice.created_time.desc()).limit(page_size).offset((page - 1) * page_size)
+    )
+    items = result.scalars().all()
+    return NoticeList(items=[NoticeOut.model_validate(i) for i in items], total=total)
+
+
+@router.post("/notices", response_model=NoticeOut, summary="新建公告")
+async def create_notice(
+    payload: NoticeCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    notice = Notice(
+        title=payload.title,
+        content=payload.content,
+        is_published=payload.is_published,
+    )
+    if payload.is_published:
+        notice.published_at = datetime.now(timezone.utc)
+    db.add(notice)
+    await db.commit()
+    await db.refresh(notice)
+    return NoticeOut.model_validate(notice)
+
+
+@router.put("/notices/{nid}", response_model=NoticeOut, summary="更新公告")
+async def update_notice(
+    nid: str,
+    payload: NoticeUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    notice = await db.get(Notice, nid)
+    if notice is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="公告不存在")
+    data = payload.model_dump(exclude_unset=True)
+    for key, value in data.items():
+        setattr(notice, key, value)
+    if data.get("is_published") is True and notice.published_at is None:
+        notice.published_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(notice)
+    return NoticeOut.model_validate(notice)
+
+
+@router.delete("/notices/{nid}", status_code=status.HTTP_204_NO_CONTENT, summary="删除公告")
+async def delete_notice(
+    nid: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    notice = await db.get(Notice, nid)
+    if notice is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="公告不存在")
+    await db.delete(notice)
+    await db.commit()

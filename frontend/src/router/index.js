@@ -25,6 +25,7 @@ const AdminAuditView = () => import('../views/admin/AdminAuditView.vue')
 const AdminSecurityView = () => import('../views/admin/AdminSecurityView.vue')
 const AdminSettingsView = () => import('../views/admin/AdminSettingsView.vue')
 const AdminVisitsView = () => import('../views/admin/AdminVisitsView.vue')
+const AdminNoticesView = () => import('../views/admin/AdminNoticesView.vue')
 
 const routes = [
   { path: '/', name: 'home', component: LandingView },
@@ -56,6 +57,7 @@ const routes = [
       { path: 'security', name: 'admin-security', component: AdminSecurityView },
       { path: 'settings', name: 'admin-settings', component: AdminSettingsView },
       { path: 'visits', name: 'admin-visits', component: AdminVisitsView },
+      { path: 'notices', name: 'admin-notices', component: AdminNoticesView },
     ],
   },
 ]

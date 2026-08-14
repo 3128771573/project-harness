@@ -6,13 +6,18 @@
         <span class="brand-name">Harness</span>
       </router-link>
 
-      <nav class="nav-links">
+      <nav class="nav-links" :class="{ open: navOpen }">
         <router-link to="/ai" class="nav-link">AI</router-link>
         <router-link to="/demo" class="nav-link">Demo</router-link>
         <router-link to="/iot" class="nav-link">IoT</router-link>
         <router-link to="/docs" class="nav-link">Docs</router-link>
         <router-link to="/pricing" class="nav-link">定价</router-link>
       </nav>
+
+      <!-- 移动端汉堡菜单 -->
+      <button class="hamburger" :class="{ open: navOpen }" @click="navOpen = !navOpen" aria-label="菜单">
+        <span></span><span></span><span></span>
+      </button>
 
       <!-- 未登录 -->
       <div v-if="!user" class="nav-actions">
@@ -22,6 +27,31 @@
 
       <!-- 已登录 -->
       <div v-else class="nav-actions user-area">
+        <!-- 公告铃铛 -->
+        <div class="bell-wrap">
+          <button class="bell-btn" :class="{ open: bellOpen }" @click="bellOpen = !bellOpen" aria-label="公告">
+            <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+            <span v-if="unreadCount > 0" class="bell-dot">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
+          </button>
+          <div v-if="bellOpen" class="bell-menu">
+            <div class="bell-head">
+              <span>公告</span>
+              <button class="bell-read" @click="markAllRead">全部已读</button>
+            </div>
+            <div v-if="notices.length === 0" class="bell-empty">暂无公告</div>
+            <div
+              v-for="n in notices"
+              :key="n.id"
+              class="bell-item"
+              :class="{ open: openNoticeId === n.id }"
+              @click="openNoticeId = openNoticeId === n.id ? null : n.id"
+            >
+              <b>{{ n.title }}</b>
+              <span class="bell-time">{{ fmtNoticeDate(n.published_at) }}</span>
+              <p v-if="openNoticeId === n.id" class="bell-content">{{ n.content }}</p>
+            </div>
+          </div>
+        </div>
         <button class="user-chip" @click="menuOpen = !menuOpen">
           <img v-if="user.avatar" :src="user.avatar" class="chip-avatar" alt="" />
           <span v-else class="chip-avatar">{{ initial }}</span>
@@ -57,12 +87,45 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '../api/client'
 import BrandLogo from './BrandLogo.vue'
 
 const router = useRouter()
 const menuOpen = ref(false)
+const navOpen = ref(false)
+
+// ===== 公告铃铛 =====
+const bellOpen = ref(false)
+const notices = ref([])
+const openNoticeId = ref(null)
+const lastReadAt = ref(0)
+
+const unreadCount = computed(() =>
+  notices.value.filter((n) => new Date(n.published_at).getTime() > lastReadAt.value).length
+)
+
+function fmtNoticeDate(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `${d.getMonth() + 1}月${d.getDate()}日`
+}
+
+function markAllRead() {
+  lastReadAt.value = Date.now()
+  try {
+    localStorage.setItem('harness_notice_read_at', String(lastReadAt.value))
+  } catch { /* ignore */ }
+}
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/public/notices')
+    notices.value = data.items || []
+    lastReadAt.value = Number(localStorage.getItem('harness_notice_read_at') || 0)
+  } catch { /* ignore */ }
+})
 
 const user = computed(() => {
   try {
@@ -307,10 +370,188 @@ function logout() {
   margin: 5px 4px;
 }
 
+/* 移动端汉堡按钮 */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.hamburger span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text-primary);
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.hamburger.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+/* 公告铃铛 */
+.bell-wrap {
+  position: relative;
+}
+
+.bell-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.bell-btn:hover {
+  background: var(--bg-hover);
+}
+
+.bell-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: var(--text-secondary);
+}
+
+.bell-btn.open svg {
+  fill: var(--primary);
+}
+
+.bell-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--error);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bell-menu {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  width: 300px;
+  max-height: 380px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  padding: 6px;
+}
+
+.bell-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+.bell-read {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--primary);
+  font-family: inherit;
+}
+
+.bell-read:hover {
+  text-decoration: underline;
+}
+
+.bell-empty {
+  padding: 14px 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.bell-item {
+  padding: 10px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.bell-item:hover {
+  background: var(--bg-hover);
+}
+
+.bell-item b {
+  display: block;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.bell-time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bell-content {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  white-space: pre-line;
+  line-height: 1.6;
+}
+
 @media (max-width: 700px) {
+  .hamburger {
+    display: inline-flex;
+  }
+
   .nav-links {
     display: none;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 2px;
+    margin-left: 0;
+    padding: 10px 28px 14px;
+    background: var(--nav-bg, rgba(255, 255, 255, 0.95));
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
   }
+
+  .nav-links.open {
+    display: flex;
+  }
+
+  .nav-link {
+    padding: 9px 0;
+    font-size: 15px;
+  }
+
   .chip-name {
     display: none;
   }

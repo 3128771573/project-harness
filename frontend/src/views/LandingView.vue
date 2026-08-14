@@ -2,6 +2,16 @@
   <div class="landing">
     <SiteNav />
 
+    <!-- 站内公告横幅 -->
+    <div v-if="notice && !noticeDismissed" class="notice-banner">
+      <span class="nb-badge">公告</span>
+      <button class="nb-toggle" @click="noticeOpen = !noticeOpen">
+        <span class="nb-title">{{ notice.title }}</span>
+        <span class="nb-desc">{{ noticeOpen ? notice.content : truncateNotice(notice.content) }}</span>
+      </button>
+      <button class="nb-close" @click="noticeDismissed = true" title="关闭">✕</button>
+    </div>
+
     <!-- ===== 已登录：个人控制中心 ===== -->
     <div v-if="user" class="home-shell">
       <section class="welcome">
@@ -311,7 +321,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import SiteNav from '../components/SiteNav.vue'
 import api from '../api/client'
 
@@ -342,6 +352,25 @@ const demos = [
   { icon: '📈', name: '数据可视化', desc: '图表与曲线' },
 ]
 
+// ===== 站内公告横幅（公开接口 /public/notices） =====
+const notice = ref(null)
+const noticeOpen = ref(false)
+const noticeDismissed = ref(false)
+
+function truncateNotice(text, n = 80) {
+  return text.length > n ? text.slice(0, n) + '…' : text
+}
+
+async function loadNotice() {
+  try {
+    const { data } = await api.get('/public/notices')
+    if (data.items?.length) {
+      notice.value = data.items[0]
+      noticeDismissed.value = sessionStorage.getItem('harness_notice_dismissed') === notice.value.id
+    }
+  } catch { /* 公告接口不可用时静默 */ }
+}
+
 // ===== 页脚站点统计（公开接口 /public/stats） =====
 const stats = ref({ started_at: null, visits: 0 })
 const now = ref(Date.now())
@@ -370,6 +399,7 @@ function fmtDate(iso) {
 }
 
 onMounted(async () => {
+  loadNotice()
   try {
     const { data } = await api.get('/public/stats')
     stats.value = data
@@ -382,12 +412,85 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (ticker) clearInterval(ticker)
 })
+
+// 关闭横幅（本次会话内不再显示）
+watch(noticeDismissed, (v) => {
+  if (v && notice.value) {
+    try {
+      sessionStorage.setItem('harness_notice_dismissed', notice.value.id)
+    } catch { /* ignore */ }
+  }
+})
 </script>
 
 <style scoped>
 .landing {
   min-height: 100vh;
   background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* ===== 站内公告横幅 ===== */
+.notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 1120px;
+  margin: 14px auto 0;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--primary-color);
+  border-radius: 12px;
+}
+
+.nb-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: var(--gradient-brand);
+  padding: 3px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.nb-toggle {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+}
+
+.nb-title {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.nb-desc {
+  display: block;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  white-space: pre-line;
+}
+
+.nb-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.nb-close:hover {
   color: var(--text-primary);
 }
 

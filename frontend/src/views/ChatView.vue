@@ -337,6 +337,8 @@ async function createConversation() {
 }
 
 async function newConversation() {
+  // 中止进行中的流，避免写入已脱离视图的消息对象
+  controller?.abort()
   messages.value = []
   historyTotal.value = 0
   await createConversation()
@@ -344,6 +346,7 @@ async function newConversation() {
 
 async function switchConversation(c) {
   if (c.id === activeConvId.value) return
+  controller?.abort()
   activeConvId.value = c.id
   await loadHistory(c.id)
 }
