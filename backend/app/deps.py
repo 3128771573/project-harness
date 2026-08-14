@@ -25,6 +25,8 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户不存在")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用")
+    if user.is_bot:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="机器人账号不可登录")
     return user
 
 

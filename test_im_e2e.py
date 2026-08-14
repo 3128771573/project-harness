@@ -15,7 +15,7 @@ from sqlalchemy import delete as _delete, select
 sys.path.insert(0, "/app/backend")
 from app.database import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Block, DmConversation, DmConversationMember, DmMessage, EmailCode, LoginLog, RefreshToken, User  # noqa: E402
+from app.models import Block, DmConversation, DmConversationMember, DmMessage, EmailCode, LoginLog, RefreshToken, Report, User  # noqa: E402
 from app.services.bot import BOT_UID, ensure_bot  # noqa: E402
 from app.services.watermark import encode_text_watermark  # noqa: E402
 
@@ -66,6 +66,7 @@ async def main():
                     await db.execute(_delete(DmConversationMember).where(DmConversationMember.conversation_id.in_(conv_ids)))
                     await db.execute(_delete(DmConversation).where(DmConversation.id.in_(conv_ids)))
                 await db.execute(_delete(Block).where((Block.uid.in_(uids)) | (Block.blocked_uid.in_(uids))))
+                await db.execute(_delete(Report).where((Report.reporter_id.in_(uids)) | (Report.target_id.in_(conv_ids))))
                 await db.execute(_delete(RefreshToken).where(RefreshToken.uid.in_(uids)))
                 await db.execute(_delete(LoginLog).where(LoginLog.uid.in_(uids)))
                 await db.execute(_delete(User).where(User.uid.in_(uids)))
@@ -279,6 +280,70 @@ async def main():
             await db.execute(_delete(Block).where(Block.uid == alice_uid))
             await db.commit()
 
+        print("16b. 拉黑管理（API 全流程）")
+        r = await c.post("/api/v1/im/blocks", json={"user_id": bob_uid}, headers=H(ta))
+        assert r.status_code == 201, r.text
+        assert r.json()["blocked"]["uid"] == bob_uid
+        r = await c.post("/api/v1/im/blocks", json={"user_id": bob_uid}, headers=H(ta))
+        assert r.status_code == 409, "重复拉黑应 409"
+        r = await c.post("/api/v1/im/blocks", json={"user_id": alice_uid}, headers=H(ta))
+        assert r.status_code == 400, "拉黑自己应 400"
+        r = await c.post("/api/v1/im/blocks", json={"user_id": BOT_UID}, headers=H(ta))
+        assert r.status_code == 404, "拉黑机器人应 404"
+        r = await c.get("/api/v1/im/blocks", headers=H(ta))
+        assert len(r.json()) == 1 and r.json()[0]["blocked"]["uid"] == bob_uid
+        # 拉黑后双方互发 403
+        r = await c.post(
+            f"/api/v1/im/conversations/{conv_id}/messages",
+            json={"kind": "text", "content": "api 拉黑后"},
+            headers=H(ta),
+        )
+        assert r.status_code == 403
+        r = await c.post(
+            f"/api/v1/im/conversations/{conv_id}/messages",
+            json={"kind": "text", "content": "api 拉黑反向"},
+            headers=H(tb),
+        )
+        assert r.status_code == 403
+        # 解除后恢复
+        r = await c.delete(f"/api/v1/im/blocks/{bob_uid}", headers=H(ta))
+        assert r.status_code == 204
+        r = await c.post(
+            f"/api/v1/im/conversations/{conv_id}/messages",
+            json={"kind": "text", "content": "解除拉黑后恢复"},
+            headers=H(ta),
+        )
+        assert r.status_code == 200
+
+        print("16c. 举报落库（P0 数据，P1 审核）")
+        r = await c.post(f"/api/v1/im/messages/{m1['id']}/report", json={"reason": "广告骚扰"}, headers=H(tb))
+        assert r.status_code == 204, r.text
+        r = await c.post("/api/v1/im/messages/nonexist-msg/report", json={"reason": "x"}, headers=H(tb))
+        assert r.status_code == 404
+        async with SessionLocal() as db:
+            from app.models import Report
+
+            rep = (
+                await db.execute(
+                    select(Report).where(Report.target_id == m1["id"], Report.reporter_id == bob_uid)
+                )
+            ).scalar_one_or_none()
+            assert rep is not None and rep.status == "pending" and rep.target_type == "dm", "举报应落库 pending"
+
+        print("16d. 消息长度边界（max 4000）")
+        r = await c.post(
+            f"/api/v1/im/conversations/{conv_id}/messages",
+            json={"kind": "text", "content": "长" * 3999},
+            headers=H(ta),
+        )
+        assert r.status_code == 200, r.text
+        r = await c.post(
+            f"/api/v1/im/conversations/{conv_id}/messages",
+            json={"kind": "text", "content": "长" * 4001},
+            headers=H(ta),
+        )
+        assert r.status_code == 422, "超长应 422"
+
         print("17. WS 实时推送（连真实 uvicorn 8000）")
         import websockets
 
@@ -310,6 +375,11 @@ async def main():
                 await lc.post(f"/api/v1/im/messages/{mid4}/recall", headers=H(ta))
             ev2 = await wait_event("im.recalled", mid4)
             print("   ws im.recalled ok")
+            # 心跳：ping → pong
+            await ws.send(json.dumps({"type": "ping"}))
+            got3 = json.loads(await asyncio.wait_for(ws.recv(), timeout=5))
+            assert got3["type"] == "pong", got3
+            print("   ws ping/pong ok")
 
         print("18. 清理测试数据")
         async with SessionLocal() as db:
@@ -328,6 +398,7 @@ async def main():
                 await db.execute(_delete(DmConversationMember).where(DmConversationMember.conversation_id.in_(conv_ids)))
                 await db.execute(_delete(DmConversation).where(DmConversation.id.in_(conv_ids)))
             await db.execute(_delete(Block).where((Block.uid.in_(uids)) | (Block.blocked_uid.in_(uids))))
+            await db.execute(_delete(Report).where((Report.reporter_id.in_(uids)) | (Report.target_id.in_(conv_ids))))
             await db.execute(_delete(RefreshToken).where(RefreshToken.uid.in_(uids)))
             await db.execute(_delete(LoginLog).where(LoginLog.uid.in_(uids)))
             await db.execute(_delete(User).where(User.uid.in_(uids)))

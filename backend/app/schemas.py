@@ -580,7 +580,7 @@ class ImStartIn(BaseModel):
 
 class ImSendIn(BaseModel):
     kind: str = Field(default="text", pattern=r"^(text|image)$")
-    content: str = Field(min_length=1, max_length=2000)
+    content: str = Field(min_length=1, max_length=4000)
 
 
 class ImMessageList(BaseModel):
@@ -609,13 +609,27 @@ class ImDecodeTextOut(BaseModel):
 
 
 class BotBroadcastIn(BaseModel):
-    content: str = Field(min_length=1, max_length=2000)
+    content: str = Field(min_length=1, max_length=4000)
     reason: str | None = Field(default=None, max_length=200)
 
 
 class BotDmIn(BaseModel):
     user_id: str = Field(min_length=8, max_length=40)
-    content: str = Field(min_length=1, max_length=2000)
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class ImBlockIn(BaseModel):
+    user_id: str = Field(min_length=8, max_length=40)
+
+
+class ImBlockOut(BaseModel):
+    id: str
+    blocked: ImUserOut
+    created_time: datetime
+
+
+class ImReportIn(BaseModel):
+    reason: str = Field(min_length=1, max_length=200)
 
 
 class BotHistoryItem(BaseModel):

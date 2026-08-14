@@ -30,6 +30,7 @@ const AdminSettingsView = () => import('../views/admin/AdminSettingsView.vue')
 const AdminVisitsView = () => import('../views/admin/AdminVisitsView.vue')
 const AdminNoticesView = () => import('../views/admin/AdminNoticesView.vue')
 const AdminMessagesView = () => import('../views/admin/AdminMessagesView.vue')
+const AdminWatermarkView = () => import('../views/admin/AdminWatermarkView.vue')
 
 const routes = [
   { path: '/', name: 'home', component: LandingView },
@@ -66,6 +67,7 @@ const routes = [
       { path: 'visits', name: 'admin-visits', component: AdminVisitsView },
       { path: 'notices', name: 'admin-notices', component: AdminNoticesView },
       { path: 'messages', name: 'admin-messages', component: AdminMessagesView },
+      { path: 'watermark', name: 'admin-watermark', component: AdminWatermarkView, meta: { requiresSuperAdmin: true } },
     ],
   },
 ]
@@ -92,6 +94,12 @@ router.beforeEach((to) => {
   if (to.meta.requiresAdmin) {
     const user = getUser()
     if (!user || !['admin', 'super_admin'].includes(user.role)) {
+      return { name: 'dashboard' }
+    }
+  }
+  if (to.meta.requiresSuperAdmin) {
+    const user = getUser()
+    if (!user || user.role !== 'super_admin') {
       return { name: 'dashboard' }
     }
   }

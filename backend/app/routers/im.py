@@ -28,12 +28,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import settings
 from ..database import SessionLocal, get_db
 from ..deps import get_current_user, require_roles
-from ..models import Block, DmConversation, DmConversationMember, DmMessage, User
+from ..models import Block, DmConversation, DmConversationMember, DmMessage, Report, User
 from ..schemas import (
     BotBroadcastIn,
     BotDmIn,
     BotHistoryItem,
     BotHistoryList,
+    ImBlockIn,
+    ImBlockOut,
     ImConversationList,
     ImConversationOut,
     ImDecodeTextIn,
@@ -41,6 +43,7 @@ from ..schemas import (
     ImLastMessageOut,
     ImMessageList,
     ImMessageOut,
+    ImReportIn,
     ImSendIn,
     ImStartIn,
     ImUnreadOut,
@@ -369,6 +372,91 @@ async def hide_conversation(
     return None
 
 
+# ==================== 拉黑管理 ====================
+
+@router.post("/blocks", response_model=ImBlockOut, status_code=status.HTTP_201_CREATED, summary="拉黑用户（双向互发禁止）")
+async def block_user(
+    payload: ImBlockIn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if payload.user_id == current_user.uid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不能拉黑自己")
+    target = await db.get(User, payload.user_id)
+    if target is None or target.is_bot:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
+    exists = (
+        await db.execute(select(Block).where(Block.uid == current_user.uid, Block.blocked_uid == payload.user_id))
+    ).scalar_one_or_none()
+    if exists is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="已拉黑该用户")
+    b = Block(uid=current_user.uid, blocked_uid=target.uid)
+    db.add(b)
+    await db.commit()
+    await db.refresh(b)
+    await record_audit(db, actor=current_user, action="im.block", target_uid=target.uid, detail="拉黑用户")
+    return ImBlockOut(id=b.id, blocked=_user_out(target), created_time=b.created_time)
+
+
+@router.get("/blocks", response_model=list[ImBlockOut], summary="我的拉黑列表")
+async def list_blocks(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (
+        await db.execute(select(Block).where(Block.uid == current_user.uid).order_by(Block.created_time.desc()))
+    ).scalars().all()
+    out = []
+    for b in rows:
+        target = await db.get(User, b.blocked_uid)
+        if target is not None:
+            out.append(ImBlockOut(id=b.id, blocked=_user_out(target), created_time=b.created_time))
+    return out
+
+
+@router.delete("/blocks/{user_id}", status_code=status.HTTP_204_NO_CONTENT, summary="取消拉黑")
+async def unblock_user(
+    user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    b = (
+        await db.execute(select(Block).where(Block.uid == current_user.uid, Block.blocked_uid == user_id))
+    ).scalar_one_or_none()
+    if b is not None:
+        await db.delete(b)
+        await db.commit()
+        await record_audit(db, actor=current_user, action="im.unblock", target_uid=user_id, detail="取消拉黑")
+    return None
+
+
+# ==================== 举报（P0 落数据，P1 Admin 审核页） ====================
+
+@router.post("/messages/{message_id}/report", status_code=status.HTTP_204_NO_CONTENT, summary="举报消息（进入审核队列）")
+async def report_message(
+    message_id: str,
+    payload: ImReportIn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    msg = await db.get(DmMessage, message_id)
+    if msg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="消息不存在")
+    db.add(
+        Report(
+            reporter_id=current_user.uid,
+            target_type="dm",
+            target_id=msg.id,
+            reason=payload.reason,
+            detail=None,
+            status="pending",
+        )
+    )
+    await db.commit()
+    await record_audit(db, actor=current_user, action="im.report", target_uid=msg.sender_id, detail=f"举报消息 {message_id}：{payload.reason}")
+    return None
+
+
 @router.get("/unread", response_model=ImUnreadOut, summary="总未读数（铃铛角标）")
 async def unread_total(
     current_user: User = Depends(get_current_user),
@@ -538,6 +626,9 @@ async def im_ws(websocket: WebSocket):
             except Exception:
                 continue
             op = data.get("type")
+            if op == "ping":
+                await websocket.send_text(json.dumps({"type": "pong"}, ensure_ascii=False))
+                continue
             cid = data.get("conversation_id")
             if op == "join" and cid:
                 async with SessionLocal() as db:

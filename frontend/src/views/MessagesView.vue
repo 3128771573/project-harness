@@ -67,6 +67,7 @@
         </div>
         <div class="ch-actions">
           <span class="ws-state" :class="wsState">{{ wsLabel }}</span>
+          <button v-if="!isBot" class="btn ghost sm" @click="blockPartner" title="拉黑对方（双向禁止互发，可随时解除）">拉黑</button>
           <button class="btn ghost sm" @click="hideConv" title="删除会话（仅隐藏我的视图，对方记录保留）">删除</button>
         </div>
       </header>
@@ -95,6 +96,7 @@
               <span class="m-time">{{ fmtMsgTime(m.created_time) }}</span>
               <span v-if="m.sender_id === me.uid && m.status === 'active'" class="m-read">{{ isRead(m) ? '已读' : '' }}</span>
               <button v-if="canRecall(m)" class="m-recall" @click="recall(m)">撤回</button>
+              <button v-if="m.sender_id !== me.uid && m.status === 'active'" class="m-recall" @click="reportMsg(m)">举报</button>
               <button v-if="m.status === 'active'" class="m-copy" @click="copyMsg(m)" title="复制消息（含溯源水印）">复制</button>
             </div>
           </div>
@@ -113,6 +115,7 @@
         <textarea
           v-model="draft"
           rows="2"
+          maxlength="4000"
           placeholder="输入消息…（Enter 发送，Shift+Enter 换行）"
           @keydown.enter.exact.prevent="sendText"
         ></textarea>
@@ -152,6 +155,7 @@ const me = computed(() => {
 })
 
 // ===== 会话列表 =====
+const isBot = computed(() => active.value?.other?.uid === BOT_UID)
 const convs = ref([])
 const loading = ref(false)
 const active = ref(null)
@@ -302,6 +306,29 @@ async function hideConv() {
   }
 }
 
+async function blockPartner() {
+  if (!active.value || isBot) return
+  const name = active.value.other.nickname || active.value.other.username
+  if (!confirm('拉黑 ' + name + ' 后双方将无法互发私信（可在设置中解除），确定？')) return
+  try {
+    await api.post('/im/blocks', { user_id: active.value.other.uid })
+    alert('已拉黑 ' + name)
+  } catch (e) {
+    alert(e.response?.data?.detail || '拉黑失败')
+  }
+}
+
+async function reportMsg(m) {
+  const reason = prompt('举报原因（100 字内，将进入管理员审核队列）：')
+  if (!reason) return
+  try {
+    await api.post('/im/messages/' + m.id + '/report', { reason: reason.slice(0, 200) })
+    alert('已提交举报，管理员将尽快处理')
+  } catch (e) {
+    alert(e.response?.data?.detail || '举报失败')
+  }
+}
+
 async function copyMsg(m) {
   try {
     await navigator.clipboard.writeText(m.content + '\n' + zwFor(m))
@@ -446,6 +473,7 @@ async function startWith(u) {
 const wsState = ref('closed') // closed / connecting / open
 const ws = ref(null)
 let wsTimer = null
+let wsPingTimer = null
 let retry = 0
 let joinedCid = null
 let reloadTimer = null
@@ -477,6 +505,13 @@ function connectWs() {
   sock.onopen = () => {
     wsState.value = 'open'
     retry = 0
+    // 心跳：25s ping，保活并探测断线
+    clearInterval(wsPingTimer)
+    wsPingTimer = setInterval(() => {
+      if (ws.value && ws.value.readyState === WebSocket.OPEN) {
+        ws.value.send(JSON.stringify({ type: 'ping' }))
+      }
+    }, 25000)
     if (active.value) joinRoom(active.value.id)
     loadConvs()
   }
@@ -490,6 +525,7 @@ function connectWs() {
   sock.onclose = () => {
     wsState.value = 'closed'
     joinedCid = null
+    clearInterval(wsPingTimer)
     scheduleReconnect()
   }
   sock.onerror = () => {
@@ -603,6 +639,7 @@ onMounted(async () => {
 onUnmounted(() => {
   clearTimeout(wsTimer)
   clearTimeout(reloadTimer)
+  clearInterval(wsPingTimer)
   clearInterval(wmTimer)
   if (ws.value) {
     try {

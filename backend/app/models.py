@@ -415,3 +415,22 @@ class WatermarkLog(Base):
     consumed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
+
+
+class Report(Base):
+    """举报（P0 落数据；P1 Admin 审核页流转）"""
+
+    __tablename__ = "reports"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    reporter_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    target_type: Mapped[str] = mapped_column(String(8), nullable=False)  # dm / group
+    target_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    reason: Mapped[str] = mapped_column(String(200), nullable=False)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(12), default="pending", nullable=False)  # pending / handled / ignored
+    handled_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
