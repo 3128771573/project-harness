@@ -32,6 +32,11 @@ services:
       - "8000"
     volumes:
       - uploads:/app/uploads
+      # 挂载宿主机 /proc 与 /sys，用于系统监控显示真实宿主数据（只读）
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/os-release:ro
+      - /etc/hostname:/host/etc-hostname:ro
     networks:
       - harness-net
 

@@ -3,78 +3,175 @@
     <header class="page-head">
       <div>
         <h1>系统监控</h1>
-        <p class="sub">X230 宿主机资源实时状态</p>
+        <p class="sub">
+          {{ sys?.system?.hostname || 'X230' }} · {{ sys?.system?.os || '' }}
+          <span v-if="autoRefresh" class="live-badge"><span class="pulse-dot"></span>实时刷新</span>
+        </p>
       </div>
       <div class="actions">
+        <span class="muted" style="font-size:12px">自动刷新 5s</span>
         <button class="btn" :disabled="loading" @click="load">
           <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor"><path d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 108 8h-2a6 6 0 11-1.76-4.24L13 11h7V4l-2.35 2.35z"/></svg>
-          {{ loading ? '刷新中…' : '刷新' }}
+          {{ loading ? '刷新中…' : '立即刷新' }}
         </button>
       </div>
     </header>
 
-    <div v-if="error" class="panel">
-      <p class="error-text">{{ error }}</p>
-    </div>
+    <div v-if="error" class="panel"><p class="error-text">{{ error }}</p></div>
 
     <template v-else-if="sys">
-      <section class="panel">
-        <div class="panel-title">资源使用率</div>
-        <p class="panel-sub">上次采样：{{ formatTime(sys.collected_at) }}</p>
-
-        <div class="meter-row">
-          <div class="meter-label">
-            <span class="meter-name">CPU</span>
-            <span class="meter-val">{{ sys.cpu }}%</span>
-          </div>
-          <div class="meter"><div class="meter-fill" :style="fillStyle(sys.cpu)"></div></div>
+      <!-- 系统信息 -->
+      <section class="sys-grid">
+        <div class="sys-card">
+          <div class="sys-label">主机名</div>
+          <div class="sys-value">{{ sys.system.hostname }}</div>
         </div>
-
-        <div class="meter-row">
-          <div class="meter-label">
-            <span class="meter-name">内存 RAM</span>
-            <span class="meter-val">{{ sys.memory }}%</span>
-          </div>
-          <div class="meter"><div class="meter-fill" :style="fillStyle(sys.memory)"></div></div>
+        <div class="sys-card">
+          <div class="sys-label">操作系统</div>
+          <div class="sys-value small">{{ sys.system.os }}</div>
         </div>
-
-        <div class="meter-row">
-          <div class="meter-label">
-            <span class="meter-name">磁盘 Disk</span>
-            <span class="meter-val">{{ sys.disk }}%</span>
-          </div>
-          <div class="meter"><div class="meter-fill" :style="fillStyle(sys.disk)"></div></div>
+        <div class="sys-card">
+          <div class="sys-label">内核版本</div>
+          <div class="sys-value small">{{ sys.system.kernel }} ({{ sys.system.arch }})</div>
+        </div>
+        <div class="sys-card">
+          <div class="sys-label">运行时长</div>
+          <div class="sys-value">{{ sys.system.uptime }}</div>
+        </div>
+        <div class="sys-card">
+          <div class="sys-label">进程数</div>
+          <div class="sys-value">{{ sys.system.processes }}</div>
+        </div>
+        <div class="sys-card">
+          <div class="sys-label">IP 地址</div>
+          <div class="sys-value small">{{ (sys.system.ip || []).join(', ') || '—' }}</div>
         </div>
       </section>
 
-      <section class="stat-grid" style="grid-template-columns: repeat(3, 1fr)">
-        <div class="stat-card">
-          <div class="stat-info">
-            <div class="stat-label">运行时长</div>
-            <div class="stat-value" style="font-size:18px">{{ sys.uptime }}</div>
+      <!-- CPU / 内存 / 磁盘 主仪表 -->
+      <section class="meter-grid">
+        <div class="meter-card">
+          <div class="meter-head">
+            <span class="meter-title">CPU</span>
+            <span class="meter-pct" :style="{ color: pctColor(sys.cpu.percent) }">{{ sys.cpu.percent }}%</span>
           </div>
-          <div class="stat-icon blue">
-            <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+          <div class="meter big"><div class="meter-fill" :style="fillStyle(sys.cpu.percent)"></div></div>
+          <div class="meter-detail">
+            <span><b>{{ sys.cpu.cores }}</b> 核</span>
+            <span>{{ sys.cpu.freq }}</span>
+            <span>{{ sys.cpu.model }}</span>
+          </div>
+          <div class="meter-sub-row">
+            <span>负载</span>
+            <span class="load-val">{{ sys.cpu.load[0] }} / {{ sys.cpu.load[1] }} / {{ sys.cpu.load[2] }}</span>
           </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-info">
-            <div class="stat-label">服务状态</div>
-            <div class="stat-value" style="font-size:18px">
-              <span class="status-line"><span class="pulse-dot"></span> 正常</span>
+
+        <div class="meter-card">
+          <div class="meter-head">
+            <span class="meter-title">内存 RAM</span>
+            <span class="meter-pct" :style="{ color: pctColor(sys.memory.percent) }">{{ sys.memory.percent }}%</span>
+          </div>
+          <div class="meter big"><div class="meter-fill" :style="fillStyle(sys.memory.percent)"></div></div>
+          <div class="meter-detail">
+            <span><b>{{ sys.memory.used_gb }}</b> / {{ sys.memory.total_gb }} GB</span>
+            <span>可用 {{ sys.memory.available_gb }} GB</span>
+            <span>缓存 {{ sys.memory.buff_cache_gb }} GB</span>
+          </div>
+          <div class="meter-sub-row">
+            <span>Swap</span>
+            <span class="load-val">{{ sys.memory.swap_used_gb }} / {{ sys.memory.swap_total_gb }} GB</span>
+          </div>
+        </div>
+
+        <div class="meter-card">
+          <div class="meter-head">
+            <span class="meter-title">磁盘 Disk</span>
+            <span class="meter-pct" :style="{ color: pctColor(sys.disk.main.percent) }">{{ sys.disk.main.percent }}%</span>
+          </div>
+          <div class="meter big"><div class="meter-fill" :style="fillStyle(sys.disk.main.percent)"></div></div>
+          <div class="meter-detail">
+            <span><b>{{ sys.disk.main.used_gb }}</b> / {{ sys.disk.main.total_gb }} GB</span>
+            <span>可用 {{ sys.disk.main.free_gb }} GB</span>
+            <span>挂载 {{ sys.disk.main.mount }}</span>
+          </div>
+          <div class="meter-sub-row">
+            <span>分区</span>
+            <span class="load-val">{{ sys.disk.mounts.length }} 个</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 网络实时 -->
+      <section class="panel">
+        <div class="panel-title">网络实时流量 <span class="live-tag">LIVE</span></div>
+        <p class="panel-sub">非回环网卡 · 5 秒采样速率</p>
+        <div class="net-grid">
+          <div class="net-card down">
+            <div class="net-arrow">↓</div>
+            <div class="net-info">
+              <div class="net-label">下载速率</div>
+              <div class="net-value">{{ fmtSpeed(sys.network.rx_kbs) }}</div>
             </div>
           </div>
-          <div class="stat-icon green">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          <div class="net-card up">
+            <div class="net-arrow">↑</div>
+            <div class="net-info">
+              <div class="net-label">上传速率</div>
+              <div class="net-value">{{ fmtSpeed(sys.network.tx_kbs) }}</div>
+            </div>
+          </div>
+          <div class="net-card total">
+            <div class="net-arrow">⇅</div>
+            <div class="net-info">
+              <div class="net-label">累计流量</div>
+              <div class="net-value">{{ sys.network.rx_total_gb }} GB ↓ · {{ sys.network.tx_total_gb }} GB ↑</div>
+            </div>
           </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-info">
-            <div class="stat-label">数据来源</div>
-            <div class="stat-value" style="font-size:18px">/proc 实时</div>
-          </div>
-          <div class="stat-icon amber">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      </section>
+
+      <!-- 磁盘分区明细 -->
+      <section class="panel">
+        <div class="panel-title">磁盘分区</div>
+        <div class="table-wrap" style="border:none; border-radius:0; box-shadow:none">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>设备</th>
+                <th>挂载点</th>
+                <th>容量</th>
+                <th>已用</th>
+                <th>可用</th>
+                <th style="width:180px">使用率</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="m in sys.disk.mounts" :key="m.mount">
+                <td class="uid-cell">{{ m.device }}</td>
+                <td class="muted">{{ m.mount }}</td>
+                <td>{{ m.total_gb }} GB</td>
+                <td>{{ m.used_gb }} GB</td>
+                <td>{{ m.free_gb }} GB</td>
+                <td>
+                  <div class="mini-meter">
+                    <div class="mini-track"><div class="mini-fill" :style="fillStyle(m.percent)"></div></div>
+                    <span class="mini-pct">{{ m.percent }}%</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CPU 温度 -->
+      <section v-if="sys.temps.length" class="panel">
+        <div class="panel-title">CPU 温度</div>
+        <div class="temp-row">
+          <div v-for="t in sys.temps" :key="t.name" class="temp-chip">
+            <span class="temp-name">{{ t.name }}</span>
+            <span class="temp-val" :style="{ color: tempColor(t.temp) }">{{ t.temp }}°C</span>
           </div>
         </div>
       </section>
@@ -85,21 +182,34 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import api from '../../api/client'
 
 const sys = ref(null)
 const error = ref('')
 const loading = ref(false)
+const autoRefresh = ref(true)
+let timer = null
 
 function fillStyle(pct) {
-  const color = pct >= 85 ? '#dc2626' : pct >= 60 ? '#d97706' : '#16a34a'
-  return { width: Math.min(100, pct) + '%', background: color }
+  return { width: Math.min(100, pct) + '%', background: pctColor(pct) }
 }
 
-function formatTime(iso) {
-  if (!iso) return '-'
-  return new Date(iso).toLocaleString('zh-CN', { hour12: false })
+function pctColor(pct) {
+  if (pct >= 85) return '#dc2626'
+  if (pct >= 60) return '#d97706'
+  return '#22c55e'
+}
+
+function tempColor(temp) {
+  if (temp >= 85) return '#dc2626'
+  if (temp >= 65) return '#d97706'
+  return '#22c55e'
+}
+
+function fmtSpeed(kbs) {
+  if (kbs >= 1024) return (kbs / 1024).toFixed(2) + ' MB/s'
+  return kbs + ' KB/s'
 }
 
 async function load() {
@@ -115,7 +225,15 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  // 自动刷新：5 秒一次
+  timer = setInterval(load, 5000)
+})
+
+onBeforeUnmount(() => {
+  if (timer) clearInterval(timer)
+})
 </script>
 
 <style scoped src="../../assets/admin.css"></style>

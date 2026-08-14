@@ -111,8 +111,10 @@ class UserRoleUpdate(BaseModel):
 
 
 class SystemStatus(BaseModel):
-    cpu: int
-    memory: int
-    disk: int
-    uptime: str
+    cpu: dict
+    memory: dict
+    disk: dict
+    network: dict
+    system: dict
+    temps: list[dict] = []
     collected_at: datetime
