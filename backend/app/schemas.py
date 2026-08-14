@@ -368,6 +368,67 @@ class NoticeUpdate(BaseModel):
     is_published: bool | None = None
 
 
+class MessageCreate(BaseModel):
+    nickname: str | None = Field(default=None, max_length=20)
+    email: str | None = Field(default=None, max_length=100)
+    content: str = Field(..., min_length=1, max_length=500)
+    captcha: str = Field(..., min_length=4, max_length=4)
+
+
+class MessageSubmitOut(BaseModel):
+    code: int = 0
+    msg: str = "success"
+    query_code: str
+
+
+class MessageQueryIn(BaseModel):
+    query_code: str = Field(..., min_length=4, max_length=20)
+    email: str | None = Field(default=None, max_length=100)
+
+
+class MessageQueryOut(BaseModel):
+    code: int = 0
+    data: dict
+
+
+class MessageAdminOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    nickname: str | None = None
+    email: str | None = None
+    content: str
+    query_code: str
+    ip: str | None = None
+    user_agent: str | None = None
+    reply: str | None = None
+    replied_at: datetime | None = None
+    is_read: bool
+    created_time: datetime
+
+
+class MessageAdminList(BaseModel):
+    items: list[MessageAdminOut]
+    total: int
+    stats: dict
+
+
+class MessageReplyIn(BaseModel):
+    reply: str = Field(..., min_length=1, max_length=2000)
+
+
+class MessageConfigOut(BaseModel):
+    daily_limit: int = 3
+    captcha_ttl: int = 120
+    query_rate: int = 5
+
+
+class MessageConfigIn(BaseModel):
+    daily_limit: int = Field(3, ge=1, le=100)
+    captcha_ttl: int = Field(120, ge=30, le=3600)
+    query_rate: int = Field(5, ge=1, le=60)
+
+
 class DeviceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

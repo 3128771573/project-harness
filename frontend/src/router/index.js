@@ -14,6 +14,7 @@ const DocsView = () => import('../views/DocsView.vue')
 const PricingView = () => import('../views/PricingView.vue')
 const StatusView = () => import('../views/StatusView.vue')
 const NotFoundView = () => import('../views/NotFoundView.vue')
+const GuestbookView = () => import('../views/GuestbookView.vue')
 const AdminLayout = () => import('../layouts/AdminLayout.vue')
 const AdminDashboardView = () => import('../views/admin/AdminDashboardView.vue')
 const AdminUsersView = () => import('../views/admin/AdminUsersView.vue')
@@ -26,6 +27,7 @@ const AdminSecurityView = () => import('../views/admin/AdminSecurityView.vue')
 const AdminSettingsView = () => import('../views/admin/AdminSettingsView.vue')
 const AdminVisitsView = () => import('../views/admin/AdminVisitsView.vue')
 const AdminNoticesView = () => import('../views/admin/AdminNoticesView.vue')
+const AdminMessagesView = () => import('../views/admin/AdminMessagesView.vue')
 
 const routes = [
   { path: '/', name: 'home', component: LandingView },
@@ -40,6 +42,7 @@ const routes = [
   { path: '/docs', name: 'docs', component: DocsView },
   { path: '/pricing', name: 'pricing', component: PricingView },
   { path: '/status', name: 'status', component: StatusView },
+  { path: '/guestbook', name: 'guestbook', component: GuestbookView },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
   {
     path: '/admin',
@@ -58,6 +61,7 @@ const routes = [
       { path: 'settings', name: 'admin-settings', component: AdminSettingsView },
       { path: 'visits', name: 'admin-visits', component: AdminVisitsView },
       { path: 'notices', name: 'admin-notices', component: AdminNoticesView },
+      { path: 'messages', name: 'admin-messages', component: AdminMessagesView },
     ],
   },
 ]

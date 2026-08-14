@@ -12,7 +12,7 @@ from .database import SessionLocal, engine
 from .errors import validation_error_handler
 from .middleware import VisitLogMiddleware
 from .models import Base, Notice, Role, VisitLog
-from .routers import admin, ai, auth, iot, security, system, user
+from .routers import admin, ai, auth, guestbook, iot, security, system, user
 from .services.iot_mqtt import mqtt_worker
 from .security import ROLE_ADMIN, ROLE_SUPER_ADMIN, ROLE_USER
 
@@ -70,6 +70,7 @@ app.include_router(ai.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 app.include_router(system.router, prefix="/api/v1")
 app.include_router(iot.router, prefix="/api/v1")
+app.include_router(guestbook.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health", tags=["system"])

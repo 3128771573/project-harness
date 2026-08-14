@@ -62,6 +62,10 @@
           <svg viewBox="0 0 24 24" class="icon"><path d="M3 10v4h2l4 4V6L5 10H3zm12 1.5c0-2-1-3.7-2.5-4.5v9c1.5-.8 2.5-2.5 2.5-4.5zM9 3v18l4-3h4c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2h-4L9 3z"/></svg>
           <span>公告管理</span>
         </router-link>
+        <router-link to="/admin/messages" class="nav-item" active-class="active">
+          <svg viewBox="0 0 24 24" class="icon"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V7h2v3z"/></svg>
+          <span>留言管理</span>
+        </router-link>
       </nav>
 
       <div class="sidebar-footer">
