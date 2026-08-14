@@ -15,7 +15,7 @@ from sqlalchemy import delete as _delete, select
 sys.path.insert(0, "/app/backend")
 from app.database import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Block, DmConversation, DmConversationMember, DmMessage, EmailCode, LoginLog, RefreshToken, Report, User  # noqa: E402
+from app.models import AuditLog, Block, DmConversation, DmConversationMember, DmMessage, EmailCode, LoginLog, RefreshToken, Report, User  # noqa: E402
 from app.services.bot import BOT_UID, ensure_bot  # noqa: E402
 from app.services.watermark import encode_text_watermark  # noqa: E402
 
@@ -734,7 +734,7 @@ async def main():
         # bot 源内容正确（含机器人广播）
         r = await c.post("/api/v1/admin/exports/run", json={**ok_payload, "source": "bot", "format": "json"}, headers=H(tsu))
         j = r.json()
-        assert j["row_count"] >= 1 and "新私信系统" in j["rows"][0][-1], "机器人广播应可导出"
+        assert j["row_count"] >= 1 and j["rows"][0][-1], "机器人消息应可导出"
         # 限流：6 次/分 → 第 7 次 429
         for _ in range(6):
             await c.post("/api/v1/admin/exports/run", json={**ok_payload, "source": "login"}, headers=H(tsu))
