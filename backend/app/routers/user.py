@@ -134,6 +134,8 @@ async def deactivate_account(
         LoginLog,
         OAuthAccount,
         RefreshToken,
+        WatermarkGrant,
+        WatermarkLog,
         EmailCode,
     )
     from ..security import hash_password, verify_password
@@ -194,6 +196,8 @@ async def deactivate_account(
     await db.execute(delete(GroupMember).where(GroupMember.user_id == uid))
     # 清理关联数据
     await db.execute(delete(Block).where((Block.uid == uid) | (Block.blocked_uid == uid)))
+    await db.execute(delete(WatermarkGrant).where(WatermarkGrant.user_id == uid))
+    await db.execute(delete(WatermarkLog).where(WatermarkLog.actor_id == uid))
     await db.execute(delete(RefreshToken).where(RefreshToken.uid == uid))
     await db.execute(delete(LoginLog).where(LoginLog.uid == uid))
     await db.execute(delete(EmailCode).where(EmailCode.email == current_user.email))
