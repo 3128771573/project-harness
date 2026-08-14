@@ -128,6 +128,7 @@ async def deactivate_account(
         DmConversation,
         DmConversationMember,
         DmMessage,
+        GroupChat,
         GroupMember,
         GroupMessage,
         LoginLog,

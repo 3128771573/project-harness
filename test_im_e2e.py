@@ -57,11 +57,18 @@ async def main():
             if uids:
                 from app.models import GroupChat, GroupMember, GroupMessage, WatermarkGrant, WatermarkLog
 
+                # 按「群主或成员」维度收集相关群（覆盖孤儿群/仅成员群）
                 gcids = [
                     gid for (gid,) in (
-                        await db.execute(select(GroupChat.id).where((GroupChat.owner_id.in_(uids)) | (GroupChat.owner_id.in_(uids))))
+                        await db.execute(select(GroupChat.id).where(GroupChat.owner_id.in_(uids)))
                     ).all()
                 ]
+                gcids += [
+                    gid for (gid,) in (
+                        await db.execute(select(GroupMember.group_id).where(GroupMember.user_id.in_(uids)))
+                    ).all()
+                ]
+                gcids = list(dict.fromkeys(gcids))
                 if gcids:
                     await db.execute(_delete(GroupMessage).where(GroupMessage.group_id.in_(gcids)))
                     await db.execute(_delete(GroupMember).where(GroupMember.group_id.in_(gcids)))
@@ -686,6 +693,23 @@ async def main():
                     )
                 ).all()
             ]
+            from app.models import GroupChat, GroupMember, GroupMessage
+
+            gcids = [
+                gid for (gid,) in (
+                    await db.execute(select(GroupChat.id).where(GroupChat.owner_id.in_(uids)))
+                ).all()
+            ]
+            gcids += [
+                gid for (gid,) in (
+                    await db.execute(select(GroupMember.group_id).where(GroupMember.user_id.in_(uids)))
+                ).all()
+            ]
+            gcids = list(dict.fromkeys(gcids))
+            if gcids:
+                await db.execute(_delete(GroupMessage).where(GroupMessage.group_id.in_(gcids)))
+                await db.execute(_delete(GroupMember).where(GroupMember.group_id.in_(gcids)))
+                await db.execute(_delete(GroupChat).where(GroupChat.id.in_(gcids)))
             if conv_ids:
                 await db.execute(_delete(DmMessage).where(DmMessage.conversation_id.in_(conv_ids)))
                 await db.execute(_delete(DmConversationMember).where(DmConversationMember.conversation_id.in_(conv_ids)))
