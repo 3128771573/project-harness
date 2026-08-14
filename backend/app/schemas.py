@@ -644,3 +644,122 @@ class BotHistoryList(BaseModel):
     items: list[BotHistoryItem]
     total: int
 
+
+
+# ==================== 群聊（P1） ====================
+
+class GroupOut(BaseModel):
+    id: str
+    name: str
+    owner_id: str
+    my_role: str = "member"
+    member_count: int = 0
+    announcement: str | None = None
+    last_message: ImLastMessageOut | None = None
+    last_message_at: datetime | None = None
+    unread: int = 0
+    created_time: datetime
+
+
+class GroupList(BaseModel):
+    items: list[GroupOut]
+    total: int
+
+
+class GroupCreateIn(BaseModel):
+    name: str = Field(min_length=1, max_length=64)
+    member_uids: list[str] = Field(default_factory=list, max_length=199)
+
+
+class GroupUpdateIn(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=64)
+    announcement: str | None = Field(default=None, max_length=2000)
+
+
+class GroupMemberOut(BaseModel):
+    user: ImUserOut
+    role: str
+    joined_time: datetime
+
+
+class GroupDetailOut(BaseModel):
+    id: str
+    name: str
+    owner_id: str
+    announcement: str | None = None
+    max_members: int = 200
+    created_time: datetime
+    members: list[GroupMemberOut]
+
+
+class GroupInviteIn(BaseModel):
+    user_ids: list[str] = Field(min_length=1, max_length=50)
+
+
+class GroupKickIn(BaseModel):
+    user_id: str = Field(min_length=8, max_length=40)
+
+
+class GroupTransferIn(BaseModel):
+    user_id: str = Field(min_length=8, max_length=40)
+
+
+class GroupMessageOut(BaseModel):
+    id: str
+    group_id: str
+    sender_id: str
+    kind: str
+    content: str
+    status: str
+    created_time: datetime
+
+
+class GroupMessageList(BaseModel):
+    items: list[GroupMessageOut]
+    has_more: bool
+
+
+# ==================== 举报审核（P1） ====================
+
+class ReportAdminItem(BaseModel):
+    id: str
+    reporter: ImUserOut
+    target_type: str
+    target_id: str
+    reason: str
+    status: str
+    created_time: datetime
+    message_content: str | None = None
+    message_sender: ImUserOut | None = None
+
+
+class ReportAdminList(BaseModel):
+    items: list[ReportAdminItem]
+    total: int
+
+
+class ReportHandleIn(BaseModel):
+    action: str = Field(pattern=r"^(delete|ban|ignore)$")
+    note: str | None = Field(default=None, max_length=200)
+
+
+# ==================== 水印授权（P1） ====================
+
+class WatermarkGrantIn(BaseModel):
+    user_id: str = Field(min_length=8, max_length=40)
+    quota_type: str = Field(pattern=r"^(one_time|times|permanent)$")
+    max_uses: int | None = Field(default=None, ge=1, le=10000)
+    expires_at: datetime | None = None
+
+
+class WatermarkGrantOut(BaseModel):
+    id: str
+    user: ImUserOut
+    quota_type: str
+    max_uses: int | None = None
+    used_count: int = 0
+    expires_at: datetime | None = None
+    revoked: bool = False
+    created_time: datetime
+
+

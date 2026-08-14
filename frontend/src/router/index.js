@@ -31,6 +31,7 @@ const AdminVisitsView = () => import('../views/admin/AdminVisitsView.vue')
 const AdminNoticesView = () => import('../views/admin/AdminNoticesView.vue')
 const AdminMessagesView = () => import('../views/admin/AdminMessagesView.vue')
 const AdminWatermarkView = () => import('../views/admin/AdminWatermarkView.vue')
+const AdminImView = () => import('../views/admin/AdminImView.vue')
 
 const routes = [
   { path: '/', name: 'home', component: LandingView },
@@ -68,6 +69,7 @@ const routes = [
       { path: 'notices', name: 'admin-notices', component: AdminNoticesView },
       { path: 'messages', name: 'admin-messages', component: AdminMessagesView },
       { path: 'watermark', name: 'admin-watermark', component: AdminWatermarkView, meta: { requiresSuperAdmin: true } },
+      { path: 'im', name: 'admin-im', component: AdminImView },
     ],
   },
 ]

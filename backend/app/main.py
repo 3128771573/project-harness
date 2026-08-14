@@ -12,7 +12,7 @@ from .database import SessionLocal, engine
 from .errors import validation_error_handler
 from .middleware import VisitLogMiddleware
 from .models import Base, Notice, Role, VisitLog
-from .routers import admin, admin_im, ai, auth, guestbook, im, iot, oauth, security, system, user
+from .routers import admin, admin_im, ai, auth, guestbook, im, im_groups, iot, oauth, security, system, user
 from .services.bot import ensure_bot
 from .services.cleanup import cleanup_loop
 from .services.iot_mqtt import mqtt_worker
@@ -90,6 +90,7 @@ app.include_router(iot.router, prefix="/api/v1")
 app.include_router(guestbook.router, prefix="/api/v1")
 app.include_router(oauth.router, prefix="/api/v1")
 app.include_router(im.router, prefix="/api/v1")
+app.include_router(im_groups.router, prefix="/api/v1")
 app.include_router(admin_im.router, prefix="/api/v1")
 
 

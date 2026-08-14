@@ -28,7 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import settings
 from ..database import SessionLocal, get_db
 from ..deps import get_current_user, require_roles
-from ..models import Block, DmConversation, DmConversationMember, DmMessage, Report, User
+from ..models import Block, DmConversation, DmConversationMember, DmMessage, GroupMember, GroupMessage, Report, User, WatermarkGrant, WatermarkLog
 from ..schemas import (
     BotBroadcastIn,
     BotDmIn,
@@ -499,6 +499,35 @@ async def unread_total(
                 or 0
             )
         total += n
+    # 群未读（同样计入铃铛角标）
+    group_members = (
+        await db.execute(select(GroupMember).where(GroupMember.user_id == current_user.uid))
+    ).scalars().all()
+    for gm in group_members:
+        if gm.last_read_at is None:
+            n = (
+                await db.scalar(
+                    select(func.count())
+                    .select_from(GroupMessage)
+                    .where(GroupMessage.group_id == gm.group_id, GroupMessage.sender_id != current_user.uid, GroupMessage.status == "active")
+                )
+                or 0
+            )
+        else:
+            n = (
+                await db.scalar(
+                    select(func.count())
+                    .select_from(GroupMessage)
+                    .where(
+                        GroupMessage.group_id == gm.group_id,
+                        GroupMessage.sender_id != current_user.uid,
+                        GroupMessage.status == "active",
+                        GroupMessage.created_time > gm.last_read_at,
+                    )
+                )
+                or 0
+            )
+        total += n
     return ImUnreadOut(total=total)
 
 
@@ -558,35 +587,74 @@ async def upload_image(
 
 # ==================== 文本水印取证（superadmin 专属，P1 接入授权体系） ====================
 
-@router.post("/decode-text", response_model=ImDecodeTextOut, summary="解码复制文本中的零宽水印（superadmin）")
+async def _watermark_authorized(db: AsyncSession, user: User) -> tuple[bool, WatermarkGrant | None]:
+    """水印取证授权：superadmin 直用；其他用户需有效授权（一次性/按次/长期）"""
+    if user.role and user.role.name == ROLE_SUPER_ADMIN:
+        return True, None
+    now = datetime.now(timezone.utc)
+    rows = await db.execute(
+        select(WatermarkGrant).where(
+            WatermarkGrant.user_id == user.uid,
+            WatermarkGrant.revoked.is_(False),
+            (WatermarkGrant.expires_at.is_(None)) | (WatermarkGrant.expires_at > now),
+        )
+    )
+    for grant in rows.scalars().all():
+        if grant.quota_type == "permanent":
+            return True, grant
+        if grant.quota_type == "times" and grant.max_uses is not None and grant.used_count < grant.max_uses:
+            return True, grant
+        if grant.quota_type == "one_time" and grant.used_count < 1:
+            return True, grant
+    return False, None
+
+
+@router.post("/decode-text", response_model=ImDecodeTextOut, summary="解码复制文本中的零宽水印（superadmin 或获授权用户）")
 async def decode_text_forensics(
     payload: ImDecodeTextIn,
-    current_user: User = Depends(_require_roles_im(ROLE_SUPER_ADMIN)),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     _check_rate(_DECODE_LOG, current_user.uid, 30, 3600)
+    authorized, grant = await _watermark_authorized(db, current_user)
+    if not authorized:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权使用水印取证工具（需 superadmin 授权）")
     input_hash = sha256(payload.text.encode("utf-8")).hexdigest()
     result = decode_text_watermark(payload.text)
+    is_superadmin = bool(current_user.role and current_user.role.name == ROLE_SUPER_ADMIN)
     if result is None:
         await record_audit(
             db, actor=current_user, action="im.watermark_decode_text", detail=f"input_sha256={input_hash} matched=false"
         )
+        db.add(WatermarkLog(actor_id=current_user.uid, kind="text", input_hash=input_hash, matched_uid=None, consumed=False))
+        await db.commit()
         return ImDecodeTextOut(matched=False, note="未识别到有效水印（可能已被清理零宽字符）")
     user = await db.get(User, result["uid"])
     if user is None or user.is_bot:
         await record_audit(
             db, actor=current_user, action="im.watermark_decode_text", detail=f"input_sha256={input_hash} matched_uid={result['uid']} user_gone=true"
         )
+        db.add(WatermarkLog(actor_id=current_user.uid, kind="text", input_hash=input_hash, matched_uid=result["uid"], consumed=False))
+        await db.commit()
         return ImDecodeTextOut(matched=False, note="水印有效但发送者账号已不存在")
+    # 仅成功识别消耗授权额度（superadmin 不消耗）
+    consumed = False
+    if grant is not None and not is_superadmin:
+        grant.used_count += 1
+        consumed = True
     out_user = ImUserOut(
         uid=user.uid, username=user.username, nickname=user.nickname, avatar=user.avatar
     )
+    db.add(WatermarkLog(
+        actor_id=current_user.uid, kind="text", input_hash=input_hash,
+        matched_uid=user.uid, consumed=consumed,
+    ))
     await record_audit(
         db,
         actor=current_user,
         action="im.watermark_decode_text",
         target_uid=user.uid,
-        detail=f"input_sha256={input_hash} matched=true message_id={result['message_id']} ts={result['ts']}",
+        detail=f"input_sha256={input_hash} matched=true message_id={result['message_id']} ts={result['ts']} consumed={consumed}",
     )
     return ImDecodeTextOut(
         matched=True,
@@ -630,15 +698,30 @@ async def im_ws(websocket: WebSocket):
                 await websocket.send_text(json.dumps({"type": "pong"}, ensure_ascii=False))
                 continue
             cid = data.get("conversation_id")
+            gid = data.get("group_id")
             if op == "join" and cid:
                 async with SessionLocal() as db:
                     member = await _get_member(db, cid, uid)
                 if member is not None:
                     manager.join(websocket, f"conv:{cid}")
                     joined.add(cid)
+            elif op == "join" and gid:
+                async with SessionLocal() as db:
+                    from ..models import GroupMember as _GM
+
+                    gm = await db.execute(
+                        select(_GM).where(_GM.group_id == gid, _GM.user_id == uid)
+                    )
+                    gmember = gm.scalar_one_or_none()
+                if gmember is not None:
+                    manager.join(websocket, f"g:{gid}")
+                    joined.add(f"g:{gid}")
             elif op == "leave" and cid and cid in joined:
                 manager.leave(websocket, f"conv:{cid}")
                 joined.discard(cid)
+            elif op == "leave" and gid and f"g:{gid}" in joined:
+                manager.leave(websocket, f"g:{gid}")
+                joined.discard(f"g:{gid}")
     except WebSocketDisconnect:
         pass
     except Exception:

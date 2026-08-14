@@ -48,10 +48,23 @@ async def main():
         print("0. 清理旧测试数据")
         async with SessionLocal() as db:
             emails = ("alice-im@example.com", "bob-im@example.com", "carol-im@example.com")
+            await db.execute(_delete(EmailCode).where(EmailCode.email.in_(emails)))
             urows = (await db.execute(select(User).where(User.email.in_(emails)))).scalars().all()
             uids = [u.uid for u in urows]
-            await db.execute(_delete(EmailCode).where(EmailCode.email.in_(emails)))
             if uids:
+                from app.models import GroupChat, GroupMember, GroupMessage, WatermarkGrant, WatermarkLog
+
+                gcids = [
+                    gid for (gid,) in (
+                        await db.execute(select(GroupChat.id).where((GroupChat.owner_id.in_(uids)) | (GroupChat.owner_id.in_(uids))))
+                    ).all()
+                ]
+                if gcids:
+                    await db.execute(_delete(GroupMessage).where(GroupMessage.group_id.in_(gcids)))
+                    await db.execute(_delete(GroupMember).where(GroupMember.group_id.in_(gcids)))
+                    await db.execute(_delete(GroupChat).where(GroupChat.id.in_(gcids)))
+                await db.execute(_delete(WatermarkGrant).where(WatermarkGrant.user_id.in_(uids)))
+                await db.execute(_delete(WatermarkLog).where(WatermarkLog.actor_id.in_(uids)))
                 conv_ids = [
                     cid for (cid,) in (
                         await db.execute(
@@ -381,6 +394,165 @@ async def main():
             assert got3["type"] == "pong", got3
             print("   ws ping/pong ok")
 
+
+        print("19. 群聊：建群 / 消息 / 未读 / 撤回 / 举报")
+        r = await c.post("/api/v1/im/groups", json={"name": "P1测试群", "member_uids": [bob_uid]}, headers=H(ta))
+        assert r.status_code == 201, r.text
+        gid = r.json()["id"]
+        assert r.json()["owner_id"] == alice_uid and r.json()["member_count"] == 2
+        r = await c.post(f"/api/v1/im/groups/{gid}/messages", json={"kind": "text", "content": "大家好，欢迎进群"}, headers=H(ta))
+        assert r.status_code == 201, r.text
+        gm1 = r.json()
+        r = await c.get("/api/v1/im/groups", headers=H(tb))
+        bg = [x for x in r.json()["items"] if x["id"] == gid][0]
+        assert bg["unread"] == 1 and bg["my_role"] == "member", bg
+        # bob 读群消息
+        r = await c.get(f"/api/v1/im/groups/{gid}/messages", headers=H(tb))
+        assert len(r.json()["items"]) == 1 and r.json()["items"][0]["content"] == "大家好，欢迎进群"
+        await c.post(f"/api/v1/im/groups/{gid}/read", headers=H(tb))
+        # bob 回复 → alice 未读
+        r = await c.post(f"/api/v1/im/groups/{gid}/messages", json={"kind": "text", "content": "收到，群主"}, headers=H(tb))
+        assert r.status_code == 201
+        r = await c.get("/api/v1/im/groups", headers=H(ta))
+        ag = [x for x in r.json()["items"] if x["id"] == gid][0]
+        assert ag["unread"] == 1
+        # 群消息撤回：alice 撤回自己的 gm1；bob 撤回 alice 的 → 403
+        r = await c.post(f"/api/v1/im/group-messages/{gm1['id']}/recall", headers=H(ta))
+        assert r.status_code == 200 and r.json()["status"] == "recalled"
+        r = await c.post(f"/api/v1/im/group-messages/{gm1['id']}/recall", headers=H(tb))
+        assert r.status_code == 403
+        # 群消息举报 → reports target_type=group
+        r = await c.post(f"/api/v1/im/group-messages/{gm1['id']}/report", json={"reason": "群内骚扰"}, headers=H(tb))
+        assert r.status_code == 204
+        # 群未读计入总角标
+        r = await c.get("/api/v1/im/unread", headers=H(ta))
+        assert r.json()["total"] >= 1
+        # 非成员访问 → 404
+        r = await c.get(f"/api/v1/im/groups/{gid}/messages", headers=H(tsu))
+        assert r.status_code == 404
+        print("   gid:", gid)
+
+        print("20. 群聊：成员管理 / 角色 / 转让 / 解散")
+        # member 不能改群名
+        r = await c.put(f"/api/v1/im/groups/{gid}", json={"name": "越权改名"}, headers=H(tb))
+        assert r.status_code == 403
+        # owner 改名 + 公告
+        r = await c.put(f"/api/v1/im/groups/{gid}", json={"name": "P1测试群2", "announcement": "欢迎新成员"}, headers=H(ta))
+        assert r.status_code == 200 and r.json()["name"] == "P1测试群2"
+        # 注册 carol 并邀请
+        uc = await register(c, "carol-im@example.com", "carol_im")
+        carol_uid = uc["user"]["uid"]
+        r = await c.post(f"/api/v1/im/groups/{gid}/invite", json={"user_ids": [carol_uid]}, headers=H(tb))
+        assert r.status_code == 403, "member 不能邀请"
+        # 提 bob 为 admin（DB 直改）
+        async with SessionLocal() as db:
+            from app.models import GroupMember as _GM
+
+            bm = (await db.execute(select(_GM).where(_GM.group_id == gid, _GM.user_id == bob_uid))).scalar_one()
+            bm.role = "admin"
+            await db.commit()
+        r = await c.post(f"/api/v1/im/groups/{gid}/invite", json={"user_ids": [carol_uid]}, headers=H(tb))
+        assert r.status_code == 200 and any(m["user"]["uid"] == carol_uid for m in r.json()["members"])
+        # 踢人：admin 踢 member carol；admin 踢 owner → 400
+        r = await c.post(f"/api/v1/im/groups/{gid}/kick", json={"user_id": carol_uid}, headers=H(tb))
+        assert r.status_code == 200
+        r = await c.post(f"/api/v1/im/groups/{gid}/kick", json={"user_id": alice_uid}, headers=H(tb))
+        assert r.status_code == 400, "不能踢群主"
+        # carol 重新邀请加入后自己退群
+        await c.post(f"/api/v1/im/groups/{gid}/invite", json={"user_ids": [carol_uid]}, headers=H(ta))
+        tc = await login(c, "carol-im@example.com")
+        r = await c.post(f"/api/v1/im/groups/{gid}/leave", headers=H(tc))
+        assert r.status_code == 204
+        # owner 不能直接退群
+        r = await c.post(f"/api/v1/im/groups/{gid}/leave", headers=H(ta))
+        assert r.status_code == 400
+        # 转让群主 → bob 变 owner
+        r = await c.post(f"/api/v1/im/groups/{gid}/transfer", json={"user_id": bob_uid}, headers=H(ta))
+        assert r.status_code == 200
+        r = await c.get(f"/api/v1/im/groups/{gid}", headers=H(tb))
+        assert r.json()["owner_id"] == bob_uid
+        # 新群主解散
+        r = await c.delete(f"/api/v1/im/groups/{gid}", headers=H(tb))
+        assert r.status_code == 204
+        r = await c.get("/api/v1/im/groups", headers=H(tb))
+        assert all(x["id"] != gid for x in r.json()["items"])
+
+        print("21. 举报审核（Admin）")
+        r = await c.get("/api/v1/admin/im/reports?status=pending", headers=H(tsu))
+        items = r.json()["items"]
+        dm_rep = [x for x in items if x["target_type"] == "dm" and x["target_id"] == m1["id"]]
+        gr_rep = [x for x in items if x["target_type"] == "group" and x["target_id"] == gm1["id"]]
+        assert dm_rep and gr_rep, "两条举报都应在待处理队列"
+        assert dm_rep[0]["message_content"] == "你好 Bob，这是第一条"
+        # 删除消息处理
+        rid = dm_rep[0]["id"]
+        r = await c.post(f"/api/v1/admin/im/reports/{rid}/handle", json={"action": "delete", "note": "违规内容"}, headers=H(tsu))
+        assert r.status_code == 200 and r.json()["result"] == "消息已删除", r.text
+        # 重复处理 → 400
+        r = await c.post(f"/api/v1/admin/im/reports/{rid}/handle", json={"action": "ignore"}, headers=H(tsu))
+        assert r.status_code == 400
+        # 消息状态变为 removed（bob 视角）
+        r = await c.get(f"/api/v1/im/conversations/{conv_id}/messages", headers=H(tb))
+        m1_now = [x for x in r.json()["items"] if x["id"] == m1["id"]][0]
+        assert m1_now["status"] == "removed", m1_now
+        # 机器人告知举报者（bob 的机器人会话出现处理结果）
+        r = await c.get("/api/v1/im/conversations", headers=H(tb))
+        bot_conv_b = [x for x in r.json()["items"] if x["other"]["uid"] == BOT_UID]
+        assert bot_conv_b and "举报处理结果" in bot_conv_b[0]["last_message"]["content"], "举报者应收到机器人处理结果"
+        # 封禁处理
+        r = await c.get("/api/v1/admin/im/reports?status=pending", headers=H(tsu))
+        gr_rep = [x for x in r.json()["items"] if x["target_type"] == "group" and x["target_id"] == gm1["id"]][0]
+        r = await c.post(f"/api/v1/admin/im/reports/{gr_rep['id']}/handle", json={"action": "ban"}, headers=H(tsu))
+        assert r.status_code == 200
+        async with SessionLocal() as db:
+            banned = (await db.execute(select(User).where(User.uid == alice_uid))).scalar_one()
+            assert banned.is_active is False, "被举报消息发送者应被封禁"
+            banned.is_active = True  # 恢复，供后续步骤使用
+            await db.commit()
+
+        print("22. 水印取证授权体系")
+        # 未授权用户 403（已覆盖 step 15；这里验证 grant 流程）
+        r = await c.post("/api/v1/admin/im/watermark/grants", json={"user_id": alice_uid, "quota_type": "times", "max_uses": 2}, headers=H(tsu))
+        assert r.status_code == 201, r.text
+        grant_id = r.json()["id"]
+        zw_a = encode_text_watermark(alice_uid, m1["id"], 1755234000)
+        # 命中 1 → 扣 1
+        r = await c.post("/api/v1/im/decode-text", json={"text": "泄密" + zw_a}, headers=H(ta))
+        assert r.status_code == 200 and r.json()["matched"], r.text
+        # 命中 2 → 扣 2
+        r = await c.post("/api/v1/im/decode-text", json={"text": "再泄密" + zw_a}, headers=H(ta))
+        assert r.status_code == 200
+        # 第 3 次（额度耗尽）→ 403
+        r = await c.post("/api/v1/im/decode-text", json={"text": "三连" + zw_a}, headers=H(ta))
+        assert r.status_code == 403, r.text
+        # 失败不扣额度：新授权 1 次 → 先失败（无有效水印）再成功
+        r = await c.post("/api/v1/admin/im/watermark/grants", json={"user_id": alice_uid, "quota_type": "times", "max_uses": 1}, headers=H(tsu))
+        assert r.status_code == 201
+        r = await c.post("/api/v1/im/decode-text", json={"text": "没有水印的普通文本"}, headers=H(ta))
+        assert r.status_code == 200 and r.json()["matched"] is False
+        r = await c.get("/api/v1/admin/im/watermark/grants", headers=H(tsu))
+        grants = [x for x in r.json() if x["quota_type"] == "times" and x["max_uses"] == 1]
+        assert grants[0]["used_count"] == 0, "失败不应扣额度"
+        r = await c.post("/api/v1/im/decode-text", json={"text": "成功" + zw_a}, headers=H(ta))
+        assert r.status_code == 200 and r.json()["matched"]
+        r = await c.get("/api/v1/admin/im/watermark/grants", headers=H(tsu))
+        grants = [x for x in r.json() if x["quota_type"] == "times" and x["max_uses"] == 1]
+        assert grants[0]["used_count"] == 1
+        # 吊销 → 403
+        r = await c.post(f"/api/v1/admin/im/watermark/grants/{grant_id}/revoke", headers=H(tsu))
+        assert r.status_code == 200
+        r = await c.post("/api/v1/im/decode-text", json={"text": "吊销后" + zw_a}, headers=H(ta))
+        assert r.status_code == 403, "吊销后应 403"
+        # watermark_logs 有记录
+        async with SessionLocal() as db:
+            from app.models import WatermarkLog
+
+            logs = (
+                await db.execute(select(WatermarkLog).where(WatermarkLog.actor_id == alice_uid))
+            ).scalars().all()
+            assert len(logs) >= 4, "取证调用应有日志"
+            assert any(l.consumed for l in logs) and any(not l.consumed for l in logs), "命中/未命中日志都应存在"
+
         print("18. 清理测试数据")
         async with SessionLocal() as db:
             uids = [alice_uid, bob_uid]
@@ -399,12 +571,16 @@ async def main():
                 await db.execute(_delete(DmConversation).where(DmConversation.id.in_(conv_ids)))
             await db.execute(_delete(Block).where((Block.uid.in_(uids)) | (Block.blocked_uid.in_(uids))))
             await db.execute(_delete(Report).where((Report.reporter_id.in_(uids)) | (Report.target_id.in_(conv_ids))))
+            from app.models import WatermarkGrant, WatermarkLog
+
+            await db.execute(_delete(WatermarkGrant).where(WatermarkGrant.user_id.in_(uids)))
+            await db.execute(_delete(WatermarkLog).where(WatermarkLog.actor_id.in_(uids)))
             await db.execute(_delete(RefreshToken).where(RefreshToken.uid.in_(uids)))
             await db.execute(_delete(LoginLog).where(LoginLog.uid.in_(uids)))
             await db.execute(_delete(User).where(User.uid.in_(uids)))
             await db.commit()
 
-    print("IM P0 E2E ALL PASSED")
+    print("IM E2E ALL PASSED")
 
 
 async def ensure_bot_session(c, token):
