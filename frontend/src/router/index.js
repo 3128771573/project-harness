@@ -9,6 +9,8 @@ import SettingsView from '../views/SettingsView.vue'
 import DemoView from '../views/DemoView.vue'
 import IotView from '../views/IotView.vue'
 import DocsView from '../views/DocsView.vue'
+import PricingView from '../views/PricingView.vue'
+import StatusView from '../views/StatusView.vue'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
 import AdminUsersView from '../views/admin/AdminUsersView.vue'
@@ -30,6 +32,8 @@ const routes = [
   { path: '/demo', name: 'demo', component: DemoView },
   { path: '/iot', name: 'iot', component: IotView },
   { path: '/docs', name: 'docs', component: DocsView },
+  { path: '/pricing', name: 'pricing', component: PricingView },
+  { path: '/status', name: 'status', component: StatusView },
   {
     path: '/admin',
     component: AdminLayout,

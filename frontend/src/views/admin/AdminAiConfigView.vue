@@ -144,29 +144,33 @@ onMounted(load)
 .field > span {
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: #cbd5e1;
 }
 
 .field input {
   padding: 10px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid #1e293b;
   border-radius: 9px;
   font-size: 13.5px;
-  background: #fafbfd;
+  background: #0f172a;
+  color: #e2e8f0;
   font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .field input:focus {
   outline: none;
-  border-color: #2b6de9;
-  box-shadow: 0 0 0 3px rgba(43, 109, 233, 0.12);
-  background: #fff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.field input::placeholder {
+  color: #475569;
 }
 
 .field-hint {
   font-size: 12px;
-  color: var(--text-muted);
+  color: #64748b;
 }
 
 .checkbox-row {
@@ -174,7 +178,7 @@ onMounted(load)
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #374151;
+  color: #cbd5e1;
   cursor: pointer;
 }
 
@@ -185,12 +189,12 @@ onMounted(load)
 }
 
 .test-msg.ok {
-  background: #ecfdf5;
-  color: #059669;
+  background: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
 }
 
 .test-msg.err {
-  background: #fef2f2;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
 }
 </style>

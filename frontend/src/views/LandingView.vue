@@ -69,26 +69,24 @@
       <section class="hero">
         <div class="hero-bg" aria-hidden="true">
           <div class="grid-layer"></div>
-          <div class="glow glow-1"></div>
-          <div class="glow glow-2"></div>
         </div>
         <div class="hero-content">
           <div class="hero-badge">
             <span class="badge-dot"></span>
-            持续进化的智能服务平台
+            AI + IoT Digital Platform
           </div>
           <h1 class="hero-title">
             Harness
             <span class="hero-sub-title">连接 AI · IoT · 数字服务</span>
           </h1>
           <p class="hero-desc">
-            Connect AI, Devices and Digital Experiences.
+            构建个人智能服务与物联网实验平台。
             <br />
-            一个平台，承载你的智能能力与创意实验。
+            Connect AI, Devices and Digital Experiences.
           </p>
           <div class="hero-actions">
-            <router-link to="/register" class="btn dark lg">开始体验 →</router-link>
-            <router-link to="/demo" class="btn outline lg">探索 Demo</router-link>
+            <router-link to="/register" class="btn dark lg">开始使用 →</router-link>
+            <router-link to="/demo" class="btn outline lg">查看 Demo</router-link>
           </div>
           <div class="hero-flow">
             <span class="flow-node ai">AI</span>
@@ -98,6 +96,28 @@
             <span class="flow-node data">DATA</span>
             <span class="flow-line"></span>
             <span class="flow-node dev">DEVICE</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 核心能力 -->
+      <section class="section core">
+        <h2 class="section-title">核心能力</h2>
+        <div class="core-grid">
+          <div class="core-card">
+            <div class="cc-icon ai">✦</div>
+            <b>AI Service</b>
+            <span>多模型对话 · 历史记录 · 用量统计</span>
+          </div>
+          <div class="core-card">
+            <div class="cc-icon iot">◎</div>
+            <b>IoT Platform</b>
+            <span>设备接入 · 实时数据 · 可视化</span>
+          </div>
+          <div class="core-card">
+            <div class="cc-icon dev">⌘</div>
+            <b>Developer Tools</b>
+            <span>REST API · 统一鉴权 · 版本化</span>
           </div>
         </div>
       </section>
@@ -422,34 +442,11 @@ const demos = [
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+    linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
-}
-
-.glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.35;
-}
-
-.glow-1 {
-  width: 480px;
-  height: 480px;
-  background: #2b6de9;
-  top: -160px;
-  left: -120px;
-}
-
-.glow-2 {
-  width: 420px;
-  height: 420px;
-  background: #8b5cf6;
-  bottom: -180px;
-  right: -100px;
 }
 
 .hero-content {
@@ -594,6 +591,62 @@ const demos = [
   max-width: 1120px;
   margin: 0 auto;
   padding: 80px 28px;
+}
+
+.section-title {
+  font-size: 30px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: -0.02em;
+  margin-bottom: 44px;
+}
+
+/* 核心能力 */
+.core-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+.core-card {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 30px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.core-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-3px);
+  border-color: #dbe2ee;
+}
+
+.cc-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 21px;
+  margin-bottom: 6px;
+}
+
+.cc-icon.ai { background: #eef2ff; color: #4338ca; }
+.cc-icon.iot { background: #ecfdf5; color: #059669; }
+.cc-icon.dev { background: #f5f3ff; color: #7c3aed; }
+
+.core-card b {
+  font-size: 16.5px;
+  font-weight: 700;
+}
+
+.core-card span {
+  font-size: 13.5px;
+  color: var(--text-muted);
 }
 
 .module {

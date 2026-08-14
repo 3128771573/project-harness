@@ -117,23 +117,27 @@ onMounted(load)
 .field > span {
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: #cbd5e1;
 }
 
 .field input {
   padding: 10px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid #1e293b;
   border-radius: 9px;
   font-size: 13.5px;
-  background: #fafbfd;
+  background: #0f172a;
+  color: #e2e8f0;
   font-family: inherit;
 }
 
 .field input:focus {
   outline: none;
-  border-color: #2b6de9;
-  box-shadow: 0 0 0 3px rgba(43, 109, 233, 0.12);
-  background: #fff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.field input::placeholder {
+  color: #475569;
 }
 
 .toggle-row {
@@ -141,11 +145,16 @@ onMounted(load)
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  border-top: 1px solid #f0f1f5;
+  border-top: 1px solid #1e293b;
 }
 
 .toggle-row b {
   font-size: 14px;
+  color: #e2e8f0;
+}
+
+.toggle-row .small {
+  color: #64748b;
 }
 
 .switch {
@@ -165,7 +174,7 @@ onMounted(load)
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background: #d1d5db;
+  background: #334155;
   border-radius: 999px;
   transition: 0.2s;
 }
@@ -183,7 +192,7 @@ onMounted(load)
 }
 
 .switch input:checked + .slider {
-  background: #2b6de9;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
 }
 
 .switch input:checked + .slider::before {
@@ -196,6 +205,6 @@ onMounted(load)
   border-radius: 8px;
 }
 
-.msg.ok { background: #ecfdf5; color: #059669; }
-.msg.err { background: #fef2f2; color: #dc2626; }
+.msg.ok { background: rgba(34, 197, 94, 0.1); color: #4ade80; }
+.msg.err { background: rgba(239, 68, 68, 0.1); color: #f87171; }
 </style>

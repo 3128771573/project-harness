@@ -2,7 +2,7 @@
   <header class="site-nav">
     <div class="nav-inner">
       <router-link to="/" class="brand">
-        <div class="brand-logo">H</div>
+        <BrandLogo size="sm" />
         <span class="brand-name">Harness</span>
       </router-link>
 
@@ -11,6 +11,7 @@
         <router-link to="/demo" class="nav-link">Demo</router-link>
         <router-link to="/iot" class="nav-link">IoT</router-link>
         <router-link to="/docs" class="nav-link">Docs</router-link>
+        <router-link to="/pricing" class="nav-link">定价</router-link>
       </nav>
 
       <!-- 未登录 -->
@@ -58,6 +59,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import BrandLogo from './BrandLogo.vue'
 
 const router = useRouter()
 const menuOpen = ref(false)

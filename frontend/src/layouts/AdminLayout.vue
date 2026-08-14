@@ -3,10 +3,10 @@
     <!-- 侧边栏 -->
     <aside class="admin-sidebar">
       <div class="brand">
-        <div class="brand-logo">H</div>
+        <BrandLogo size="sm" />
         <div class="brand-text">
           <span class="brand-name">Harness</span>
-          <span class="brand-sub">管理控制台</span>
+          <span class="brand-sub">Admin Console</span>
         </div>
       </div>
 
@@ -61,6 +61,10 @@
           <svg viewBox="0 0 24 24" class="icon"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
           <span>返回前台</span>
         </router-link>
+        <router-link to="/status" class="back-link">
+          <svg viewBox="0 0 24 24" class="icon"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          <span>服务状态</span>
+        </router-link>
         <button class="logout" @click="logout">
           <svg viewBox="0 0 24 24" class="icon"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
           <span>退出登录</span>
@@ -77,6 +81,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import BrandLogo from '../components/BrandLogo.vue'
 
 const router = useRouter()
 
@@ -84,49 +89,39 @@ function logout() {
   localStorage.removeItem('harness_access')
   localStorage.removeItem('harness_refresh')
   localStorage.removeItem('harness_user')
-  router.push('/login')
+  router.push('/')
 }
 </script>
 
 <style scoped>
+/* 深色主题：GitHub / Vercel Dashboard 风格 */
 .admin-shell {
   display: flex;
   min-height: 100vh;
-  background: #f4f5f9;
+  background: #0f172a;
+  color: #e2e8f0;
 }
 
 /* ===== 侧边栏 ===== */
 .admin-sidebar {
   width: 232px;
   flex-shrink: 0;
-  background: #171a23;
-  color: #fff;
+  background: #0b1220;
+  color: #e2e8f0;
   display: flex;
   flex-direction: column;
   padding: 20px 14px;
   position: sticky;
   top: 0;
   height: 100vh;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 4px 8px 22px;
-}
-
-.brand-logo {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, #4f7cf7, #7aa5f0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 19px;
-  font-weight: 700;
-  box-shadow: 0 4px 12px rgba(79, 124, 247, 0.35);
+  gap: 11px;
+  padding: 4px 8px 24px;
 }
 
 .brand-text {
@@ -137,13 +132,14 @@ function logout() {
 .brand-name {
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  color: #fff;
 }
 
 .brand-sub {
-  font-size: 11px;
-  color: #8b93a7;
-  margin-top: 2px;
+  font-size: 10.5px;
+  color: #64748b;
+  margin-top: 1px;
+  letter-spacing: 0.03em;
 }
 
 .admin-nav {
@@ -151,10 +147,11 @@ function logout() {
   flex-direction: column;
   gap: 2px;
   flex: 1;
+  overflow-y: auto;
 }
 
 .nav-group {
-  color: #6b7280;
+  color: #475569;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -166,48 +163,47 @@ function logout() {
   display: flex;
   align-items: center;
   gap: 11px;
-  color: #9aa3b5;
-  padding: 10px 12px;
+  color: #94a3b8;
+  padding: 9px 12px;
   border-radius: 9px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   text-decoration: none;
   transition: background 0.15s, color 0.15s;
 }
 
 .nav-item .icon {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   fill: currentColor;
   flex-shrink: 0;
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #e8eaf0;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
 }
 
 .nav-item.active {
-  background: #2b6de9;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(124, 58, 237, 0.25));
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(43, 109, 233, 0.4);
 }
 
 .sidebar-footer {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .back-link {
   display: flex;
   align-items: center;
   gap: 11px;
-  color: #8b93a7;
-  padding: 10px 12px;
+  color: #64748b;
+  padding: 9px 12px;
   border-radius: 9px;
   font-size: 13px;
   text-decoration: none;
@@ -215,24 +211,24 @@ function logout() {
 }
 
 .back-link .icon {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   fill: currentColor;
 }
 
 .back-link:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #d5d9e3;
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
 }
 
 .logout {
   display: flex;
   align-items: center;
   gap: 11px;
-  color: #8b93a7;
+  color: #64748b;
   background: transparent;
   border: none;
-  padding: 10px 12px;
+  padding: 9px 12px;
   border-radius: 9px;
   font-size: 13px;
   cursor: pointer;
@@ -241,21 +237,22 @@ function logout() {
 }
 
 .logout .icon {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   fill: currentColor;
 }
 
 .logout:hover {
   background: rgba(220, 38, 38, 0.15);
-  color: #ff9b9b;
+  color: #fca5a5;
 }
 
 /* ===== 主内容 ===== */
 .admin-main {
   flex: 1;
-  padding: 28px 36px 40px;
-  max-width: 1200px;
+  padding: 30px 36px 44px;
+  max-width: 1240px;
   min-width: 0;
+  overflow-x: hidden;
 }
 </style>
