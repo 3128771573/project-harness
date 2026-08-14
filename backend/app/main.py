@@ -10,7 +10,7 @@ from sqlalchemy import func, select, text
 from .config import settings
 from .database import SessionLocal, engine
 from .errors import validation_error_handler
-from .middleware import VisitLogMiddleware
+from .middleware import MaintenanceMiddleware, VisitLogMiddleware
 from .models import Base, Notice, Role, VisitLog
 from .routers import admin, admin_export, admin_im, ai, auth, guestbook, im, im_groups, iot, oauth, security, system, user
 from .services.bot import ensure_bot
@@ -77,8 +77,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 访问记录中间件（最后添加 = 最外层）
+# 访问记录中间件
 app.add_middleware(VisitLogMiddleware)
+# 维护模式中间件（最外层：最先拦截）——注意：后添加的中间件更靠外
+app.add_middleware(MaintenanceMiddleware)
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(user.router, prefix="/api/v1")

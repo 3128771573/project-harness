@@ -37,3 +37,15 @@ async def report_visit(
         await db.commit()
         schedule_location_lookup(row.id, ip)
     return None
+
+
+@router.get("/public/maintenance", tags=["system"])
+async def public_maintenance(db: AsyncSession = Depends(get_db)):
+    """公开维护状态（前端维护页 / 路由守卫轮询）"""
+    from ..services import settings as settings_svc
+    from ..services.maintenance import is_maintenance
+
+    return {
+        "maintenance": await is_maintenance(db),
+        "message": await settings_svc.get_setting(db, "site.maintenance_message", default="系统正在升级维护，请稍后再试。"),
+    }

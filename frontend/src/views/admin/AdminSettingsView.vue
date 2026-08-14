@@ -42,13 +42,17 @@
         <div class="toggle-row">
           <div>
             <b>维护模式</b>
-            <p class="small muted">开启后仅管理员可访问</p>
+            <p class="small muted">开启后普通用户访问将被拦截（503 / 维护页），管理员不受影响；可用于更新升级或紧急维护</p>
           </div>
           <label class="switch">
             <input v-model="form.maintenance_mode" type="checkbox" />
             <span class="slider"></span>
           </label>
         </div>
+        <label v-if="form.maintenance_mode" class="field">
+          <span>维护说明（展示在维护页）</span>
+          <input v-model.trim="form.maintenance_message" maxlength="500" placeholder="系统正在升级维护，请稍后再试。" />
+        </label>
 
         <p v-if="msg" :class="['msg', msgOk ? 'ok' : 'err']">{{ msg }}</p>
         <button type="submit" class="btn primary" :disabled="saving" style="width:fit-content">
@@ -66,6 +70,7 @@ import api from '../../api/client'
 const form = reactive({
   site_name: '', site_description: '', default_ai_model: '',
   upload_limit_mb: 10, allow_register: true, maintenance_mode: false,
+  maintenance_message: '系统正在升级维护，请稍后再试。',
 })
 const error = ref('')
 const msg = ref('')

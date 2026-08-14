@@ -688,9 +688,14 @@ async def im_ws(websocket: WebSocket):
         await websocket.close(code=4401)
         return
     async with SessionLocal() as db:
+        from ..services.maintenance import is_maintenance
+
         user = await db.get(User, uid)
         if user is None or not user.is_active or user.is_bot:
             await websocket.close(code=4401)
+            return
+        if await is_maintenance(db) and not (user.role and user.role.name in (ROLE_ADMIN, ROLE_SUPER_ADMIN)):
+            await websocket.close(code=1013)  # try again later：维护中
             return
     await manager.connect(websocket, f"user:{uid}")
     joined: set[str] = set()

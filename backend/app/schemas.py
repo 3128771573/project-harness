@@ -308,6 +308,7 @@ class SystemSettingsUpdate(BaseModel):
     site_description: str | None = None
     allow_register: bool | None = None
     maintenance_mode: bool | None = None
+    maintenance_message: str | None = Field(default=None, max_length=500)
     default_ai_model: str | None = None
     upload_limit_mb: int | None = Field(default=None, ge=1, le=100)
 
@@ -317,6 +318,7 @@ class SystemSettingsOut(BaseModel):
     site_description: str
     allow_register: bool
     maintenance_mode: bool
+    maintenance_message: str = "系统正在升级维护，请稍后再试。"
     default_ai_model: str
     upload_limit_mb: int
 

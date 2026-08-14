@@ -426,6 +426,7 @@ async def get_system_settings(
     site_desc = await settings_svc.get_setting(db, "site.description", default="个人智能服务平台")
     allow_register = (await settings_svc.get_setting(db, "site.allow_register", default="true")).lower() == "true"
     maintenance = (await settings_svc.get_setting(db, "site.maintenance", default="false")).lower() == "true"
+    maintenance_message = await settings_svc.get_setting(db, "site.maintenance_message", default="系统正在升级维护，请稍后再试。")
     model = await settings_svc.get_setting(db, "site.default_ai_model", default="deepseek-chat")
     upload_mb = int(await settings_svc.get_setting(db, "site.upload_limit_mb", default="10"))
     return SystemSettingsOut(
@@ -433,6 +434,7 @@ async def get_system_settings(
         site_description=site_desc,
         allow_register=allow_register,
         maintenance_mode=maintenance,
+        maintenance_message=maintenance_message,
         default_ai_model=model,
         upload_limit_mb=upload_mb,
     )
@@ -451,12 +453,16 @@ async def update_system_settings(
         "site_description": "site.description",
         "allow_register": "site.allow_register",
         "maintenance_mode": "site.maintenance",
+        "maintenance_message": "site.maintenance_message",
         "default_ai_model": "site.default_ai_model",
         "upload_limit_mb": "site.upload_limit_mb",
     }
     for field, value in data.items():
         if field in mapping:
             await settings_svc.set_setting(db, mapping[field], str(value).lower() if isinstance(value, bool) else str(value))
+    from ..services.maintenance import invalidate
+
+    invalidate()
     await record_audit(
         db, actor=current_user, action="settings.update", resource="settings",
         detail=f"更新系统设置: {', '.join(data.keys())}", ip=_client_ip(request),

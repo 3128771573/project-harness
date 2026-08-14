@@ -13,6 +13,7 @@ const IotView = () => import('../views/IotView.vue')
 const DocsView = () => import('../views/DocsView.vue')
 const TermsView = () => import('../views/TermsView.vue')
 const PrivacyView = () => import('../views/PrivacyView.vue')
+const MaintenanceView = () => import('../views/MaintenanceView.vue')
 const PricingView = () => import('../views/PricingView.vue')
 const StatusView = () => import('../views/StatusView.vue')
 const NotFoundView = () => import('../views/NotFoundView.vue')
@@ -49,6 +50,7 @@ const routes = [
   { path: '/docs', name: 'docs', component: DocsView },
   { path: '/terms', name: 'terms', component: TermsView },
   { path: '/privacy', name: 'privacy', component: PrivacyView },
+  { path: '/maintenance', name: 'maintenance', component: MaintenanceView },
   { path: '/pricing', name: 'pricing', component: PricingView },
   { path: '/status', name: 'status', component: StatusView },
   { path: '/guestbook', name: 'guestbook', component: GuestbookView },
@@ -93,7 +95,38 @@ function getUser() {
   }
 }
 
-router.beforeEach((to) => {
+// ===== 维护模式检查（60s 缓存；管理员豁免） =====
+let maintCache = { mode: false, ts: 0 }
+
+async function checkMaintenance() {
+  const now = Date.now()
+  if (now - maintCache.ts < 60000) return maintCache.mode
+  try {
+    const resp = await fetch('/api/v1/system/public/maintenance', {
+      headers: { 'Cache-Control': 'no-cache' },
+    })
+    if (!resp.ok) return false
+    const d = await resp.json()
+    maintCache = { mode: !!d.maintenance, ts: now }
+    return maintCache.mode
+  } catch {
+    return false
+  }
+}
+
+function isAdminUser() {
+  const u = getUser()
+  return !!(u && ['admin', 'super_admin'].includes(u.role))
+}
+
+router.beforeEach(async (to) => {
+  // 维护模式：非管理员重定向到维护页（维护页本身放行）
+  if (to.path !== '/maintenance' && !isAdminUser()) {
+    const maint = await checkMaintenance()
+    if (maint) {
+      return { path: '/maintenance' }
+    }
+  }
   const token = localStorage.getItem('harness_access')
   if (to.meta.requiresAuth && !token) {
     return { name: 'login' }
