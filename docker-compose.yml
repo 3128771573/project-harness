@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: harness
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - /hdd/harness/pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U harness -d harness"]
@@ -31,7 +31,7 @@ services:
     expose:
       - "8000"
     volumes:
-      - uploads:/app/uploads
+      - /hdd/harness/uploads:/app/uploads
       # 挂载宿主机 /proc 与 /sys，用于系统监控显示真实宿主数据（只读）
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -49,13 +49,9 @@ services:
     depends_on:
       - backend
     volumes:
-      - uploads:/usr/share/nginx/html/uploads:ro
+      - /hdd/harness/uploads:/usr/share/nginx/html/uploads:ro
     networks:
       - harness-net
-
-volumes:
-  pgdata:
-  uploads:
 
 networks:
   harness-net:

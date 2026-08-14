@@ -8,6 +8,8 @@ import AdminLayout from '../layouts/AdminLayout.vue'
 import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
 import AdminUsersView from '../views/admin/AdminUsersView.vue'
 import AdminSystemView from '../views/admin/AdminSystemView.vue'
+import AdminAiConfigView from '../views/admin/AdminAiConfigView.vue'
+import AdminUsageView from '../views/admin/AdminUsageView.vue'
 
 const routes = [
   { path: '/', redirect: '/dashboard' },
@@ -24,6 +26,8 @@ const routes = [
       { path: 'dashboard', name: 'admin-dashboard', component: AdminDashboardView },
       { path: 'users', name: 'admin-users', component: AdminUsersView },
       { path: 'system', name: 'admin-system', component: AdminSystemView },
+      { path: 'ai-config', name: 'admin-ai-config', component: AdminAiConfigView },
+      { path: 'usage', name: 'admin-usage', component: AdminUsageView },
     ],
   },
 ]

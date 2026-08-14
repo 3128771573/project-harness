@@ -118,3 +118,41 @@ class SystemStatus(BaseModel):
     system: dict
     temps: list[dict] = []
     collected_at: datetime
+
+
+class AiConfigUpdate(BaseModel):
+    api_key: str | None = Field(default=None, max_length=512, description="留空则不修改")
+    base_url: str | None = Field(default=None, max_length=512)
+    model: str | None = Field(default=None, max_length=128)
+    clear_api_key: bool = Field(default=False, description="置 true 时清除 api_key（回退 mock）")
+
+
+class AiConfigOut(BaseModel):
+    api_key: str | None = None
+    api_key_set: bool = False
+    base_url: str
+    model: str
+
+
+class UserUsageItem(BaseModel):
+    uid: str
+    username: str
+    email: EmailStr
+    total_calls: int
+    today_calls: int
+    last_used: datetime | None = None
+
+
+class UserUsageList(BaseModel):
+    items: list[UserUsageItem]
+    total: int
+    total_calls: int
+
+
+class RefreshTokenAdminOut(BaseModel):
+    id: str
+    uid: str
+    username: str | None = None
+    created_time: datetime
+    expires_at: datetime
+    revoked: bool

@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Project Harness API",
-    version="0.7.0",
+    version="0.8.0",
     lifespan=lifespan,
 )
 
@@ -53,4 +53,4 @@ app.include_router(admin.router, prefix="/api/v1")
 
 @app.get("/api/v1/health", tags=["system"])
 async def health():
-    return {"status": "ok", "service": "harness-backend", "version": "0.7.0"}
+    return {"status": "ok", "service": "harness-backend", "version": "0.8.0"}

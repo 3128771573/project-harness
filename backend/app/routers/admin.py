@@ -1,15 +1,28 @@
 from datetime import datetime, time, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
 from ..deps import get_current_user, get_role_by_name, require_roles
-from ..models import AiHistory, Role, User
-from ..schemas import AdminStats, SystemStatus, UserAdminList, UserAdminOut, UserRoleUpdate, UserStatusUpdate
+from ..models import AiHistory, RefreshToken, Role, User
+from ..schemas import (
+    AdminStats,
+    AiConfigOut,
+    AiConfigUpdate,
+    RefreshTokenAdminOut,
+    SystemStatus,
+    UserAdminList,
+    UserAdminOut,
+    UserRoleUpdate,
+    UserStatusUpdate,
+    UserUsageItem,
+    UserUsageList,
+)
 from ..security import ROLE_ADMIN, ROLE_SUPER_ADMIN
 from ..services import monitor
+from ..services import settings as settings_svc
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -136,3 +149,167 @@ async def admin_user_role(
 @router.get("/system/status", response_model=SystemStatus, summary="系统监控")
 async def admin_system_status(current_user: User = Depends(require_admin)):
     return monitor.get_system_status()
+
+
+# ---------- AI 配置管理 ----------
+
+
+@router.get("/settings/ai", response_model=AiConfigOut, summary="读取 AI 配置")
+async def get_ai_config(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    cfg = await settings_svc.get_ai_config(db)
+    eff = settings_svc.ai_effective(cfg)
+    return AiConfigOut(
+        api_key=None,  # 不回显明文
+        api_key_set=settings_svc.ai_configured(cfg),
+        base_url=eff["base_url"],
+        model=eff["model"],
+    )
+
+
+@router.put("/settings/ai", response_model=AiConfigOut, summary="更新 AI 配置")
+async def update_ai_config(
+    payload: AiConfigUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    # 读取当前配置
+    cfg = await settings_svc.get_ai_config(db)
+    new_key = payload.api_key if payload.api_key else (None if payload.clear_api_key else cfg.get("api_key"))
+    await settings_svc.set_ai_config(db, api_key=new_key, base_url=payload.base_url, model=payload.model)
+    cfg = await settings_svc.get_ai_config(db)
+    eff = settings_svc.ai_effective(cfg)
+    return AiConfigOut(
+        api_key=None,
+        api_key_set=settings_svc.ai_configured(cfg),
+        base_url=eff["base_url"],
+        model=eff["model"],
+    )
+
+
+@router.post("/settings/ai/test", summary="测试 AI 连接")
+async def test_ai_connection(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    import httpx
+
+    cfg = await settings_svc.get_ai_config(db)
+    eff = settings_svc.ai_effective(cfg)
+    if not settings_svc.ai_configured(cfg):
+        return {"ok": False, "message": "未配置 API Key，当前为 Mock 模式"}
+    url = f"{eff['base_url'].rstrip('/')}/models"
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                url, headers={"Authorization": f"Bearer {eff['api_key']}"}
+            )
+            if resp.status_code == 200:
+                return {"ok": True, "message": f"连接成功，可用模型: {len(resp.json().get('data', []))} 个"}
+            return {"ok": False, "message": f"HTTP {resp.status_code}: {resp.text[:200]}"}
+    except Exception as e:
+        return {"ok": False, "message": f"连接失败: {e}"}
+
+
+# ---------- 用户用量统计 ----------
+
+
+@router.get("/usage", response_model=UserUsageList, summary="每位用户的 AI 使用量")
+async def admin_usage(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    now = datetime.now(timezone.utc)
+    today_start = datetime.combine(now.date(), time.min, tzinfo=timezone.utc)
+
+    # 每用户统计: 总调用 + 今日调用 + 最近使用
+    today_case = case((AiHistory.created_time >= today_start, 1), else_=0)
+    stmt = (
+        select(
+            User.uid,
+            User.username,
+            User.email,
+            func.count(AiHistory.id).label("total_calls"),
+            func.coalesce(func.sum(today_case), 0).label("today_calls"),
+            func.max(AiHistory.created_time).label("last_used"),
+        )
+        .outerjoin(AiHistory, AiHistory.uid == User.uid)
+        .group_by(User.uid, User.username, User.email)
+        .order_by(func.count(AiHistory.id).desc())
+    )
+    total_users = (await db.execute(select(func.count()).select_from(User))).scalar_one()
+    total_calls = (await db.execute(select(func.count()).select_from(AiHistory))).scalar_one()
+    result = await db.execute(stmt.limit(page_size).offset((page - 1) * page_size))
+    rows = result.all()
+    items = [
+        UserUsageItem(
+            uid=r.uid,
+            username=r.username,
+            email=r.email,
+            total_calls=r.total_calls or 0,
+            today_calls=r.today_calls or 0,
+            last_used=r.last_used,
+        )
+        for r in rows
+    ]
+    return UserUsageList(items=items, total=total_users, total_calls=total_calls)
+
+
+# ---------- Token 使用管理 ----------
+
+
+@router.get("/tokens", response_model=list[RefreshTokenAdminOut], summary="查看各用户的活跃刷新令牌")
+async def admin_tokens(
+    include_revoked: bool = Query(default=False),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    stmt = select(RefreshToken, User.username).join(User, User.uid == RefreshToken.uid)
+    if not include_revoked:
+        stmt = stmt.where(RefreshToken.revoked.is_(False))
+    stmt = stmt.order_by(RefreshToken.created_time.desc()).limit(200)
+    result = await db.execute(stmt)
+    rows = result.all()
+    return [
+        RefreshTokenAdminOut(
+            id=t.id,
+            uid=t.uid,
+            username=username,
+            created_time=t.created_time,
+            expires_at=t.expires_at,
+            revoked=t.revoked,
+        )
+        for t, username in rows
+    ]
+
+
+@router.delete("/tokens/{token_id}", status_code=status.HTTP_204_NO_CONTENT, summary="吊销指定刷新令牌")
+async def revoke_token(
+    token_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    token = await db.get(RefreshToken, token_id)
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="令牌不存在")
+    token.revoked = True
+    await db.commit()
+    return None
+
+
+@router.delete("/tokens/user/{uid}", status_code=status.HTTP_204_NO_CONTENT, summary="吊销某用户全部令牌")
+async def revoke_user_tokens(
+    uid: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    result = await db.execute(select(RefreshToken).where(RefreshToken.uid == uid, RefreshToken.revoked.is_(False)))
+    tokens = result.scalars().all()
+    for t in tokens:
+        t.revoked = True
+    await db.commit()
+    return None
