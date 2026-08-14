@@ -131,19 +131,24 @@ async def query_source(db: AsyncSession, source: str, start: datetime, end: date
 
     if source == "visit":
         cols = ["time_utc", "uid", "username", "ip", "ip_location", "device", "path", "method", "referer", "status_code"]
-        q = select(VisitLog).where(VisitLog.created_time >= start, VisitLog.created_time <= end)
+        q = (
+            select(VisitLog, User.username)
+            .join(User, User.uid == VisitLog.uid, isouter=True)
+            .where(VisitLog.created_time >= start, VisitLog.created_time <= end)
+        )
         if f.get("path"):
             q = q.where(VisitLog.path.contains(f["path"]))
         if f.get("username"):
-            q = q.where(VisitLog.username.contains(f["username"]))
+            q = q.where(User.username.contains(f["username"]))
         if f.get("status_code"):
             try:
                 q = q.where(VisitLog.status_code == int(f["status_code"]))
             except (TypeError, ValueError):
                 pass
         rows = []
-        for r in (await db.execute(q.order_by(VisitLog.created_time.desc()).limit(MAX_ROWS))).scalars().all():
-            rows.append([_fmt(r.created_time), r.uid or "", r.username or "", r.ip or "", r.ip_location or "",
+        result = await db.execute(q.order_by(VisitLog.created_time.desc()).limit(MAX_ROWS))
+        for r, uname in result.all():
+            rows.append([_fmt(r.created_time), r.uid or "", uname or "", r.ip or "", r.ip_location or "",
                          r.device or "", r.path, r.method or "", r.referer or "", str(r.status_code or "")])
         return cols, rows
 
