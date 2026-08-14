@@ -14,6 +14,11 @@ _store: dict[str, tuple[float, str]] = {}  # captcha_id -> (expire_ts, code)
 _lock = threading.Lock()
 
 
+def _rand(a: int, b: int) -> int:
+    """[a, b) 区间随机整数（secrets 无 randrange，用 randbelow 实现）"""
+    return a + secrets.randbelow(b - a)
+
+
 def _generate_code() -> str:
     return "".join(secrets.choice(_CHARSET) for _ in range(_CODE_LEN))
 
@@ -48,27 +53,27 @@ def verify_captcha(captcha_id: str | None, code: str | None) -> bool:
 
 def _render_png(code: str) -> bytes:
     W, H = 130, 44
-    bg = (secrets.randrange(205, 248), secrets.randrange(205, 248), secrets.randrange(205, 248))
+    bg = (_rand(205, 248), _rand(205, 248), _rand(205, 248))
     img = Image.new("RGB", (W, H), bg)
     draw = ImageDraw.Draw(img)
 
     # 干扰线
     for _ in range(4):
-        x1 = secrets.randrange(0, W)
-        y1 = secrets.randrange(0, H)
-        x2 = secrets.randrange(0, W)
-        y2 = secrets.randrange(0, H)
+        x1 = _rand(0, W)
+        y1 = _rand(0, H)
+        x2 = _rand(0, W)
+        y2 = _rand(0, H)
         draw.line(
             [(x1, y1), (x2, y2)],
-            fill=(secrets.randrange(80, 200), secrets.randrange(80, 200), secrets.randrange(80, 200)),
+            fill=(_rand(80, 200), _rand(80, 200), _rand(80, 200)),
             width=1,
         )
 
     # 噪点
     for _ in range(70):
         draw.point(
-            (secrets.randrange(0, W), secrets.randrange(0, H)),
-            fill=(secrets.randrange(0, 255), secrets.randrange(0, 255), secrets.randrange(0, 255)),
+            (_rand(0, W), _rand(0, H)),
+            fill=(_rand(0, 256), _rand(0, 256), _rand(0, 256)),
         )
 
     # 字符：随机旋转 + 上下偏移（Pillow 10.1+ 内置可缩放字体，无需系统字体）
@@ -77,11 +82,11 @@ def _render_png(code: str) -> bytes:
     for i, ch in enumerate(code):
         char_img = Image.new("RGBA", (34, 42), (0, 0, 0, 0))
         cd = ImageDraw.Draw(char_img)
-        color = (secrets.randrange(25, 150), secrets.randrange(25, 150), secrets.randrange(25, 150))
+        color = (_rand(25, 150), _rand(25, 150), _rand(25, 150))
         cd.text((2, 3), ch, font=font, fill=color)
-        angle = secrets.randrange(-28, 28)
+        angle = _rand(-28, 28)
         char_img = char_img.rotate(angle, expand=True, resample=Image.BICUBIC)
-        y_off = secrets.randrange(-4, 5)
+        y_off = _rand(-4, 5)
         img.paste(char_img, (i * char_w + 6, 2 + y_off), char_img)
 
     # 轻微模糊，适度增加机器识别难度
