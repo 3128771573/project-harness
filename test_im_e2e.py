@@ -287,6 +287,7 @@ async def main():
             origin="https://www.platformharness.ltd",
         ) as ws:
             await ws.send(json.dumps({"type": "join", "conversation_id": conv_id}))
+            await asyncio.sleep(0.5)  # 等服务端处理 join
             # alice 经真实 HTTP 发消息
             async with httpx.AsyncClient(base_url="http://127.0.0.1:8000") as lc:
                 r = await lc.post(
@@ -296,16 +297,18 @@ async def main():
                 )
                 assert r.status_code == 200
                 mid4 = r.json()["id"]
-            got = await asyncio.wait_for(ws.recv(), timeout=5)
-            ev = json.loads(got)
-            assert ev["type"] == "im.message" and ev["message"]["id"] == mid4, ev
+            # 轮询直到收到目标事件（可能先到 conv_update）
+            async def wait_event(etype, msg_id=None):
+                while True:
+                    ev = json.loads(await asyncio.wait_for(ws.recv(), timeout=8))
+                    if ev["type"] == etype and (msg_id is None or ev.get("message", {}).get("id") == msg_id or ev.get("message_id") == msg_id):
+                        return ev
+            ev = await wait_event("im.message", mid4)
             print("   ws im.message ok")
             # 撤回推送
             async with httpx.AsyncClient(base_url="http://127.0.0.1:8000") as lc:
                 await lc.post(f"/api/v1/im/messages/{mid4}/recall", headers=H(ta))
-            got2 = await asyncio.wait_for(ws.recv(), timeout=5)
-            ev2 = json.loads(got2)
-            assert ev2["type"] == "im.recalled" and ev2["message_id"] == mid4, ev2
+            ev2 = await wait_event("im.recalled", mid4)
             print("   ws im.recalled ok")
 
         print("18. 清理测试数据")
