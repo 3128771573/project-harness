@@ -681,6 +681,69 @@ async def main():
         async with SessionLocal() as db:
             days = await settings_svc.get_setting(db, "im.message_retention_days", "365")
         assert days == "365", days
+
+        print("27. 企业级日志导出")
+        from datetime import timedelta as _td
+
+        exp_start = datetime.now(timezone.utc)
+        now_iso = exp_start.isoformat()
+        week_ago = (exp_start - _td(days=7)).isoformat()
+        ok_payload = {"source": "audit", "format": "csv", "start": week_ago, "end": now_iso}
+        # 权限：普通用户 403
+        r = await c.post("/api/v1/admin/exports/count", json=ok_payload, headers=H(ta))
+        assert r.status_code == 403, "普通用户应 403"
+        # 范围校验：end < start → 400；跨度 > 90 天 → 400
+        r = await c.post("/api/v1/admin/exports/count", json={"source": "audit", "start": now_iso, "end": week_ago}, headers=H(tsu))
+        assert r.status_code == 400
+        r = await c.post(
+            "/api/v1/admin/exports/count",
+            json={"source": "audit", "start": (exp_start - _td(days=100)).isoformat(), "end": now_iso},
+            headers=H(tsu),
+        )
+        assert r.status_code == 400
+        # count 预览
+        r = await c.post("/api/v1/admin/exports/count", json=ok_payload, headers=H(tsu))
+        assert r.status_code == 200 and r.json()["count"] >= 0, r.text
+        # 六数据源 count 全部可用
+        for src in ("audit", "login", "visit", "watermark", "report", "bot"):
+            r = await c.post("/api/v1/admin/exports/count", json={**ok_payload, "source": src}, headers=H(tsu))
+            assert r.status_code == 200, f"{src} count 失败"
+        # run CSV：BOM + 列头 + SHA-256 头
+        r = await c.post("/api/v1/admin/exports/run", json=ok_payload, headers=H(tsu))
+        assert r.status_code == 200, r.text
+        assert r.headers.get("x-export-sha256") and len(r.headers["x-export-sha256"]) == 64
+        assert r.headers.get("x-export-rows") is not None
+        assert r.text.startswith("\ufeff"), "CSV 应带 UTF-8 BOM"
+        assert "time_utc" in r.text and "action" in r.text
+        assert "audit.export" in r.text, "本次导出行为自身应出现在审计数据中"
+        # CSV 结构解析（9 列，转义正确）
+        import csv as _csv
+        import io as _io
+
+        parsed = list(_csv.reader(_io.StringIO(r.text.lstrip("\ufeff"))))
+        assert len(parsed) >= 2 and len(parsed[0]) == 9, f"audit 应为 9 列，实际 {len(parsed[0]) if parsed else 0}"
+        # run JSON：完整结构
+        r = await c.post("/api/v1/admin/exports/run", json={**ok_payload, "format": "json"}, headers=H(tsu))
+        j = r.json()
+        assert j["source"] == "audit" and j["row_count"] > 0 and j["rows"][0][0], j
+        assert j["range_start"] == week_ago and j["exported_at"]
+        # history：导出留痕
+        r = await c.get("/api/v1/admin/exports/history?limit=10", headers=H(tsu))
+        items = r.json()
+        assert items and items[0]["source"] == "audit" and items[0]["sha256"], items
+        # bot 源内容正确（含机器人广播）
+        r = await c.post("/api/v1/admin/exports/run", json={**ok_payload, "source": "bot", "format": "json"}, headers=H(tsu))
+        j = r.json()
+        assert j["row_count"] >= 1 and "新私信系统" in j["rows"][0][-1], "机器人广播应可导出"
+        # 限流：6 次/分 → 第 7 次 429
+        for _ in range(6):
+            await c.post("/api/v1/admin/exports/run", json={**ok_payload, "source": "login"}, headers=H(tsu))
+        r = await c.post("/api/v1/admin/exports/run", json={**ok_payload, "source": "login"}, headers=H(tsu))
+        assert r.status_code == 429, r.text
+        # 清理测试窗口内的导出审计记录
+        async with SessionLocal() as db:
+            await db.execute(_delete(AuditLog).where(AuditLog.action == "audit.export", AuditLog.created_time >= exp_start))
+            await db.commit()
         print("18. 清理测试数据")
         async with SessionLocal() as db:
             uids = [alice_uid, bob_uid]

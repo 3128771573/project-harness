@@ -785,3 +785,43 @@ class SensitiveWordList(BaseModel):
     total: int
 
 
+# ==================== 日志导出（企业级） ====================
+
+class ExportQueryIn(BaseModel):
+    source: str = Field(pattern=r"^(audit|login|visit|watermark|report|bot)$")
+    start: datetime
+    end: datetime
+    format: str = Field(default="csv", pattern=r"^(csv|json)$")
+    action: str | None = Field(default=None, max_length=64)
+    actor: str | None = Field(default=None, max_length=64)
+    keyword: str | None = Field(default=None, max_length=200)
+    success: bool | None = None
+    email: str | None = Field(default=None, max_length=255)
+    method: str | None = Field(default=None, max_length=16)
+    path: str | None = Field(default=None, max_length=255)
+    username: str | None = Field(default=None, max_length=64)
+    status_code: int | None = None
+    actor_uid: str | None = Field(default=None, max_length=40)
+    kind: str | None = Field(default=None, max_length=16)
+    status: str | None = Field(default=None, max_length=16)
+    target_type: str | None = Field(default=None, max_length=8)
+    to: str | None = Field(default=None, max_length=64)
+
+
+class ExportCountOut(BaseModel):
+    count: int
+    capped: bool
+    max_rows: int
+
+
+class ExportHistoryItem(BaseModel):
+    id: str
+    time_utc: datetime
+    actor_name: str | None = None
+    source: str | None = None
+    fmt: str | None = None
+    rows: int | None = None
+    sha256: str | None = None
+    detail: str | None = None
+
+

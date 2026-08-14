@@ -70,6 +70,10 @@
           <svg viewBox="0 0 24 24" class="icon"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
           <span>举报审核</span>
         </router-link>
+        <router-link v-if="isSuperAdmin" to="/admin/exports" class="nav-item" active-class="active">
+          <svg viewBox="0 0 24 24" class="icon"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H5V5h14v12zM7 7h10v2H7zm0 4h10v2H7zm0 4h6v2H7z"/></svg>
+          <span>日志导出</span>
+        </router-link>
         <router-link v-if="isSuperAdmin" to="/admin/watermark" class="nav-item" active-class="active">
           <svg viewBox="0 0 24 24" class="icon"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
           <span>水印取证</span>
