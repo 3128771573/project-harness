@@ -354,6 +354,26 @@ async def list_models(db: AsyncSession = Depends(get_db)):
     return ["mock"]
 
 
+@router.delete("/history/last", status_code=status.HTTP_204_NO_CONTENT, summary="删除会话最后一条问答（重新生成/编辑重发）")
+async def delete_last_history(
+    conversation_id: str = Query(..., max_length=36),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_own_conv(db, current_user.uid, conversation_id)
+    row = (
+        await db.execute(
+            select(AiHistory)
+            .where(AiHistory.conversation_id == conversation_id)
+            .order_by(AiHistory.created_time.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if row is not None:
+        await db.delete(row)
+        await db.commit()
+
+
 @router.get("/history", response_model=AiHistoryList)
 async def history(
     limit: int = Query(default=20, ge=1, le=100),
