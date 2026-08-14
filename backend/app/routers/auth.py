@@ -208,6 +208,9 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
     ua = _client_ua(request)
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
     user = result.scalar_one_or_none()
+    if user is not None and user.is_bot:
+        await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, method="password", success=False, reason="机器人账号不可登录")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="机器人账号不可登录")
     if user is None or not verify_password(payload.password, user.password_hash):
         await record_login(
             db, email=payload.email.lower(), ip=ip, user_agent=ua, method="password", success=False, reason="密码错误或账号不存在"

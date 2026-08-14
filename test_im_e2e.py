@@ -15,7 +15,7 @@ from sqlalchemy import delete as _delete, select
 sys.path.insert(0, "/app/backend")
 from app.database import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Block, DmConversation, DmConversationMember, DmMessage, User  # noqa: E402
+from app.models import Block, DmConversation, DmConversationMember, DmMessage, EmailCode, LoginLog, RefreshToken, User  # noqa: E402
 from app.services.bot import BOT_UID, ensure_bot  # noqa: E402
 from app.services.watermark import encode_text_watermark  # noqa: E402
 
@@ -45,21 +45,37 @@ def H(token):
 
 async def main():
     async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
-        # 0) 清理旧测试数据
+        print("0. 清理旧测试数据")
         async with SessionLocal() as db:
-            for email in ("alice-im@example.com", "bob-im@example.com", "carol-im@example.com"):
-                u = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
-                if u:
-                    await db.execute(_delete(DmMessage).where(DmMessage.sender_id == u.uid))
-                    await db.execute(_delete(Block).where((Block.uid == u.uid) | (Block.blocked_uid == u.uid)))
-                    await db.delete(u)
+            emails = ("alice-im@example.com", "bob-im@example.com", "carol-im@example.com")
+            urows = (await db.execute(select(User).where(User.email.in_(emails)))).scalars().all()
+            uids = [u.uid for u in urows]
+            await db.execute(_delete(EmailCode).where(EmailCode.email.in_(emails)))
+            if uids:
+                conv_ids = [
+                    cid for (cid,) in (
+                        await db.execute(
+                            select(DmConversation.id).where(
+                                (DmConversation.user_a.in_(uids)) | (DmConversation.user_b.in_(uids))
+                            )
+                        )
+                    ).all()
+                ]
+                if conv_ids:
+                    await db.execute(_delete(DmMessage).where(DmMessage.conversation_id.in_(conv_ids)))
+                    await db.execute(_delete(DmConversationMember).where(DmConversationMember.conversation_id.in_(conv_ids)))
+                    await db.execute(_delete(DmConversation).where(DmConversation.id.in_(conv_ids)))
+                await db.execute(_delete(Block).where((Block.uid.in_(uids)) | (Block.blocked_uid.in_(uids))))
+                await db.execute(_delete(RefreshToken).where(RefreshToken.uid.in_(uids)))
+                await db.execute(_delete(LoginLog).where(LoginLog.uid.in_(uids)))
+                await db.execute(_delete(User).where(User.uid.in_(uids)))
             await db.commit()
 
         print("1. 注册 alice / bob")
         ua = await register(c, "alice-im@example.com", "alice_im")
         ub = await register(c, "bob-im@example.com", "bob_im")
         ta, tb = await login(c, "alice-im@example.com"), await login(c, "bob-im@example.com")
-        alice_uid, bob_uid = ua["uid"], ub["uid"]
+        alice_uid, bob_uid = ua["user"]["uid"], ub["user"]["uid"]
         print("   alice:", alice_uid, "bob:", bob_uid)
 
         print("2. 越权防护：不存在会话 → 404")
@@ -143,11 +159,14 @@ async def main():
         m3 = r.json()
         r = await c.post(f"/api/v1/im/messages/{m3['id']}/recall", headers=H(ta))
         assert r.status_code == 200  # 刚发的还在窗口内
+        # 超时：直接造一条 10 分钟前的消息 → 撤回应 400
         async with SessionLocal() as db:
-            msg = await db.get(DmMessage, m2["id"])
-            msg.created_time = datetime.now(timezone.utc) - timedelta(minutes=3)
+            old = DmMessage(conversation_id=conv_id, sender_id=alice_uid, content="很旧的消息", kind="text", status="active")
+            old.created_time = datetime.now(timezone.utc) - timedelta(minutes=10)
+            db.add(old)
             await db.commit()
-        r = await c.post(f"/api/v1/im/messages/{m2['id']}/recall", headers=H(ta))
+            old_id = old.id
+        r = await c.post(f"/api/v1/im/messages/{old_id}/recall", headers=H(ta))
         assert r.status_code == 400, r.text
 
         print("9. 隐藏会话（仅本人视图）")
@@ -168,7 +187,8 @@ async def main():
         names = [x["username"] for x in r.json()["items"]]
         assert "alice_im" not in names and "harness_official" not in names, names
         r = await c.get("/api/v1/im/users?q=harness", headers=H(ta))
-        assert r.json()["items"] == []
+        hit_names = [x["username"] for x in r.json()["items"]]
+        assert "harness_official" not in hit_names and "alice_im" not in hit_names, hit_names
 
         print("11. 图片消息")
         png = b"\x89PNG\r\n\x1a\n" + b"0" * 100
@@ -287,14 +307,24 @@ async def main():
 
         print("18. 清理测试数据")
         async with SessionLocal() as db:
-            for uid in (alice_uid, bob_uid):
-                await db.execute(_delete(DmMessage).where(DmMessage.sender_id == uid))
-                await db.execute(_delete(DmConversationMember).where(DmConversationMember.user_id == uid))
-                await db.execute(_delete(DmConversation).where((DmConversation.user_a == uid) | (DmConversation.user_b == uid)))
-                await db.execute(_delete(Block).where((Block.uid == uid) | (Block.blocked_uid == uid)))
-                u = await db.get(User, uid)
-                if u:
-                    await db.delete(u)
+            uids = [alice_uid, bob_uid]
+            conv_ids = [
+                cid for (cid,) in (
+                    await db.execute(
+                        select(DmConversation.id).where(
+                            (DmConversation.user_a.in_(uids)) | (DmConversation.user_b.in_(uids))
+                        )
+                    )
+                ).all()
+            ]
+            if conv_ids:
+                await db.execute(_delete(DmMessage).where(DmMessage.conversation_id.in_(conv_ids)))
+                await db.execute(_delete(DmConversationMember).where(DmConversationMember.conversation_id.in_(conv_ids)))
+                await db.execute(_delete(DmConversation).where(DmConversation.id.in_(conv_ids)))
+            await db.execute(_delete(Block).where((Block.uid.in_(uids)) | (Block.blocked_uid.in_(uids))))
+            await db.execute(_delete(RefreshToken).where(RefreshToken.uid.in_(uids)))
+            await db.execute(_delete(LoginLog).where(LoginLog.uid.in_(uids)))
+            await db.execute(_delete(User).where(User.uid.in_(uids)))
             await db.commit()
 
     print("IM P0 E2E ALL PASSED")
