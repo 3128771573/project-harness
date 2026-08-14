@@ -54,6 +54,6 @@ try:
         print(".", end="", flush=True)
         time.sleep(INTERVAL)
 except KeyboardInterrupt:
-    print("
-已停止")
+    print()
+    print("已停止")
     client.loop_stop()
