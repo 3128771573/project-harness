@@ -69,17 +69,38 @@
       </button>
       <p class="switch">还没有账号？<router-link to="/register">立即注册</router-link></p>
     </form>
+
+    <!-- 第三方登录 -->
+    <div v-if="oauthProviders.some((p) => p.provider === 'github' && p.enabled)" class="oauth-divider">
+      <span>或</span>
+    </div>
+    <div v-if="oauthProviders.some((p) => p.provider === 'github' && p.enabled)" class="oauth-row">
+      <a href="/api/v1/auth/oauth/github" class="oauth-btn">
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        GitHub 登录
+      </a>
+    </div>
   </AuthLayout>
 </template>
 
 <script setup>
-import { onUnmounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
 import AuthLayout from '../layouts/AuthLayout.vue'
 
 const router = useRouter()
 const mode = ref('password')
+const oauthProviders = ref([])
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/auth/oauth/providers')
+    oauthProviders.value = data
+  } catch { /* 忽略：未启用时按钮不显示 */ }
+})
 const form = reactive({ email: '', password: '', code: '', totp_code: '' })
 const error = ref('')
 const msg = ref('')
@@ -244,5 +265,48 @@ onUnmounted(() => {
 
 .forgot-link {
   font-size: 13px;
+}
+
+/* 第三方登录 */
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.oauth-divider::before,
+.oauth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.oauth-row {
+  display: flex;
+  justify-content: center;
+}
+
+.oauth-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.oauth-btn:hover {
+  border-color: var(--text-secondary);
+  background: var(--bg-hover);
 }
 </style>

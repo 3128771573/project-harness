@@ -114,6 +114,27 @@ class Token(BaseModel):
     user: UserOut
 
 
+class OAuthProviderOut(BaseModel):
+    provider: str
+    name: str
+    enabled: bool
+
+
+class OAuthAccountOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    provider: str
+    provider_sub: str
+    nickname: str | None = None
+    avatar: str | None = None
+    created_time: datetime
+
+
+class OAuthExchangeRequest(BaseModel):
+    code: str = Field(..., min_length=16, max_length=64)  # 一次性码（OTC）
+    totp_code: str | None = Field(default=None, max_length=8, description="两步验证码（账号开启 2FA 后必填）")
+
+
 class TwoFactorStatus(BaseModel):
     enabled: bool = False
 

@@ -247,6 +247,22 @@ class VisitLog(Base):
     created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
+class OAuthAccount(Base):
+    """第三方 OAuth 绑定（SSO 登录）；一个第三方账号只能绑定一个站内账号"""
+
+    __tablename__ = "oauth_accounts"
+    __table_args__ = (UniqueConstraint("provider", "provider_sub", name="uq_oauth_provider_sub"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    uid: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)  # 目前仅 github
+    provider_sub: Mapped[str] = mapped_column(String(128), nullable=False)  # 第三方用户 ID
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    nickname: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    avatar: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 class EmailCode(Base):
     """邮箱验证码"""
 

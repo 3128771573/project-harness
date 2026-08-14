@@ -54,6 +54,20 @@
         <ThemeSwitcher />
       </section>
 
+      <!-- 第三方账号 -->
+      <section class="panel">
+        <h3>第三方账号</h3>
+        <p class="sub">使用 GitHub 快捷登录，可随时解绑</p>
+        <div v-if="oauthAccounts.length === 0" class="muted empty">暂无绑定</div>
+        <div v-for="a in oauthAccounts" :key="a.provider" class="session-row">
+          <div class="session-info">
+            <b>{{ providerName(a.provider) }}</b>
+            <span class="muted small">{{ a.nickname || a.provider_sub }} · 绑定于 {{ fmtTime(a.created_time) }}</span>
+          </div>
+          <button class="btn tiny danger" @click="unbindOAuth(a.provider)">解绑</button>
+        </div>
+      </section>
+
       <!-- 修改密码 -->
       <section class="panel">
         <h3>修改密码</h3>
@@ -176,6 +190,30 @@ const pwdMsgOk = ref(false)
 const pwdSaving = ref(false)
 const sessions = ref([])
 const logs = ref([])
+
+// ===== 第三方账号（OAuth 绑定） =====
+const oauthAccounts = ref([])
+
+async function loadOAuthAccounts() {
+  try {
+    const { data } = await api.get('/user/oauth-accounts')
+    oauthAccounts.value = data
+  } catch { /* ignore */ }
+}
+
+function providerName(p) {
+  return { github: 'GitHub' }[p] || p
+}
+
+async function unbindOAuth(provider) {
+  if (!confirm(`确定解绑 ${providerName(provider)} 吗？`)) return
+  try {
+    await api.post(`/user/oauth/${provider}/unbind`)
+    await loadOAuthAccounts()
+  } catch (e) {
+    alert(e.response?.data?.detail || '解绑失败')
+  }
+}
 
 // ===== 两步验证（TOTP） =====
 const twofa = ref({ enabled: false })
@@ -399,6 +437,7 @@ onMounted(() => {
   loadTwofa()
   loadSessions()
   loadLogs()
+  loadOAuthAccounts()
 })
 </script>
 

@@ -38,9 +38,19 @@ class Settings(BaseSettings):
     EMAIL_CODE_RESEND_SECONDS: int = 60
     EMAIL_CODE_MAX_ATTEMPTS: int = 5
 
+    # GitHub OAuth（SSO 登录；两个值都为空时第三方登录入口自动隐藏）
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+    # 站点对外地址（构建 OAuth 回调地址与前端落地页跳转；开发用 http://localhost:5173）
+    PUBLIC_BASE_URL: str = "http://localhost:5173"
+
     @property
     def smtp_enabled(self) -> bool:
         return bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD)
+
+    @property
+    def github_oauth_enabled(self) -> bool:
+        return bool(self.GITHUB_CLIENT_ID and self.GITHUB_CLIENT_SECRET)
 
     @property
     def cors_origin_list(self) -> list[str]:

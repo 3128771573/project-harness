@@ -15,6 +15,7 @@ const PricingView = () => import('../views/PricingView.vue')
 const StatusView = () => import('../views/StatusView.vue')
 const NotFoundView = () => import('../views/NotFoundView.vue')
 const GuestbookView = () => import('../views/GuestbookView.vue')
+const OAuthCallbackView = () => import('../views/OAuthCallbackView.vue')
 const AdminLayout = () => import('../layouts/AdminLayout.vue')
 const AdminDashboardView = () => import('../views/admin/AdminDashboardView.vue')
 const AdminUsersView = () => import('../views/admin/AdminUsersView.vue')
@@ -43,6 +44,7 @@ const routes = [
   { path: '/pricing', name: 'pricing', component: PricingView },
   { path: '/status', name: 'status', component: StatusView },
   { path: '/guestbook', name: 'guestbook', component: GuestbookView },
+  { path: '/oauth/callback', name: 'oauth-callback', component: OAuthCallbackView },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
   {
     path: '/admin',

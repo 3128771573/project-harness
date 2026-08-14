@@ -3,13 +3,14 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
 from ..database import get_db
 from ..deps import get_current_user
-from ..models import User
-from ..schemas import ProfileUpdate, UserOut
+from ..models import OAuthAccount, User
+from ..schemas import OAuthAccountOut, ProfileUpdate, UserOut
 
 router = APIRouter(prefix="/user", tags=["user"])
 
@@ -65,3 +66,44 @@ async def upload_avatar(
     await db.commit()
     await db.refresh(current_user)
     return _to_out(current_user)
+
+
+@router.get("/oauth-accounts", response_model=list[OAuthAccountOut], summary="我的第三方绑定列表")
+async def my_oauth_accounts(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(OAuthAccount).where(OAuthAccount.uid == current_user.uid).order_by(OAuthAccount.created_time)
+    )
+    return [OAuthAccountOut.model_validate(a) for a in result.scalars().all()]
+
+
+@router.post("/oauth/{provider}/unbind", summary="解绑第三方登录")
+async def unbind_oauth(
+    provider: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if provider != "github":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不支持的第三方平台")
+    result = await db.execute(
+        select(OAuthAccount).where(OAuthAccount.uid == current_user.uid, OAuthAccount.provider == provider)
+    )
+    acc = result.scalar_one_or_none()
+    if acc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="未绑定该平台")
+    # 防锁死：这是唯一登录方式且从未设置真实密码 → 拒绝解绑
+    others = (
+        await db.execute(
+            select(OAuthAccount.id).where(OAuthAccount.uid == current_user.uid, OAuthAccount.id != acc.id)
+        )
+    ).scalar_one_or_none()
+    if others is None and current_user.password_changed_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="这是您唯一的登录方式，请先在「修改密码」中设置密码后再解绑",
+        )
+    await db.delete(acc)
+    await db.commit()
+    return {"message": "已解绑"}
