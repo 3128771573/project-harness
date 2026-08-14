@@ -116,8 +116,11 @@ async def test_register_login_refresh(client):
     assert data["user"]["role"] == "user"
     assert data["user"]["uid"]
 
-    # 重复注册（同一邮箱，需新验证码）
-    dup = await _register(client, f"u_{suf}", email=f"e_{suf}@test.com", password="Secret123")
+    # 重复注册（同邮箱直接注册，用户存在检查在验证码校验前 → 409）
+    dup = await client.post(
+        "/api/v1/auth/register",
+        json={"username": f"u_{suf}", "email": f"e_{suf}@test.com", "password": "Secret123", "code": "000000"},
+    )
     assert dup.status_code == 409
 
     # 登录
@@ -242,7 +245,9 @@ async def test_admin_endpoints_as_admin(client):
     sys_status = await client.get("/api/v1/admin/system/status", headers=headers)
     assert sys_status.status_code == 200
     data = sys_status.json()
-    assert "cpu" in data and "memory" in data and "disk" in data and "uptime" in data
+    assert "cpu" in data and "memory" in data and "disk" in data and "system" in data
+    assert "percent" in data["cpu"] and "uptime" in data["system"]
+    assert 0 <= data["cpu"]["percent"] <= 100
 
 
 async def test_super_admin_guard(client):
