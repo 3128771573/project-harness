@@ -660,9 +660,11 @@ async def main():
         # bob 侧会话列表无 alice 会话
         r = await c.get("/api/v1/im/conversations", headers=H(tb))
         assert all(x["other"]["uid"] != alice_uid for x in r.json()["items"]), "bob 侧会话应消失"
-        # gid2 由 alice 创建，alice 已注销 → 群里只有 bob；bob 非 owner 删群应 403
+        # gid2 由 alice 创建，alice 注销后应转让给 bob（唯一成员）
+        r = await c.get(f"/api/v1/im/groups/{gid2}", headers=H(tb))
+        assert r.status_code == 200 and r.json()["owner_id"] == bob_uid, "群主应转让给剩余成员"
         r = await c.delete(f"/api/v1/im/groups/{gid2}", headers=H(tb))
-        assert r.status_code == 403, r.text
+        assert r.status_code == 204, r.text
         r = await c.get(f"/api/v1/im/groups/{gid2}/messages", headers=H(tb))
         assert r.status_code == 404 or r.status_code == 200
 

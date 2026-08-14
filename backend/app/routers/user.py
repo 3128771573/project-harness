@@ -171,6 +171,24 @@ async def deactivate_account(
         db.add(ph)
         await db.flush()
     await db.execute(update(GroupMessage).where(GroupMessage.sender_id == uid).values(sender_id=placeholder_uid))
+    # 群主身份处理：转让给任一成员；无成员则解散群
+    owner_groups = (await db.execute(select(GroupChat).where(GroupChat.owner_id == uid))).scalars().all()
+    for grp in owner_groups:
+        successor = (
+            await db.execute(
+                select(GroupMember)
+                .where(GroupMember.group_id == grp.id, GroupMember.user_id != uid)
+                .order_by(GroupMember.joined_time)
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if successor is not None:
+            grp.owner_id = successor.user_id
+            successor.role = "owner"
+        else:
+            await db.execute(delete(GroupMessage).where(GroupMessage.group_id == grp.id))
+            await db.execute(delete(GroupMember).where(GroupMember.group_id == grp.id))
+            await db.execute(delete(GroupChat).where(GroupChat.id == grp.id))
     # 退出所有群
     await db.execute(delete(GroupMember).where(GroupMember.user_id == uid))
     # 清理关联数据
