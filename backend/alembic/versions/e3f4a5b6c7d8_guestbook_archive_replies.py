@@ -53,6 +53,8 @@ def upgrade() -> None:
             sa.text("UPDATE messages SET archive_no=:a WHERE id=:i"),
             {"a": f"GB-{d}-{day_count[d]:03d}", "i": rid},
         )
+    # 历史已回复留言回填状态
+    conn.execute(sa.text("UPDATE messages SET status='replied' WHERE reply IS NOT NULL AND status='pending'"))
 
 
 def downgrade() -> None:

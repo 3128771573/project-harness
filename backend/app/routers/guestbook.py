@@ -297,7 +297,7 @@ async def visitor_reply(
 async def admin_messages(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=100),
-    status_filter: str | None = Query(default=None, description="pending / replied / closed"),
+    status: str | None = Query(default=None, description="pending / replied / closed"),
     keyword: str | None = Query(default=None, description="按内容/昵称/档案号/查询码模糊搜索"),
     current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
@@ -313,8 +313,8 @@ async def admin_messages(
         await db.execute(select(func.count()).select_from(Message).where(Message.status == "pending"))
     ).scalar_one()
     q = select(Message)
-    if status_filter:
-        q = q.where(Message.status == status_filter)
+    if status:
+        q = q.where(Message.status == status)
     if keyword:
         kw = keyword.strip()
         q = q.where(
