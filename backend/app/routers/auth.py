@@ -26,7 +26,7 @@ from ..security import (
     verify_password,
 )
 from ..services.emailcode import invalidate_codes, send_verification_code, verify_code
-from ..services.loginlog import record_login, update_last_login
+from ..services.loginlog import _parse_device, record_login, update_last_login
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -50,7 +50,7 @@ async def _issue_tokens(db: AsyncSession, user: User, request: Request) -> Token
             uid=user.uid,
             jti=jti,
             expires_at=expires_at,
-            device=_client_ua(request),
+            device=_parse_device(_client_ua(request))[:120],  # 原始 UA 可能超 128 列宽，存解析后的设备名
             ip=_client_ip(request),
         )
     )
