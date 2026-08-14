@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page">
     <SiteNav />
     <div class="page-inner">
@@ -82,7 +82,7 @@ function stateText(s) {
 }
 
 .demo-card {
-  border-color: var(--border-light);
+  border: 1px solid var(--border-light);
   border-radius: 16px;
   padding: 28px 22px;
   display: flex;
@@ -99,8 +99,8 @@ function stateText(s) {
 }
 
 .demo-card.active {
-  border-color: #bbf7d0;
-  background: #f8fefb;
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+  background: color-mix(in srgb, var(--success) 8%, transparent);
 }
 
 .demo-icon {

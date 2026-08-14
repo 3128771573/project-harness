@@ -381,7 +381,7 @@ const demos = [
   align-items: center;
   gap: 14px;
   padding: 20px;
-  border-color: var(--border-light);
+  border: 1px solid var(--border-light);
   border-radius: 16px;
   text-decoration: none;
   color: inherit;
@@ -434,7 +434,7 @@ const demos = [
 }
 
 .panel-card {
-  border-color: var(--border-light);
+  border: 1px solid var(--border-light);
   border-radius: 16px;
   padding: 22px;
 }
@@ -1066,7 +1066,7 @@ const demos = [
 /* AI 对话 demo */
 .chat-demo {
   background: var(--bg-card);
-  border-color: var(--border-light);
+  border: 1px solid var(--border-light);
   border-radius: 18px;
   padding: 24px;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
@@ -1092,7 +1092,7 @@ const demos = [
 
 .chat-line.ai {
   align-self: flex-start;
-  background: #f3f4f6;
+  background: var(--bg-code);
   color: var(--text-secondary);
   border-bottom-left-radius: 4px;
 }
@@ -1190,7 +1190,7 @@ const demos = [
 }
 
 .lab-card {
-  border-color: var(--border-light);
+  border: 1px solid var(--border-light);
   border-radius: 16px;
   padding: 26px 18px;
   display: flex;
@@ -1249,7 +1249,7 @@ const demos = [
   font-weight: 600;
   color: var(--text-secondary);
   padding: 8px 18px;
-  border-color: var(--border-color);
+  border: 1px solid var(--border-color);
   border-radius: 999px;
   background: var(--bg-input);
 }

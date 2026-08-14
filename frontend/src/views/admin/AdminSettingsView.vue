@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <header class="page-head">
       <div>
@@ -122,7 +122,7 @@ onMounted(load)
 
 .field input {
   padding: 10px 14px;
-  border-color: var(--border-color);
+  border: 1px solid var(--border-color);
   border-radius: 9px;
   font-size: 13.5px;
   background: var(--bg-input);
@@ -145,7 +145,7 @@ onMounted(load)
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  border-color: var(--border-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .toggle-row b {

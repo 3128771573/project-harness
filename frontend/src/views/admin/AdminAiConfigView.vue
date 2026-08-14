@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <header class="page-head">
       <div>
@@ -149,7 +149,7 @@ onMounted(load)
 
 .field input {
   padding: 10px 14px;
-  border-color: var(--border-color);
+  border: 1px solid var(--border-color);
   border-radius: 9px;
   font-size: 13.5px;
   background: var(--bg-input);

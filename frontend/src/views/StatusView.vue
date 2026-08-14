@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page">
     <SiteNav />
     <div class="page-inner">
@@ -85,7 +85,7 @@ const services = [
 }
 
 .status-card {
-  border-color: var(--border-light);
+  border: 1px solid var(--border-light);
   border-radius: 16px;
   padding: 22px;
   display: flex;
@@ -128,7 +128,7 @@ const services = [
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-color: var(--border-light);
+  border: 1px solid var(--border-light);
   border-radius: 14px;
   padding: 16px 20px;
 }

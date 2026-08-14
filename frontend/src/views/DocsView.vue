@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page">
     <SiteNav />
     <div class="page-inner">
@@ -97,7 +97,7 @@ import SiteNav from '../components/SiteNav.vue'
 }
 
 .doc-card {
-  border-color: var(--border-light);
+  border: 1px solid var(--border-light);
   border-radius: 16px;
   padding: 24px 20px;
   display: flex;

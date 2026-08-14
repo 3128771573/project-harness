@@ -106,12 +106,16 @@
 
       <!-- 输入区 -->
       <form @submit.prevent="send" class="chat-input">
-        <input
+        <textarea
+          ref="inputEl"
           v-model.trim="question"
           placeholder="问点什么…（Enter 发送 · Shift+Enter 换行）"
           :disabled="loading"
           maxlength="4000"
-        />
+          rows="1"
+          @keydown.enter.exact.prevent="onEnter"
+          @input="autoResize"
+        ></textarea>
         <button type="submit" class="send-btn" :disabled="loading || !question">
           <svg v-if="!loading" viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
           <span v-else class="send-dots"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span></span>
@@ -122,7 +126,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BrandLogo from '../components/BrandLogo.vue'
 import ThemeSwitcher from '../components/ThemeSwitcher.vue'
@@ -138,6 +142,7 @@ const selectedModel = ref('mock')
 const deepThink = ref(false)
 const historyTotal = ref(0)
 const chatBox = ref(null)
+const inputEl = ref(null)
 
 const prompts = [
   '帮我写一段 Python 代码',
@@ -168,6 +173,26 @@ async function scrollBottom() {
   await nextTick()
   if (chatBox.value) chatBox.value.scrollTop = chatBox.value.scrollHeight
 }
+
+// Enter 发送 / Shift+Enter 换行（IME 组合输入期间不触发）
+function onEnter(e) {
+  if (e.isComposing) return
+  send()
+}
+
+// textarea 随内容自动增高（上限 180px）
+function autoResize(e) {
+  const el = e.target
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 180) + 'px'
+}
+
+// 清空后（发送/清空会话）重置 textarea 为单行
+watch(question, () => {
+  if (!question.value && inputEl.value) {
+    inputEl.value.style.height = 'auto'
+  }
+})
 
 async function loadModels() {
   try {
@@ -879,9 +904,11 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   margin-top: 14px;
+  align-items: flex-end;
 }
 
-.chat-input input {
+.chat-input input,
+.chat-input textarea {
   flex: 1;
   padding: 13px 18px;
   border: 1px solid var(--border);
@@ -892,7 +919,17 @@ onMounted(() => {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.chat-input input:focus {
+.chat-input textarea {
+  resize: none;
+  line-height: 1.5;
+  min-height: 48px;
+  max-height: 180px;
+  display: block;
+  box-sizing: border-box;
+}
+
+.chat-input input:focus,
+.chat-input textarea:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);

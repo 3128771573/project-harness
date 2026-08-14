@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page">
     <SiteNav />
     <div class="page-inner">
@@ -209,7 +209,7 @@ const linePoints = computed(() => {
 
 .chart-panel {
   background: var(--bg-card);
-  border-color: var(--border-light);
+  border: 1px solid var(--border-light);
   border-radius: 18px;
   padding: 24px;
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);

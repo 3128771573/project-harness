@@ -13,6 +13,10 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// 并发 401 时只发起一次 refresh（单例 Promise），避免多个请求各自刷新、
+// 旧 refresh_token 被轮换吊销后其余请求全部失败导致强制登出
+let refreshing = null
+
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
@@ -23,7 +27,14 @@ api.interceptors.response.use(
       if (refresh) {
         original._retried = true
         try {
-          const { data } = await axios.post('/api/v1/auth/refresh', { refresh_token: refresh })
+          if (!refreshing) {
+            refreshing = axios
+              .post('/api/v1/auth/refresh', { refresh_token: refresh })
+              .finally(() => {
+                refreshing = null
+              })
+          }
+          const { data } = await refreshing
           localStorage.setItem('harness_access', data.access_token)
           localStorage.setItem('harness_refresh', data.refresh_token)
           localStorage.setItem('harness_user', JSON.stringify(data.user))

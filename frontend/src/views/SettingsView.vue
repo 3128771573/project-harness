@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="layout">
     <aside class="sidebar">
       <div class="logo">H</div>
@@ -239,7 +239,7 @@ onMounted(() => {
   border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 14px;
-  background: #fafbfc;
+  background: var(--bg-input);
   font-family: inherit;
 }
 
@@ -291,7 +291,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  border-color: var(--border-light);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .session-row:last-child {

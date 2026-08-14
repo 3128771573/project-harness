@@ -1,4 +1,4 @@
-﻿.layout {
+.layout {
   display: flex;
   min-height: 100vh;
   background: var(--bg-primary);
@@ -159,7 +159,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 14px;
-  background: #fafbfc;
+  background: var(--bg-input);
   font-family: inherit;
   resize: vertical;
   transition: border-color 0.15s, box-shadow 0.15s;

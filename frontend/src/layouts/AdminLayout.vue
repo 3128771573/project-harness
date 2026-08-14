@@ -118,7 +118,7 @@ function logout() {
   position: sticky;
   top: 0;
   height: 100vh;
-  border-color: var(--border-color);
+  border-right: 1px solid var(--border-color);
 }
 
 .brand {
@@ -199,7 +199,7 @@ function logout() {
   flex-direction: column;
   gap: 2px;
   padding-top: 14px;
-  border-color: var(--border-color);
+  border-top: 1px solid var(--border-color);
 }
 
 .back-link {

@@ -1,6 +1,7 @@
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import katex from 'katex'
+import DOMPurify from 'dompurify'
 import 'katex/dist/katex.min.css'
 import 'highlight.js/styles/github-dark.css'
 
@@ -56,6 +57,8 @@ export function renderMarkdown(text) {
   })
 
   let html = marked.parse(t) || ''
+  // XSS 防护：marked 15.x 不再自带 sanitize，AI 输出 / 提示词注入的 HTML 一律消毒
+  html = DOMPurify.sanitize(html)
 
   // 还原公式占位符
   placeholders.forEach((v, i) => {

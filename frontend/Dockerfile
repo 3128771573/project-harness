@@ -1,9 +1,9 @@
 # Build stage
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY package.json ./
-# 使用国内 npm 镜像加速
-RUN npm install --registry=https://registry.npmmirror.com
+COPY package.json package-lock.json ./
+# 使用国内 npm 镜像加速；npm ci 依据 lockfile 保证可复现构建
+RUN npm ci --registry=https://registry.npmmirror.com
 COPY . .
 RUN npm run build
 

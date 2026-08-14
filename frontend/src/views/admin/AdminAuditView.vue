@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <header class="page-head">
       <div>
@@ -88,7 +88,7 @@ onMounted(() => load(1))
 .action-tag {
   display: inline-block;
   background: #f1f2f6;
-  color: #374151;
+  color: var(--text-secondary);
   padding: 3px 10px;
   border-radius: 6px;
   font-size: 12px;

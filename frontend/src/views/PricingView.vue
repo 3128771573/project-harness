@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page">
     <SiteNav />
     <div class="page-inner">
@@ -19,9 +19,18 @@
           <ul>
             <li v-for="f in p.feats" :key="f">✓ {{ f }}</li>
           </ul>
-          <router-link :to="p.cta === '注册' ? '/register' : '/contact'" class="btn" :class="p.featured ? 'dark' : 'outline'">
-            {{ p.cta }}
-          </router-link>
+          <a
+            v-if="p.cta === '联系我们'"
+            href="mailto:contact@platformharness.ltd"
+            class="btn"
+            :class="p.featured ? 'dark' : 'outline'"
+          >{{ p.cta }}</a>
+          <router-link
+            v-else
+            to="/register"
+            class="btn"
+            :class="p.featured ? 'dark' : 'outline'"
+          >{{ p.cta }}</router-link>
         </div>
       </div>
 
@@ -105,7 +114,7 @@ const plans = [
 }
 
 .price-card {
-  border-color: var(--border-light);
+  border: 1px solid var(--border-light);
   border-radius: 18px;
   padding: 30px 26px;
   display: flex;
@@ -120,7 +129,7 @@ const plans = [
 }
 
 .price-card.featured {
-  border-color: #2563eb;
+  border: 1px solid var(--primary-color);
   box-shadow: 0 12px 40px rgba(37, 99, 235, 0.15);
 }
 
