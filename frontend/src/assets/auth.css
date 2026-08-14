@@ -4,15 +4,16 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: linear-gradient(160deg, #eef2ff 0%, #f5f6fa 55%, #e8f0fe 100%);
+  background: var(--bg-primary);
 }
 
 .auth-card {
   width: 100%;
   max-width: 400px;
-  background: var(--card);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-lg);
   padding: 40px 36px;
 }
 
@@ -67,18 +68,23 @@
 
 .field input {
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius);
   font-size: 14px;
-  background: #fafbfc;
+  background: var(--bg-input);
+  color: var(--text-primary);
   transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.field input::placeholder {
+  color: var(--text-muted);
 }
 
 .field input:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.15);
-  background: #fff;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  background: var(--bg-card);
 }
 
 .btn {

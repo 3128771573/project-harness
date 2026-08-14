@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <header class="page-head">
       <div>
@@ -144,16 +144,16 @@ onMounted(load)
 .field > span {
   font-size: 13px;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 .field input {
   padding: 10px 14px;
-  border: 1px solid #1e293b;
+  border-color: var(--border-color);
   border-radius: 9px;
   font-size: 13.5px;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--bg-input);
+  color: var(--text-secondary);
   font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -170,7 +170,7 @@ onMounted(load)
 
 .field-hint {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .checkbox-row {
@@ -178,7 +178,7 @@ onMounted(load)
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #cbd5e1;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 

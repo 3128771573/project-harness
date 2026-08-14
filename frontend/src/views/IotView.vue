@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page">
     <SiteNav />
     <div class="page-inner">
@@ -79,7 +79,7 @@ const linePoints = computed(() => {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 .page-inner {
@@ -108,7 +108,7 @@ const linePoints = computed(() => {
 }
 
 .page-head p {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 15px;
 }
 
@@ -120,7 +120,7 @@ const linePoints = computed(() => {
 }
 
 .dev-card {
-  background: #111827;
+  background: var(--brand-block);
   border-radius: 18px;
   padding: 22px;
   color: #fff;
@@ -141,7 +141,7 @@ const linePoints = computed(() => {
 
 .dev-type {
   font-size: 12.5px;
-  color: #9ca3af;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
@@ -162,7 +162,7 @@ const linePoints = computed(() => {
 
 .dev-status.off {
   background: rgba(148, 163, 184, 0.15);
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .st-dot {
@@ -184,7 +184,7 @@ const linePoints = computed(() => {
 .dev-main span {
   display: block;
   font-size: 12.5px;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .dev-main b {
@@ -194,7 +194,7 @@ const linePoints = computed(() => {
 
 .dev-main small {
   font-size: 15px;
-  color: #9ca3af;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -202,14 +202,14 @@ const linePoints = computed(() => {
   display: flex;
   justify-content: space-between;
   font-size: 11.5px;
-  color: #6b7280;
+  color: var(--text-muted);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: 14px;
 }
 
 .chart-panel {
-  background: #fff;
-  border: 1px solid #eef0f5;
+  background: var(--bg-card);
+  border-color: var(--border-light);
   border-radius: 18px;
   padding: 24px;
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
@@ -230,7 +230,7 @@ const linePoints = computed(() => {
 
 .chart-head .muted {
   font-size: 12.5px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .live-tag {
@@ -263,7 +263,7 @@ const linePoints = computed(() => {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-top: 8px;
 }
 </style>

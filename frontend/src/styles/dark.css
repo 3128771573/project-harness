@@ -1,0 +1,55 @@
+/* ============================================
+   Dark Mode（深色主题）
+   ============================================ */
+
+html[data-theme='dark'] {
+  /* 背景 */
+  --bg-primary: #0f172a;
+  --bg-secondary: #111827;
+  --bg-card: #111827;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(37, 99, 235, 0.15);
+  --bg-input: #0b1220;
+  --bg-code: #1e293b;
+  --bg-codeblock: #0b1220;
+
+  /* 文字 */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-inverse: #0f172a;
+
+  /* 边框 */
+  --border-color: #1e293b;
+  --border-light: #1e293b;
+
+  /* 阴影（深色下更重） */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+
+  /* 品牌区块（深色模式下与背景融为一体） */
+  --brand-block: #0b1220;
+  --brand-block-text: #f1f5f9;
+  --brand-block-muted: #64748b;
+
+  /* 侧边栏（深色跟随主题） */
+  --sidebar-bg: #0b1220;
+  --sidebar-text: #f1f5f9;
+  --sidebar-muted: #94a3b8;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active-bg: var(--primary-color);
+  --sidebar-active-text: #ffffff;
+
+  /* 顶部导航 */
+  --nav-bg: rgba(15, 23, 42, 0.85);
+
+  /* Admin 面板（dark 下深色，与当前一致） */
+  --admin-bg: #0f172a;
+  --admin-sidebar-bg: #0b1220;
+  --admin-card: #111827;
+  --admin-border: #1e293b;
+  --admin-row-hover: rgba(255, 255, 255, 0.03);
+  --admin-text: #e2e8f0;
+  --admin-text-muted: #64748b;
+}

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <header class="page-head">
       <div>
@@ -117,16 +117,16 @@ onMounted(load)
 .field > span {
   font-size: 13px;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 .field input {
   padding: 10px 14px;
-  border: 1px solid #1e293b;
+  border-color: var(--border-color);
   border-radius: 9px;
   font-size: 13.5px;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--bg-input);
+  color: var(--text-secondary);
   font-family: inherit;
 }
 
@@ -145,16 +145,16 @@ onMounted(load)
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  border-top: 1px solid #1e293b;
+  border-color: var(--border-color);
 }
 
 .toggle-row b {
   font-size: 14px;
-  color: #e2e8f0;
+  color: var(--text-secondary);
 }
 
 .toggle-row .small {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .switch {
@@ -186,7 +186,7 @@ onMounted(load)
   width: 18px;
   left: 3px;
   top: 3px;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 50%;
   transition: 0.2s;
 }

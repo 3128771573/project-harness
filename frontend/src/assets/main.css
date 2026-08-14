@@ -1,33 +1,6 @@
-:root {
-  /* 设计语言：黑白灰 + 蓝紫渐变（Linear / Vercel 风格） */
-  --bg: #fafafa;
-  --bg-alt: #f4f5f7;
-  --card: #ffffff;
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --accent: #7c3aed;
-  --text: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --border: #e5e7eb;
-  --border-light: #f0f1f5;
-  --error: #dc2626;
-  --success: #16a34a;
-  --warning: #d97706;
-
-  --radius-sm: 10px;
-  --radius: 14px;
-  --radius-lg: 18px;
-
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.04);
-  --shadow: 0 2px 4px rgba(15, 23, 42, 0.04), 0 10px 30px rgba(15, 23, 42, 0.06);
-  --shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.1);
-
-  /* 字体 */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  --font-mono: 'SF Mono', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
-}
+/* ============================================
+   Project Harness · 全局基础样式（变量驱动）
+   ============================================ */
 
 * {
   margin: 0;
@@ -41,20 +14,28 @@ html {
 
 body {
   font-family: var(--font-sans);
-  background: var(--bg);
-  color: var(--text);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 15px;
   line-height: 1.6;
+  min-height: 100vh;
 }
 
 a {
-  color: var(--primary);
+  color: var(--primary-color);
   text-decoration: none;
 }
 
 button {
+  font-family: inherit;
+}
+
+/* 通用表单控件（输入框/选择器跟随主题） */
+input,
+select,
+textarea {
   font-family: inherit;
 }
 
@@ -94,10 +75,10 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d4d8de;
+  background: var(--border-color);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #b9bfc8;
+  background: var(--text-muted);
 }

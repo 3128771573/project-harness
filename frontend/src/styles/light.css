@@ -1,0 +1,55 @@
+﻿/* ============================================
+   Light Mode（浅色主题）
+   ============================================ */
+
+html[data-theme='light'] {
+  /* 背景 */
+  --bg-primary: #fafafa;
+  --bg-secondary: #f4f5f7;
+  --bg-card: #ffffff;
+  --bg-hover: #f8f9fc;
+  --bg-active: #eef2ff;
+  --bg-input: #fafbfd;
+  --bg-code: #f6f8fa;
+  --bg-codeblock: #0f172a;
+
+  /* 文字 */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* 边框 */
+  --border-color: var(--border-color);
+  --border-color: var(--border-light);
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow: 0 2px 4px rgba(15, 23, 42, 0.05), 0 10px 30px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.12);
+
+  /* 品牌区块（landing hero 等深色区块在浅色模式下保留品牌深色） */
+  --brand-block: #111827;
+  --brand-block-text: #f1f5f9;
+  --brand-block-muted: #94a3b8;
+
+  /* 侧边栏（浅色跟随主题） */
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #0f172a;
+  --sidebar-muted: #64748b;
+  --sidebar-hover: #f1f5f9;
+  --sidebar-active-bg: var(--primary-color);
+  --sidebar-active-text: #ffffff;
+
+  /* 顶部导航 */
+  --nav-bg: rgba(255, 255, 255, 0.85);
+
+  /* Admin 面板（light 下浅色） */
+  --admin-bg: #f1f5f9;
+  --admin-sidebar-bg: #0b1220;
+  --admin-card: #ffffff;
+  --admin-border-color: var(--border-color);
+  --admin-row-hover: #f8fafc;
+  --admin-text: #1e293b;
+  --admin-text-muted: #64748b;
+}

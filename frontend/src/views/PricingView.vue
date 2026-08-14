@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page">
     <SiteNav />
     <div class="page-inner">
@@ -64,7 +64,7 @@ const plans = [
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 .page-inner {
@@ -93,7 +93,7 @@ const plans = [
 }
 
 .page-head p {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 15px;
 }
 
@@ -105,7 +105,7 @@ const plans = [
 }
 
 .price-card {
-  border: 1px solid #eef0f5;
+  border-color: var(--border-light);
   border-radius: 18px;
   padding: 30px 26px;
   display: flex;
@@ -162,13 +162,13 @@ const plans = [
 
 .price .period {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-left: 4px;
 }
 
 .price-desc {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);
   margin-bottom: 18px;
 }
 
@@ -183,7 +183,7 @@ const plans = [
 
 .price-card li {
   font-size: 13.5px;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .btn {
@@ -200,7 +200,7 @@ const plans = [
 }
 
 .btn.dark {
-  background: #0f172a;
+  background: var(--brand-block);
   color: #fff;
 }
 
@@ -210,17 +210,17 @@ const plans = [
 
 .btn.outline {
   border-color: #d1d5db;
-  color: #0f172a;
+  color: var(--text-primary);
   background: transparent;
 }
 
 .btn.outline:hover {
-  border-color: #0f172a;
+  border-color: var(--text-primary);
 }
 
 .hint {
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 13px;
   margin-top: 36px;
 }

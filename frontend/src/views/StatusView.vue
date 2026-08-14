@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page">
     <SiteNav />
     <div class="page-inner">
@@ -51,7 +51,7 @@ const services = [
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 .page-inner {
@@ -80,12 +80,12 @@ const services = [
 }
 
 .page-head p {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 14.5px;
 }
 
 .status-card {
-  border: 1px solid #eef0f5;
+  border-color: var(--border-light);
   border-radius: 16px;
   padding: 22px;
   display: flex;
@@ -115,7 +115,7 @@ const services = [
 
 .status-card span:not(.big-dot) {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .status-list {
@@ -128,7 +128,7 @@ const services = [
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid #eef0f5;
+  border-color: var(--border-light);
   border-radius: 14px;
   padding: 16px 20px;
 }
@@ -157,7 +157,7 @@ const services = [
 
 .s-desc {
   font-size: 12.5px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .s-status {
@@ -179,7 +179,7 @@ const services = [
 
 .hint {
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 12.5px;
   margin-top: 28px;
 }

@@ -89,10 +89,10 @@ function logout() {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--nav-bg, rgba(255, 255, 255, 0.82));
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .nav-inner {
@@ -128,7 +128,7 @@ function logout() {
 .brand-name {
   font-size: 17px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
   letter-spacing: -0.01em;
 }
 
@@ -142,13 +142,13 @@ function logout() {
 .nav-link {
   font-size: 14px;
   font-weight: 500;
-  color: #4b5563;
+  color: var(--text-secondary);
   text-decoration: none;
   transition: color 0.15s;
 }
 
 .nav-link:hover {
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .nav-actions {
@@ -175,22 +175,22 @@ function logout() {
 }
 
 .btn.primary {
-  background: #111827;
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--text-inverse);
 }
 
 .btn.primary:hover {
-  background: #1f2937;
+  opacity: 0.85;
 }
 
 .btn.ghost {
   background: transparent;
-  color: #374151;
-  border-color: #e5e7eb;
+  color: var(--text-secondary);
+  border-color: var(--border-color);
 }
 
 .btn.ghost:hover {
-  background: #f8f9fc;
+  background: var(--bg-hover);
 }
 
 /* 已登录用户区 */
@@ -212,14 +212,14 @@ function logout() {
 }
 
 .user-chip:hover {
-  background: #f3f4f6;
+  background: var(--bg-hover);
 }
 
 .chip-avatar {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2b6de9, #7aa5f0);
+  background: var(--gradient-brand);
   color: #fff;
   display: flex;
   align-items: center;
@@ -232,13 +232,13 @@ function logout() {
 .chip-name {
   font-size: 13.5px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .chev {
   width: 16px;
   height: 16px;
-  fill: #6b7280;
+  fill: var(--text-muted);
   transition: transform 0.2s;
 }
 
@@ -251,10 +251,10 @@ function logout() {
   top: 46px;
   right: 0;
   min-width: 200px;
-  background: #fff;
-  border: 1px solid #eef0f5;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--shadow-lg);
   padding: 6px;
   z-index: 200;
 }
@@ -270,7 +270,7 @@ function logout() {
   background: transparent;
   font-size: 13.5px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-secondary);
   cursor: pointer;
   text-align: left;
   text-decoration: none;
@@ -281,29 +281,29 @@ function logout() {
 .menu-item svg {
   width: 16px;
   height: 16px;
-  fill: #6b7280;
+  fill: var(--text-muted);
 }
 
 .menu-item:hover {
-  background: #f8f9fc;
-  color: #111827;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .menu-item.danger {
-  color: #dc2626;
+  color: var(--error);
 }
 
 .menu-item.danger svg {
-  fill: #dc2626;
+  fill: var(--error);
 }
 
 .menu-item.danger:hover {
-  background: #fef2f2;
+  background: rgba(220, 38, 38, 0.08);
 }
 
 .menu-divider {
   height: 1px;
-  background: #f0f1f5;
+  background: var(--border-color);
   margin: 5px 4px;
 }
 

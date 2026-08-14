@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="layout">
     <aside class="sidebar">
       <div class="logo">H</div>
@@ -15,6 +15,15 @@
       <header class="topbar">
         <h1>安全设置</h1>
       </header>
+
+      <!-- 主题设置 -->
+      <section class="panel">
+        <div class="panel-head">
+          <h3>外观主题</h3>
+        </div>
+        <p class="sub">选择全局主题，整个网站自动适配</p>
+        <ThemeSwitcher />
+      </section>
 
       <!-- 修改密码 -->
       <section class="panel">
@@ -78,6 +87,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
+import ThemeSwitcher from '../components/ThemeSwitcher.vue'
 
 const router = useRouter()
 const isAdmin = computed(() => {
@@ -180,7 +190,7 @@ onMounted(() => {
 <style scoped src="../assets/dashboard.css"></style>
 <style scoped>
 .panel {
-  background: var(--card);
+  background: var(--bg-card);
   border-radius: var(--radius);
   padding: 22px;
   box-shadow: var(--shadow);
@@ -235,9 +245,9 @@ onMounted(() => {
 
 .field input:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.15);
-  background: #fff;
+  background: var(--bg-card);
 }
 
 .btn.small {
@@ -246,7 +256,7 @@ onMounted(() => {
   font-size: 14px;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
   color: #fff;
   font-weight: 600;
   cursor: pointer;
@@ -257,7 +267,7 @@ onMounted(() => {
   font-size: 12px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bg-card);
   cursor: pointer;
 }
 
@@ -281,7 +291,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid #f0f1f5;
+  border-color: var(--border-light);
 }
 
 .session-row:last-child {

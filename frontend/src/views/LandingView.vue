@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="landing">
     <SiteNav />
 
@@ -301,8 +301,8 @@ const demos = [
 <style scoped>
 .landing {
   min-height: 100vh;
-  background: #fff;
-  color: #111827;
+  background: var(--bg-card);
+  color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
@@ -320,7 +320,7 @@ const demos = [
 }
 
 .welcome-sub {
-  color: #6b7280;
+  color: var(--text-muted);
   margin-top: 8px;
   font-size: 15px;
 }
@@ -337,7 +337,7 @@ const demos = [
   align-items: center;
   gap: 14px;
   padding: 20px;
-  border: 1px solid #eef0f5;
+  border-color: var(--border-light);
   border-radius: 16px;
   text-decoration: none;
   color: inherit;
@@ -347,7 +347,7 @@ const demos = [
 .quick-card:hover {
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
   transform: translateY(-2px);
-  border-color: #e2e8f0;
+  border-color: var(--text-secondary);
 }
 
 .q-icon {
@@ -361,7 +361,7 @@ const demos = [
   flex-shrink: 0;
 }
 
-.quick-card.ai .q-icon { background: #eef2ff; color: #4338ca; }
+.quick-card.ai .q-icon { background: var(--bg-active); color: #4338ca; }
 .quick-card.iot .q-icon { background: #ecfdf5; color: #059669; }
 .quick-card.demo .q-icon { background: #f5f3ff; color: #7c3aed; }
 .quick-card.settings .q-icon { background: #fffbeb; color: #b45309; }
@@ -374,12 +374,12 @@ const demos = [
 
 .quick-card span {
   font-size: 12.5px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .q-arrow {
   margin-left: auto;
-  color: #9ca3af;
+  color: var(--text-muted);
   font-size: 16px;
 }
 
@@ -390,7 +390,7 @@ const demos = [
 }
 
 .panel-card {
-  border: 1px solid #eef0f5;
+  border-color: var(--border-light);
   border-radius: 16px;
   padding: 22px;
 }
@@ -398,7 +398,7 @@ const demos = [
 .panel-card h3 {
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .panel-num {
@@ -409,7 +409,7 @@ const demos = [
 
 .panel-sub {
   font-size: 12.5px;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .live-dot {
@@ -425,7 +425,7 @@ const demos = [
 .hero {
   position: relative;
   overflow: hidden;
-  background: #fafbfd;
+  background: var(--bg-input);
   min-height: 620px;
   display: flex;
   align-items: center;
@@ -462,9 +462,9 @@ const demos = [
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--text-secondary);
   background: rgba(255, 255, 255, 0.8);
-  border: 1px solid #e5e7eb;
+  border-color: var(--border-color);
   border-radius: 999px;
   padding: 7px 16px;
   margin-bottom: 28px;
@@ -499,7 +499,7 @@ const demos = [
 
 .hero-desc {
   font-size: 17px;
-  color: #6b7280;
+  color: var(--text-muted);
   line-height: 1.75;
   margin-bottom: 34px;
 }
@@ -529,7 +529,7 @@ const demos = [
 }
 
 .btn.dark {
-  background: #111827;
+  background: var(--brand-block);
   color: #fff;
 }
 
@@ -540,12 +540,12 @@ const demos = [
 
 .btn.outline {
   background: transparent;
-  color: #111827;
+  color: var(--text-primary);
   border-color: #d1d5db;
 }
 
 .btn.outline:hover {
-  border-color: #111827;
+  border-color: var(--text-primary);
 }
 
 .hero-flow {
@@ -561,7 +561,7 @@ const demos = [
   letter-spacing: 0.1em;
   padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border-color: var(--border-color);
   background: rgba(255, 255, 255, 0.7);
 }
 
@@ -635,7 +635,7 @@ const demos = [
   margin-bottom: 6px;
 }
 
-.cc-icon.ai { background: #eef2ff; color: #4338ca; }
+.cc-icon.ai { background: var(--bg-active); color: #4338ca; }
 .cc-icon.iot { background: #ecfdf5; color: #059669; }
 .cc-icon.dev { background: #f5f3ff; color: #7c3aed; }
 
@@ -683,7 +683,7 @@ const demos = [
 
 .module-desc {
   font-size: 15.5px;
-  color: #6b7280;
+  color: var(--text-muted);
   line-height: 1.75;
   margin-bottom: 22px;
 }
@@ -698,7 +698,7 @@ const demos = [
 
 .module-feats li {
   font-size: 14.5px;
-  color: #374151;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -708,8 +708,8 @@ const demos = [
 
 /* AI 对话 demo */
 .chat-demo {
-  background: #fff;
-  border: 1px solid #eef0f5;
+  background: var(--bg-card);
+  border-color: var(--border-light);
   border-radius: 18px;
   padding: 24px;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
@@ -728,7 +728,7 @@ const demos = [
 
 .chat-line.user {
   align-self: flex-end;
-  background: #111827;
+  background: var(--brand-block);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -736,13 +736,13 @@ const demos = [
 .chat-line.ai {
   align-self: flex-start;
   background: #f3f4f6;
-  color: #374151;
+  color: var(--text-secondary);
   border-bottom-left-radius: 4px;
 }
 
 /* IoT 设备 demo */
 .device-demo {
-  background: #111827;
+  background: var(--brand-block);
   border-radius: 18px;
   padding: 24px;
   color: #fff;
@@ -755,7 +755,7 @@ const demos = [
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin-bottom: 18px;
 }
 
@@ -775,7 +775,7 @@ const demos = [
 .dev-metric span {
   display: block;
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin-bottom: 6px;
 }
 
@@ -787,7 +787,7 @@ const demos = [
 .dev-metric b small {
   font-size: 13px;
   font-weight: 500;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .dev-metric b.ok {
@@ -796,7 +796,7 @@ const demos = [
 
 /* 代码 demo */
 .code-demo {
-  background: #111827;
+  background: var(--brand-block);
   border-radius: 18px;
   padding: 26px;
   font-family: 'SF Mono', Consolas, monospace;
@@ -833,7 +833,7 @@ const demos = [
 }
 
 .lab-card {
-  border: 1px solid #eef0f5;
+  border-color: var(--border-light);
   border-radius: 16px;
   padding: 26px 18px;
   display: flex;
@@ -858,7 +858,7 @@ const demos = [
 
 .lab-card span {
   font-size: 12.5px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .lab-cta {
@@ -876,7 +876,7 @@ const demos = [
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.16em;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin-bottom: 20px;
 }
 
@@ -890,16 +890,16 @@ const demos = [
 .trust-chip {
   font-size: 13px;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--text-secondary);
   padding: 8px 18px;
-  border: 1px solid #e5e7eb;
+  border-color: var(--border-color);
   border-radius: 999px;
-  background: #fafbfd;
+  background: var(--bg-input);
 }
 
 /* Footer */
 .footer {
-  background: #0f1117;
+  background: var(--brand-block);
   color: #d1d5db;
   padding: 56px 28px 24px;
 }
@@ -926,7 +926,7 @@ const demos = [
 
 .footer-brand span {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .footer-cols {
@@ -942,7 +942,7 @@ const demos = [
 
 .footer-col b {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
@@ -962,7 +962,7 @@ const demos = [
   padding-top: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 12.5px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 @media (max-width: 860px) {

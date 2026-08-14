@@ -12,6 +12,9 @@
         <router-link to="/settings" class="nav-item">安全设置</router-link>
         <router-link v-if="isAdmin" to="/admin/dashboard" class="nav-item">管理后台</router-link>
       </nav>
+      <div class="sidebar-theme">
+        <ThemeSwitcher />
+      </div>
       <button class="logout" @click="logout">退出登录</button>
     </aside>
 
@@ -112,6 +115,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import BrandLogo from '../components/BrandLogo.vue'
+import ThemeSwitcher from '../components/ThemeSwitcher.vue'
 import api from '../api/client'
 
 const router = useRouter()
@@ -209,7 +213,26 @@ onMounted(load)
 .logo-name {
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--sidebar-text);
+}
+
+.sidebar-theme {
+  padding: 8px;
+  margin-bottom: 4px;
+}
+
+.sidebar-theme :deep(.theme-switcher) {
+  width: 100%;
+}
+
+.sidebar-theme :deep(.ts-option) {
+  flex: 1;
+  justify-content: center;
+  padding: 7px 8px;
+}
+
+.sidebar-theme :deep(.ts-label) {
+  display: none;
 }
 
 /* 欢迎区 */
@@ -265,7 +288,7 @@ onMounted(load)
 }
 
 .role-chip {
-  background: #eef2ff;
+  background: var(--bg-active);
   color: #4338ca;
   font-size: 11.5px;
   font-weight: 600;
@@ -421,7 +444,7 @@ onMounted(load)
   flex-shrink: 0;
 }
 
-.act-icon.ai { background: #eef2ff; }
+.act-icon.ai { background: var(--bg-active); }
 .act-icon.login { background: #ecfdf5; }
 
 .act-body {

@@ -12,6 +12,9 @@
         <router-link to="/settings" class="nav-item">安全设置</router-link>
         <router-link v-if="isAdmin" to="/admin/dashboard" class="nav-item">管理后台</router-link>
       </nav>
+      <div class="sidebar-theme">
+        <ThemeSwitcher />
+      </div>
       <button class="logout" @click="logout">退出登录</button>
     </aside>
 
@@ -122,6 +125,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import BrandLogo from '../components/BrandLogo.vue'
+import ThemeSwitcher from '../components/ThemeSwitcher.vue'
 import api from '../api/client'
 import { renderMarkdown } from '../utils/markdown'
 
@@ -313,7 +317,26 @@ onMounted(() => {
 .logo-name {
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--sidebar-text);
+}
+
+.sidebar-theme {
+  padding: 8px;
+  margin-bottom: 4px;
+}
+
+.sidebar-theme :deep(.theme-switcher) {
+  width: 100%;
+}
+
+.sidebar-theme :deep(.ts-option) {
+  flex: 1;
+  justify-content: center;
+  padding: 7px 8px;
+}
+
+.sidebar-theme :deep(.ts-label) {
+  display: none;
 }
 
 /* ===== 顶部美化区 ===== */
@@ -331,7 +354,7 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   margin-bottom: 18px;
   border: 1px solid var(--border-light);
-  background: #fff;
+  background: var(--bg-card);
   box-shadow: var(--shadow-sm);
 }
 
@@ -418,7 +441,7 @@ onMounted(() => {
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--bg-card);
   top: 2px;
   left: 2px;
   transition: transform 0.2s;
@@ -539,7 +562,7 @@ onMounted(() => {
 .prompt-pill:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: #eef2ff;
+  background: var(--bg-active);
 }
 
 /* 消息 */
@@ -586,7 +609,7 @@ onMounted(() => {
 }
 
 .msg.assistant .bubble {
-  background: #f4f5f7;
+  background: var(--bg-secondary);
   color: var(--text);
   border-bottom-left-radius: 4px;
 }
@@ -600,7 +623,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border: 1px solid var(--border-light);
   border-radius: 10px;
   padding: 8px 12px;
@@ -613,7 +636,7 @@ onMounted(() => {
 }
 
 .reasoning-head:hover {
-  background: #f1f5f9;
+  background: var(--bg-secondary);
 }
 
 .reasoning-dot {
@@ -637,7 +660,7 @@ onMounted(() => {
 .reasoning-body {
   margin-top: 8px;
   padding: 10px 14px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border: 1px dashed var(--border);
   border-radius: 10px;
   font-size: 13px;
@@ -728,7 +751,7 @@ onMounted(() => {
   border-left: 3px solid var(--primary);
   padding: 6px 14px;
   margin: 10px 0;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 0 8px 8px 0;
   color: var(--text-muted);
 }
@@ -742,7 +765,7 @@ onMounted(() => {
 }
 
 .md-body :deep(pre) {
-  background: #0f172a;
+  background: var(--brand-block);
   border-radius: 10px;
   padding: 14px 16px;
   margin: 10px 0;
@@ -752,7 +775,7 @@ onMounted(() => {
 .md-body :deep(pre code) {
   background: transparent;
   padding: 0;
-  color: #e2e8f0;
+  color: var(--text-secondary);
   font-size: 12.5px;
   line-height: 1.6;
 }
@@ -769,7 +792,7 @@ onMounted(() => {
 }
 
 .md-body :deep(th) {
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .md-body :deep(a) {

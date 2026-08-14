@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page">
     <SiteNav />
     <div class="page-inner">
@@ -56,7 +56,7 @@ import SiteNav from '../components/SiteNav.vue'
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 .page-inner {
@@ -85,7 +85,7 @@ import SiteNav from '../components/SiteNav.vue'
 }
 
 .page-head p {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 15px;
 }
 
@@ -97,7 +97,7 @@ import SiteNav from '../components/SiteNav.vue'
 }
 
 .doc-card {
-  border: 1px solid #eef0f5;
+  border-color: var(--border-light);
   border-radius: 16px;
   padding: 24px 20px;
   display: flex;
@@ -124,7 +124,7 @@ import SiteNav from '../components/SiteNav.vue'
 
 .doc-card span {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);
   line-height: 1.6;
 }
 
@@ -135,7 +135,7 @@ import SiteNav from '../components/SiteNav.vue'
 }
 
 .code-block {
-  background: #111827;
+  background: var(--brand-block);
   border-radius: 16px;
   padding: 24px;
   font-family: 'SF Mono', Consolas, monospace;
@@ -148,13 +148,13 @@ import SiteNav from '../components/SiteNav.vue'
 .code-line .c-u { color: #93c5fd; }
 .code-line .c-v { color: #6ee7b7; }
 .code-line .c-p { color: #f0abfc; }
-.code-line .c-c { color: #6b7280; }
+.code-line .c-c { color: var(--text-muted); }
 .code-line.br { height: 4px; }
 
 .doc-hint {
   margin-top: 16px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .doc-hint code {

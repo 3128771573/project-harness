@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page">
     <SiteNav />
     <div class="page-inner">
@@ -42,7 +42,7 @@ function stateText(s) {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 .page-inner {
@@ -71,7 +71,7 @@ function stateText(s) {
 }
 
 .page-head p {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 15px;
 }
 
@@ -82,7 +82,7 @@ function stateText(s) {
 }
 
 .demo-card {
-  border: 1px solid #eef0f5;
+  border-color: var(--border-light);
   border-radius: 16px;
   padding: 28px 22px;
   display: flex;
@@ -113,7 +113,7 @@ function stateText(s) {
 
 .demo-desc {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .demo-state {
@@ -122,7 +122,7 @@ function stateText(s) {
   padding: 4px 12px;
   border-radius: 999px;
   background: #f3f4f6;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .demo-card.active .demo-state {
@@ -132,7 +132,7 @@ function stateText(s) {
 
 .hint {
   text-align: center;
-  color: #9ca3af;
+  color: var(--text-muted);
   font-size: 13px;
   margin-top: 40px;
 }

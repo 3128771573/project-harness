@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="admin-shell">
     <!-- 侧边栏 -->
     <aside class="admin-sidebar">
@@ -98,23 +98,23 @@ function logout() {
 .admin-shell {
   display: flex;
   min-height: 100vh;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--brand-block);
+  color: var(--text-secondary);
 }
 
 /* ===== 侧边栏 ===== */
 .admin-sidebar {
   width: 232px;
   flex-shrink: 0;
-  background: #0b1220;
-  color: #e2e8f0;
+  background: var(--brand-block);
+  color: var(--text-secondary);
   display: flex;
   flex-direction: column;
   padding: 20px 14px;
   position: sticky;
   top: 0;
   height: 100vh;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-color: var(--border-color);
 }
 
 .brand {
@@ -137,7 +137,7 @@ function logout() {
 
 .brand-sub {
   font-size: 10.5px;
-  color: #64748b;
+  color: var(--text-muted);
   margin-top: 1px;
   letter-spacing: 0.03em;
 }
@@ -151,7 +151,7 @@ function logout() {
 }
 
 .nav-group {
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -163,7 +163,7 @@ function logout() {
   display: flex;
   align-items: center;
   gap: 11px;
-  color: #94a3b8;
+  color: var(--text-muted);
   padding: 9px 12px;
   border-radius: 9px;
   font-size: 13.5px;
@@ -180,8 +180,8 @@ function logout() {
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
+  background: var(--sidebar-hover);
+  color: var(--text-secondary);
 }
 
 .nav-item.active {
@@ -195,14 +195,14 @@ function logout() {
   flex-direction: column;
   gap: 2px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-color: var(--border-color);
 }
 
 .back-link {
   display: flex;
   align-items: center;
   gap: 11px;
-  color: #64748b;
+  color: var(--text-muted);
   padding: 9px 12px;
   border-radius: 9px;
   font-size: 13px;
@@ -217,15 +217,15 @@ function logout() {
 }
 
 .back-link:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #cbd5e1;
+  background: var(--sidebar-hover);
+  color: var(--text-secondary);
 }
 
 .logout {
   display: flex;
   align-items: center;
   gap: 11px;
-  color: #64748b;
+  color: var(--text-muted);
   background: transparent;
   border: none;
   padding: 9px 12px;

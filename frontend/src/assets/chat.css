@@ -1,4 +1,4 @@
-.chat-main {
+﻿.chat-main {
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -6,7 +6,7 @@
 }
 
 .model-chip {
-  background: #eef2ff;
+  background: var(--bg-active);
   color: var(--primary-dark);
   padding: 6px 14px;
   border-radius: 999px;
@@ -63,7 +63,7 @@
 }
 
 .msg.assistant .bubble {
-  background: #f1f3f9;
+  background: var(--bg-secondary);
   color: var(--text);
   border-bottom-left-radius: 4px;
 }
