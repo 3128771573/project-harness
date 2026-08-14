@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LandingView from '../views/LandingView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
+import ForgotView from '../views/ForgotView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import ChatView from '../views/ChatView.vue'
 import SettingsView from '../views/SettingsView.vue'
@@ -27,6 +28,7 @@ const routes = [
   { path: '/', name: 'home', component: LandingView },
   { path: '/login', name: 'login', component: LoginView },
   { path: '/register', name: 'register', component: RegisterView },
+  { path: '/forgot', name: 'forgot', component: ForgotView },
   { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
   { path: '/ai', name: 'ai', component: ChatView, meta: { requiresAuth: true } },
   { path: '/settings', name: 'settings', component: SettingsView, meta: { requiresAuth: true } },

@@ -22,6 +22,7 @@ from ..security import (
     validate_password_policy,
     verify_password,
 )
+from ..services.emailcode import invalidate_codes, send_verification_code, verify_code
 
 router = APIRouter(prefix="/user", tags=["user"])
 
@@ -125,53 +126,43 @@ async def my_login_logs(
 # ---------- 忘记密码 ----------
 
 
-@router.post("/forgot-password", summary="请求密码重置（返回重置 token，供开发环境使用）")
+@router.post("/forgot-password", summary="请求密码重置（发送邮箱验证码）")
 async def forgot_password(
     payload: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """生产环境应通过邮件发送 token；当前返回 token 便于测试（可配置关闭）"""
+    """发送重置密码验证码到邮箱"""
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
     user = result.scalar_one_or_none()
-    # 无论是否存在都返回成功（防枚举）
     if user is None:
-        return {"message": "如果该邮箱已注册，重置邮件已发送"}
+        # 不暴露邮箱是否注册（防枚举）
+        return {"message": "如果该邮箱已注册，验证码已发送", "sent": False}
 
-    token, token_hash_val = generate_reset_token()
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
-    db.add(PasswordReset(uid=user.uid, token_hash=token_hash_val, expires_at=expires_at))
-    await db.commit()
-    # 开发环境直接返回 token（生产环境改为邮件发送）
-    return {"message": "重置令牌已生成", "reset_token": token, "expires_in_minutes": 30}
+    resp = await send_verification_code(db, payload.email, "reset")
+    return {"message": "验证码已发送到邮箱" if resp["sent"] else resp["message"], "sent": resp["sent"]}
 
 
-@router.post("/reset-password", summary="使用重置令牌设置新密码")
+@router.post("/reset-password", summary="使用邮箱验证码设置新密码")
 async def reset_password(
     payload: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    token_hash_val = hash_token(payload.token)
-    result = await db.execute(
-        select(PasswordReset)
-        .where(PasswordReset.token_hash == token_hash_val, PasswordReset.used.is_(False))
-        .order_by(PasswordReset.created_time.desc())
-        .limit(1)
-    )
-    reset = result.scalar_one_or_none()
-    if reset is None or reset.expires_at < datetime.now(timezone.utc):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="重置令牌无效或已过期")
+    # payload.token 现在承载验证码
+    if not await verify_code(db, payload.email, payload.token, "reset"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
+
+    result = await db.execute(select(User).where(User.email == payload.email.lower()))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="用户不存在")
 
     policy_error = validate_password_policy(payload.new_password)
     if policy_error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=policy_error)
 
-    user = await db.get(User, reset.uid)
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="用户不存在")
-
     user.password_hash = hash_password(payload.new_password)
     user.password_changed_at = datetime.now(timezone.utc)
-    reset.used = True
+    await invalidate_codes(db, payload.email, "reset")
 
     # 吊销所有会话
     result = await db.execute(

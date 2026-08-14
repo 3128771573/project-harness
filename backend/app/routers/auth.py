@@ -7,7 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db
 from ..deps import get_current_user, get_role_by_name
 from ..models import RefreshToken, User
-from ..schemas import LoginRequest, RefreshRequest, RegisterRequest, Token, UserOut
+from ..schemas import (
+    CodeLoginRequest,
+    LoginRequest,
+    RefreshRequest,
+    RegisterRequest,
+    SendCodeRequest,
+    Token,
+    UserOut,
+)
 from ..security import (
     ROLE_USER,
     create_access_token,
@@ -16,6 +24,7 @@ from ..security import (
     hash_password,
     verify_password,
 )
+from ..services.emailcode import invalidate_codes, send_verification_code, verify_code
 from ..services.loginlog import record_login, update_last_login
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -56,6 +65,15 @@ async def register(payload: RegisterRequest, request: Request, db: AsyncSession 
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="用户名或邮箱已被注册")
 
+    # 邮箱验证码校验（若配置了 SMTP 则强制要求）
+    from ..config import settings as cfg
+
+    if cfg.smtp_enabled:
+        if not payload.code:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="请先获取并填写邮箱验证码")
+        if not await verify_code(db, payload.email, payload.code, "register"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
+
     role = await get_role_by_name(db, ROLE_USER)
     user = User(
         username=payload.username,
@@ -66,9 +84,40 @@ async def register(payload: RegisterRequest, request: Request, db: AsyncSession 
     )
     db.add(user)
     await db.flush()
+    if cfg.smtp_enabled:
+        await invalidate_codes(db, payload.email, "register")
     await record_login(
         db, uid=user.uid, email=user.email, ip=_client_ip(request), user_agent=_client_ua(request), success=True
     )
+    return await _issue_tokens(db, user, request)
+
+
+@router.post("/send-code", summary="发送邮箱验证码")
+async def send_code(payload: SendCodeRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        result = await send_verification_code(db, payload.email, payload.purpose)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return result
+
+
+@router.post("/login-code", response_model=Token, summary="邮箱验证码登录")
+async def login_with_code(payload: CodeLoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    ip = _client_ip(request)
+    ua = _client_ua(request)
+    if not await verify_code(db, payload.email, payload.code, "login"):
+        await record_login(db, email=payload.email.lower(), ip=ip, user_agent=ua, success=False, reason="验证码错误")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
+
+    result = await db.execute(select(User).where(User.email == payload.email.lower()))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="该邮箱未注册，请先注册")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用")
+
+    await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, success=True)
+    await update_last_login(db, user, ip)
     return await _issue_tokens(db, user, request)
 
 

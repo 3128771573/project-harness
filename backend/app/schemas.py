@@ -13,11 +13,22 @@ class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=32, pattern=r"^[a-zA-Z0-9_]+$")
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
+    code: str | None = Field(default=None, max_length=8)
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class SendCodeRequest(BaseModel):
+    email: EmailStr
+    purpose: str = Field(pattern=r"^(register|login|reset)$")
+
+
+class CodeLoginRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=8)
 
 
 class RefreshRequest(BaseModel):
@@ -34,7 +45,8 @@ class ForgotPasswordRequest(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    token: str
+    email: EmailStr
+    token: str = Field(min_length=6, max_length=8, description="邮箱验证码")
     new_password: str = Field(min_length=8, max_length=128)
 
 

@@ -1,11 +1,6 @@
 <template>
-  <AuthLayout title="创建账号" subtitle="加入 Harness">
+  <AuthLayout title="重置密码" subtitle="通过邮箱验证码找回">
     <form @submit.prevent="onSubmit" class="form">
-      <label class="field">
-        <span>用户名</span>
-        <input v-model.trim="form.username" placeholder="字母数字下划线，3-32位" required autocomplete="username" />
-      </label>
-
       <label class="field">
         <span>邮箱</span>
         <div class="code-row">
@@ -22,17 +17,21 @@
       </label>
 
       <label class="field">
-        <span>密码</span>
-        <input v-model="form.password" type="password" placeholder="至少 8 位，含大小写/数字/符号" required autocomplete="new-password" />
+        <span>新密码</span>
+        <input v-model="form.new_password" type="password" placeholder="至少 8 位，含大小写/数字/符号" required autocomplete="new-password" />
+      </label>
+      <label class="field">
+        <span>确认新密码</span>
+        <input v-model="form.confirm" type="password" placeholder="再次输入新密码" required autocomplete="new-password" />
       </label>
 
       <p v-if="error" class="error">{{ error }}</p>
       <p v-if="msg" class="success-msg">{{ msg }}</p>
 
       <button type="submit" class="btn" :disabled="loading">
-        {{ loading ? '注册中…' : '注 册' }}
+        {{ loading ? '提交中…' : '重置密码' }}
       </button>
-      <p class="switch">已有账号？<router-link to="/login">直接登录</router-link></p>
+      <p class="switch">想起密码了？<router-link to="/login">返回登录</router-link></p>
     </form>
   </AuthLayout>
 </template>
@@ -44,7 +43,7 @@ import api from '../api/client'
 import AuthLayout from '../layouts/AuthLayout.vue'
 
 const router = useRouter()
-const form = reactive({ username: '', email: '', password: '', code: '' })
+const form = reactive({ email: '', code: '', new_password: '', confirm: '' })
 const error = ref('')
 const msg = ref('')
 const loading = ref(false)
@@ -60,16 +59,14 @@ async function sendCode() {
   error.value = ''
   sending.value = true
   try {
-    const { data } = await api.post('/auth/send-code', { email: form.email, purpose: 'register' })
+    const { data } = await api.post('/auth/send-code', { email: form.email, purpose: 'reset' })
     msg.value = data.message
     cooldown.value = data.cooldown || 60
     timer = setInterval(() => {
       cooldown.value -= 1
       if (cooldown.value <= 0) clearInterval(timer)
     }, 1000)
-    if (data.dev_code) {
-      msg.value = `⚠️ 开发模式（未配置 SMTP），验证码：${data.dev_code}`
-    }
+    if (data.dev_code) msg.value = `⚠️ 开发模式验证码：${data.dev_code}`
   } catch (e) {
     error.value = e.response?.data?.detail || '发送失败'
   } finally {
@@ -79,15 +76,21 @@ async function sendCode() {
 
 async function onSubmit() {
   error.value = ''
+  if (form.new_password !== form.confirm) {
+    error.value = '两次输入的密码不一致'
+    return
+  }
   loading.value = true
   try {
-    const { data } = await api.post('/auth/register', form)
-    localStorage.setItem('harness_access', data.access_token)
-    localStorage.setItem('harness_refresh', data.refresh_token)
-    localStorage.setItem('harness_user', JSON.stringify(data.user))
-    router.push('/dashboard')
+    const { data } = await api.post('/auth/reset-password', {
+      email: form.email,
+      token: form.code,
+      new_password: form.new_password,
+    })
+    msg.value = data.message
+    setTimeout(() => router.push('/login'), 1500)
   } catch (e) {
-    error.value = e.response?.data?.detail || '注册失败，请稍后重试'
+    error.value = e.response?.data?.detail || '重置失败'
   } finally {
     loading.value = false
   }

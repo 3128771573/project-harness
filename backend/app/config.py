@@ -23,6 +23,20 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "/app/uploads"
     MAX_AVATAR_SIZE: int = 2 * 1024 * 1024  # 2MB
 
+    # 邮箱验证码 / SMTP
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 465
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    EMAIL_CODE_EXPIRE_MINUTES: int = 5
+    EMAIL_CODE_RESEND_SECONDS: int = 60
+    EMAIL_CODE_MAX_ATTEMPTS: int = 5
+
+    @property
+    def smtp_enabled(self) -> bool:
+        return bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD)
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]

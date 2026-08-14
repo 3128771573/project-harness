@@ -463,7 +463,8 @@ async def admin_audit_logs(
 # ---------- 管理员重置密码 ----------
 
 
-@router.post("/users/{uid}/reset-password", summary="管理员重置密码")async def admin_reset_password(
+@router.post("/users/{uid}/reset-password", summary="管理员重置密码")
+async def admin_reset_password(
     uid: str,
     payload: AdminResetPasswordRequest,
     request: Request,
