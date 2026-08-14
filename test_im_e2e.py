@@ -253,7 +253,7 @@ async def main():
         r = await c.post("/api/v1/im/decode-text", json={"text": "泄露内容" + zw}, headers=H(tsu))
         assert r.status_code == 200 and r.json()["matched"], r.text
         assert r.json()["user"]["uid"] == alice_uid and r.json()["message_id"] == m1["id"]
-        assert r.json()["user"]["email"] is None, "最小化输出：不返回邮箱"
+        assert "email" not in r.json()["user"], "最小化输出：不返回邮箱"
         r = await c.post("/api/v1/im/decode-text", json={"text": "没有水印的内容"}, headers=H(tsu))
         assert r.json()["matched"] is False
         r = await c.post("/api/v1/im/decode-text", json={"text": "x" + zw}, headers=H(ta))
@@ -282,7 +282,10 @@ async def main():
         print("17. WS 实时推送（连真实 uvicorn 8000）")
         import websockets
 
-        async with websockets.connect(f"ws://127.0.0.1:8000/api/v1/im/ws?token={tb}") as ws:
+        async with websockets.connect(
+            f"ws://127.0.0.1:8000/api/v1/im/ws?token={tb}",
+            origin="https://www.platformharness.ltd",
+        ) as ws:
             await ws.send(json.dumps({"type": "join", "conversation_id": conv_id}))
             # alice 经真实 HTTP 发消息
             async with httpx.AsyncClient(base_url="http://127.0.0.1:8000") as lc:

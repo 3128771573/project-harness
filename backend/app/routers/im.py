@@ -511,7 +511,7 @@ async def decode_text_forensics(
 
 # ==================== WebSocket 实时通道 ====================
 
-@router.websocket("/im/ws")
+@router.websocket("/ws")
 async def im_ws(websocket: WebSocket):
     """实时私信推送：?token=<access_token>；客户端发 {type:join|leave, conversation_id} 进出会话房间"""
     token = websocket.query_params.get("token")
