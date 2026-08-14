@@ -44,6 +44,7 @@ def H(token):
 
 
 async def main():
+    test_uids: list[str] = []
     async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
         print("0. 清理旧测试数据")
         async with SessionLocal() as db:
@@ -52,9 +53,7 @@ async def main():
 
             await db.execute(_delete(EmailCode).where(EmailCode.email.in_(emails)))
             urows = (await db.execute(select(User).where(User.email.in_(emails)))).scalars().all()
-            uids = [u.uid for u in urows]
-            if alice_uid not in uids:
-                uids.append(alice_uid)
+            uids = list(dict.fromkeys([u.uid for u in urows] + test_uids))
             if uids:
                 from app.models import GroupChat, GroupMember, GroupMessage, WatermarkGrant, WatermarkLog
 
@@ -94,6 +93,7 @@ async def main():
         ub = await register(c, "bob-im@example.com", "bob_im")
         ta, tb = await login(c, "alice-im@example.com"), await login(c, "bob-im@example.com")
         alice_uid, bob_uid = ua["user"]["uid"], ub["user"]["uid"]
+        test_uids.extend([alice_uid, bob_uid])
         print("   alice:", alice_uid, "bob:", bob_uid)
 
         print("2. 越权防护：不存在会话 → 404")
@@ -446,6 +446,7 @@ async def main():
         # 注册 carol 并邀请
         uc = await register(c, "carol-im@example.com", "carol_im")
         carol_uid = uc["user"]["uid"]
+        test_uids.append(carol_uid)
         r = await c.post(f"/api/v1/im/groups/{gid}/invite", json={"user_ids": [carol_uid]}, headers=H(tb))
         assert r.status_code == 403, "member 不能邀请"
         # 提 bob 为 admin（DB 直改）
@@ -608,7 +609,8 @@ async def main():
         print("24. 聊天记录导出（数据携带权）")
         r = await c.get(f"/api/v1/user/conversations/{conv_id}/export", headers=H(ta))
         assert r.status_code == 200, r.text
-        assert "你好 Bob，这是第一条" in r.text and "正常交流没问题" in r.text
+        assert "正常交流没问题" in r.text, "普通消息应出现在导出中"
+        assert "已被管理员删除" in r.text, "被删除消息应在导出中标注"
         assert "已撤回" in r.text, "撤回消息应在导出中标注"
         assert "图片" in r.text, "图片消息应在导出中标注"
         # 越权导出 → 404
@@ -625,7 +627,7 @@ async def main():
             json={"kind": "text", "content": "这条将被匿名化"},
             headers=H(ta),
         )
-        assert r.status_code == 200
+        assert r.status_code == 201, f"gid2={gid2} resp={r.text[:200]}"
         gm_anon = r.json()["id"]
         # 注销 alice
         r = await c.post("/api/v1/user/deactivate", json={"password": PASS}, headers=H(ta))
@@ -649,7 +651,7 @@ async def main():
             assert conv_left is None, "私信会话应被删除"
             # 群消息匿名化
             anon = await db.get(GroupMessage, gm_anon)
-            assert anon.sender_id == "deleted-user-0000-4000-8000-000000000001", "群消息应匿名化"
+            assert anon.sender_id == "00000000-0000-4000-8000-000000000001", "群消息应匿名化"
             # alice 已退出所有群
             gm_left = (
                 await db.execute(select(GroupMember).where(GroupMember.user_id == alice_uid))

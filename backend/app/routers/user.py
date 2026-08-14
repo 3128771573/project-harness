@@ -157,7 +157,7 @@ async def deactivate_account(
         await db.execute(delete(DmConversationMember).where(DmConversationMember.conversation_id.in_(conv_ids)))
         await db.execute(delete(DmConversation).where(DmConversation.id.in_(conv_ids)))
     # 群消息匿名化：发送者改为「已注销用户」占位账号（保留群历史）
-    placeholder_uid = "deleted-user-0000-4000-8000-000000000001"
+    placeholder_uid = "00000000-0000-4000-8000-000000000001"
     ph = await db.get(User, placeholder_uid)
     if ph is None:
         ph = User(
