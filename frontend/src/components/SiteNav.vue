@@ -28,6 +28,11 @@
 
       <!-- 已登录 -->
       <div v-else class="nav-actions user-area">
+        <!-- 私信入口（未读角标） -->
+        <router-link to="/messages" class="bell-btn im-btn" aria-label="私信">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+          <span v-if="imUnread > 0" class="bell-dot">{{ imUnread > 99 ? '99+' : imUnread }}</span>
+        </router-link>
         <!-- 公告铃铛 -->
         <div class="bell-wrap">
           <button class="bell-btn" :class="{ open: bellOpen }" @click="bellOpen = !bellOpen" aria-label="公告">
@@ -88,7 +93,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
 import BrandLogo from './BrandLogo.vue'
@@ -96,6 +101,20 @@ import BrandLogo from './BrandLogo.vue'
 const router = useRouter()
 const menuOpen = ref(false)
 const navOpen = ref(false)
+
+// ===== 私信未读角标（30s 轮询） =====
+const imUnread = ref(0)
+let imTimer = null
+
+async function refreshImUnread() {
+  if (!localStorage.getItem('harness_access')) return
+  try {
+    const { data } = await api.get('/im/unread')
+    imUnread.value = data.total || 0
+  } catch {
+    /* ignore */
+  }
+}
 
 // ===== 公告铃铛 =====
 const bellOpen = ref(false)
@@ -126,6 +145,12 @@ onMounted(async () => {
     notices.value = data.items || []
     lastReadAt.value = Number(localStorage.getItem('harness_notice_read_at') || 0)
   } catch { /* ignore */ }
+  refreshImUnread()
+  imTimer = setInterval(refreshImUnread, 30000)
+})
+
+onUnmounted(() => {
+  clearInterval(imTimer)
 })
 
 const user = computed(() => {
@@ -415,6 +440,7 @@ function logout() {
   align-items: center;
   justify-content: center;
   transition: background 0.15s;
+  text-decoration: none;
 }
 
 .bell-btn:hover {

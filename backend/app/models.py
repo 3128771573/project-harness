@@ -3,8 +3,10 @@ from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
+    Integer,
     String,
     Table,
     Column,
@@ -67,6 +69,7 @@ class User(Base):
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    is_bot: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)  # 机器人账号（不可登录/不可被私信）
     created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     role: Mapped["Role | None"] = relationship(lazy="joined")
@@ -278,3 +281,137 @@ class EmailCode(Base):
     used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     attempts: Mapped[int] = mapped_column(default=0, nullable=False)
     created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+
+# ==================== 站内消息系统（IM） ====================
+
+class DmConversation(Base):
+    """1v1 私信会话（user_a < user_b 保证「双方对」幂等唯一）"""
+
+    __tablename__ = "dm_conversations"
+    __table_args__ = (
+        UniqueConstraint("user_a", "user_b", name="uq_dm_conv_pair"),
+        CheckConstraint("user_a < user_b", name="ck_dm_conv_order"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_a: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), nullable=False)
+    user_b: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), nullable=False)
+    last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class DmConversationMember(Base):
+    """私信会话成员态：已读游标 + 本人视图隐藏（删除会话仅隐藏自己）"""
+
+    __tablename__ = "dm_conversation_members"
+    __table_args__ = (UniqueConstraint("conversation_id", "user_id", name="uq_dm_member"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    conversation_id: Mapped[str] = mapped_column(String(36), ForeignKey("dm_conversations.id"), index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    last_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    hidden: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class DmMessage(Base):
+    """私信消息（P0 明文入库；P2 升级 AES-256-GCM 存储加密）"""
+
+    __tablename__ = "dm_messages"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    conversation_id: Mapped[str] = mapped_column(String(36), ForeignKey("dm_conversations.id"), index=True, nullable=False)
+    sender_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), default="text", nullable=False)  # text / image
+    status: Mapped[str] = mapped_column(String(16), default="active", nullable=False)  # active / recalled
+    recalled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True, nullable=False)
+
+
+class GroupChat(Base):
+    """群聊（P1 开放建群/管理；P0 仅建表 + 机器人群广播预留）"""
+
+    __tablename__ = "group_chats"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name: Mapped[str] = mapped_column(String(64), nullable=False)
+    owner_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    announcement: Mapped[str | None] = mapped_column(Text, nullable=True)
+    max_members: Mapped[int] = mapped_column(Integer, default=200, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class GroupMember(Base):
+    """群成员（角色：owner / admin / member；已读游标）"""
+
+    __tablename__ = "group_members"
+    __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_member"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    group_id: Mapped[str] = mapped_column(String(36), ForeignKey("group_chats.id"), index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    role: Mapped[str] = mapped_column(String(16), default="member", nullable=False)
+    last_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    joined_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class GroupMessage(Base):
+    """群消息（P1 开放；结构与私信一致）"""
+
+    __tablename__ = "group_messages"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    group_id: Mapped[str] = mapped_column(String(36), ForeignKey("group_chats.id"), index=True, nullable=False)
+    sender_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), default="text", nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="active", nullable=False)
+    recalled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True, nullable=False)
+
+
+class Block(Base):
+    """拉黑（P1 开放管理；服务端发送校验 P0 已生效）"""
+
+    __tablename__ = "blocks"
+    __table_args__ = (UniqueConstraint("uid", "blocked_uid", name="uq_block_pair"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    uid: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    blocked_uid: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class WatermarkGrant(Base):
+    """水印取证授权（P1 开放授予；P0 仅 superadmin 直用）"""
+
+    __tablename__ = "watermark_grants"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    granted_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.uid"), nullable=True)
+    quota_type: Mapped[str] = mapped_column(String(16), nullable=False)  # one_time / times / permanent
+    max_uses: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    used_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class WatermarkLog(Base):
+    """水印取证调用日志（谁、何时、输入哈希、命中与否）"""
+
+    __tablename__ = "watermark_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    actor_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)  # image / text
+    input_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    matched_uid: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    confidence: Mapped[float | None] = mapped_column(nullable=True)
+    consumed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+

@@ -178,6 +178,8 @@ async def login_with_code(payload: CodeLoginRequest, request: Request, db: Async
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用")
+    if user.is_bot:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="机器人账号不可登录")
 
     # 两步验证（若已开启）
     used_2fa = False

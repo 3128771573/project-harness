@@ -51,6 +51,37 @@
         </div>
       </div>
     </section>
+
+    <!-- 公告机器人：私信广播（触达通道二：横幅公告之外的「可回应消息」） -->
+    <section class="panel" style="max-width: 640px">
+      <div class="panel-title">公告机器人 · 私信广播</div>
+      <p class="muted" style="margin:0 0 12px">
+        以「Harness 官方」账号向<strong>全部活跃用户</strong>发送私信（群广播二期开放）。
+        所有发送记录写入审计日志。
+      </p>
+      <form @submit.prevent="sendBroadcast" class="form-stack">
+        <label class="field">
+          <span>广播内容</span>
+          <textarea v-model.trim="botForm.content" rows="4" maxlength="2000" required placeholder="系统维护 / 版本更新 / 安全通知…"></textarea>
+        </label>
+        <label class="field">
+          <span>发送原因（写入审计，可选）</span>
+          <input v-model.trim="botForm.reason" maxlength="200" placeholder="如：v0.11 版本更新通知" />
+        </label>
+        <div class="actions" style="margin-top:4px">
+          <button type="submit" class="btn primary" :disabled="botSending">{{ botSending ? '发送中…' : '全量广播' }}</button>
+        </div>
+        <div v-if="botResult" class="bot-result">{{ botResult }}</div>
+      </form>
+      <div v-if="botHistory.length" class="bot-history">
+        <div class="bot-history-title">最近发送记录</div>
+        <div v-for="h in botHistory" :key="h.id" class="bot-history-item">
+          <span class="muted">{{ formatTime(h.created_time) }}</span>
+          <b>{{ h.to.nickname || h.to.username }}</b>
+          <span class="bot-history-content">{{ h.content.length > 40 ? h.content.slice(0, 40) + '…' : h.content }}</span>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -134,7 +165,44 @@ function formatTime(iso) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-onMounted(load)
+// ===== 公告机器人私信广播 =====
+const botForm = reactive({ content: '', reason: '' })
+const botSending = ref(false)
+const botResult = ref('')
+const botHistory = ref([])
+
+async function sendBroadcast() {
+  botSending.value = true
+  botResult.value = ''
+  try {
+    const { data } = await api.post('/admin/im/broadcast', {
+      content: botForm.content,
+      reason: botForm.reason || null,
+    })
+    botResult.value = `✅ 已向 ${data.sent} 位用户发送机器人私信`
+    botForm.content = ''
+    botForm.reason = ''
+    await loadBotHistory()
+  } catch (e) {
+    botResult.value = e.response?.data?.detail || '发送失败'
+  } finally {
+    botSending.value = false
+  }
+}
+
+async function loadBotHistory() {
+  try {
+    const { data } = await api.get('/admin/im/history?limit=10')
+    botHistory.value = data.items || []
+  } catch {
+    /* ignore */
+  }
+}
+
+onMounted(() => {
+  load()
+  loadBotHistory()
+})
 </script>
 
 <style scoped src="../../assets/admin.css"></style>
@@ -175,6 +243,40 @@ onMounted(load)
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.bot-result {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--admin-text);
+}
+
+.bot-history {
+  margin-top: 16px;
+  border-top: 1px solid var(--admin-border);
+  padding-top: 12px;
+}
+
+.bot-history-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+  margin-bottom: 8px;
+}
+
+.bot-history-item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 12.5px;
+  padding: 4px 0;
+}
+
+.bot-history-content {
+  color: var(--admin-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .checkbox-row {

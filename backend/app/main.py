@@ -12,7 +12,8 @@ from .database import SessionLocal, engine
 from .errors import validation_error_handler
 from .middleware import VisitLogMiddleware
 from .models import Base, Notice, Role, VisitLog
-from .routers import admin, ai, auth, guestbook, iot, oauth, security, system, user
+from .routers import admin, admin_im, ai, auth, guestbook, im, iot, oauth, security, system, user
+from .services.bot import ensure_bot
 from .services.cleanup import cleanup_loop
 from .services.iot_mqtt import mqtt_worker
 from .security import ROLE_ADMIN, ROLE_SUPER_ADMIN, ROLE_USER
@@ -46,6 +47,9 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await seed_roles()
+    # 确保公告机器账号存在（uid 固定保留）
+    async with SessionLocal() as db:
+        await ensure_bot(db)
     # 启动 MQTT 遥测订阅（任务挂在 app.state 防止被 GC；broker 未就绪会自动重连）
     app.state.mqtt_task = asyncio.create_task(mqtt_worker())
     # 启动每日过期数据清理
@@ -85,6 +89,8 @@ app.include_router(system.router, prefix="/api/v1")
 app.include_router(iot.router, prefix="/api/v1")
 app.include_router(guestbook.router, prefix="/api/v1")
 app.include_router(oauth.router, prefix="/api/v1")
+app.include_router(im.router, prefix="/api/v1")
+app.include_router(admin_im.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health", tags=["system"])

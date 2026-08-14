@@ -525,3 +525,108 @@ class VisitLogList(BaseModel):
     items: list[VisitLogItem]
     total: int
     stats: VisitStats
+
+
+
+# ==================== 站内消息系统（IM） ====================
+
+class ImUserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    uid: str
+    username: str
+    nickname: str | None = None
+    avatar: str | None = None
+
+
+class ImMessageOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    sender_id: str
+    kind: str
+    content: str
+    status: str
+    created_time: datetime
+
+
+class ImLastMessageOut(BaseModel):
+    id: str
+    sender_id: str
+    kind: str
+    content: str
+    status: str
+    created_time: datetime
+
+
+class ImConversationOut(BaseModel):
+    id: str
+    other: ImUserOut
+    last_message: ImLastMessageOut | None = None
+    unread: int = 0
+    other_last_read_at: datetime | None = None
+    last_message_at: datetime | None = None
+    created_time: datetime
+
+
+class ImConversationList(BaseModel):
+    items: list[ImConversationOut]
+    total: int
+
+
+class ImStartIn(BaseModel):
+    user_id: str = Field(min_length=8, max_length=40)
+
+
+class ImSendIn(BaseModel):
+    kind: str = Field(default="text", pattern=r"^(text|image)$")
+    content: str = Field(min_length=1, max_length=2000)
+
+
+class ImMessageList(BaseModel):
+    items: list[ImMessageOut]
+    has_more: bool
+
+
+class ImUnreadOut(BaseModel):
+    total: int
+
+
+class ImUserSearchOut(BaseModel):
+    items: list[ImUserOut]
+
+
+class ImDecodeTextIn(BaseModel):
+    text: str = Field(min_length=1, max_length=20000)
+
+
+class ImDecodeTextOut(BaseModel):
+    matched: bool
+    user: ImUserOut | None = None
+    message_id: str | None = None
+    ts: int | None = None
+    note: str | None = None
+
+
+class BotBroadcastIn(BaseModel):
+    content: str = Field(min_length=1, max_length=2000)
+    reason: str | None = Field(default=None, max_length=200)
+
+
+class BotDmIn(BaseModel):
+    user_id: str = Field(min_length=8, max_length=40)
+    content: str = Field(min_length=1, max_length=2000)
+
+
+class BotHistoryItem(BaseModel):
+    id: str
+    to: ImUserOut
+    content: str
+    kind: str
+    created_time: datetime
+
+
+class BotHistoryList(BaseModel):
+    items: list[BotHistoryItem]
+    total: int
+
