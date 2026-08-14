@@ -62,6 +62,9 @@ class User(Base):
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
     role_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("roles.id"), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_login_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_login_ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     role: Mapped["Role | None"] = relationship(lazy="joined")
@@ -74,6 +77,8 @@ class RefreshToken(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     uid: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
     jti: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    device: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -87,6 +92,52 @@ class AiHistory(Base):
     question: Mapped[str] = mapped_column(Text, nullable=False)
     answer: Mapped[str] = mapped_column(Text, nullable=False)
     model: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class LoginLog(Base):
+    """登录日志"""
+
+    __tablename__ = "login_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    uid: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), index=True, nullable=True)
+    ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    device: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    success: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class AuditLog(Base):
+    """操作审计日志（谁做了什么）"""
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    actor_uid: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    actor_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    action: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    resource: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    target_uid: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    success: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class PasswordReset(Base):
+    """密码重置令牌"""
+
+    __tablename__ = "password_resets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    uid: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 

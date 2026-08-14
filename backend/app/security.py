@@ -1,4 +1,6 @@
 import uuid
+import hashlib
+import re
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -15,6 +17,26 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
+
+
+def validate_password_policy(password: str) -> str | None:
+    """密码策略校验，返回错误信息或 None"""
+    if len(password) < 8:
+        return "密码至少 8 位"
+    if len(password) > 128:
+        return "密码过长"
+    checks = 0
+    if re.search(r"[a-z]", password):
+        checks += 1
+    if re.search(r"[A-Z]", password):
+        checks += 1
+    if re.search(r"\d", password):
+        checks += 1
+    if re.search(r"[^a-zA-Z0-9]", password):
+        checks += 1
+    if checks < 3:
+        return "密码需包含大小写字母、数字、特殊字符中的至少 3 类"
+    return None
 
 
 def _encode(payload: dict, expires_delta: timedelta) -> str:
@@ -49,3 +71,13 @@ def decode_token(token: str) -> dict | None:
 ROLE_USER = "user"
 ROLE_ADMIN = "admin"
 ROLE_SUPER_ADMIN = "super_admin"
+
+
+def generate_reset_token() -> tuple[str, str]:
+    """生成密码重置令牌，返回 (明文 token, sha256 hash)"""
+    token = uuid.uuid4().hex + uuid.uuid4().hex
+    return token, hash_token(token)
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()

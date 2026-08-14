@@ -5,7 +5,7 @@
       <nav>
         <router-link to="/dashboard" class="nav-item">仪表盘</router-link>
         <router-link to="/ai" class="nav-item active">AI 对话</router-link>
-        <a class="nav-item">Demo 平台</a>
+        <router-link to="/settings" class="nav-item">安全设置</router-link>
         <router-link v-if="isAdmin" to="/admin/dashboard" class="nav-item">管理后台</router-link>
       </nav>
       <button class="logout" @click="logout">退出登录</button>

@@ -25,6 +25,26 @@ async def _get(db: AsyncSession, key: str) -> str | None:
     return _DEFAULTS.get(key)
 
 
+async def get_setting(db: AsyncSession, key: str, default: str = "") -> str:
+    """通用设置读取（无默认环境变量时）"""
+    result = await db.execute(select(AppSetting).where(AppSetting.key == key))
+    row = result.scalar_one_or_none()
+    if row is not None:
+        return row.value or default
+    return default
+
+
+async def set_setting(db: AsyncSession, key: str, value: str):
+    """通用设置写入"""
+    result = await db.execute(select(AppSetting).where(AppSetting.key == key))
+    row = result.scalar_one_or_none()
+    if row is None:
+        db.add(AppSetting(key=key, value=value))
+    else:
+        row.value = value
+    await db.commit()
+
+
 async def get_ai_config(db: AsyncSession) -> dict:
     """返回当前生效的 AI 配置（DB 优先，缺省回退 env）"""
     return {

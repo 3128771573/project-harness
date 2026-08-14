@@ -7,7 +7,7 @@ from sqlalchemy import select
 from .config import settings
 from .database import SessionLocal, engine
 from .models import Base, Role
-from .routers import admin, ai, auth, user
+from .routers import admin, ai, auth, security, user
 from .security import ROLE_ADMIN, ROLE_SUPER_ADMIN, ROLE_USER
 
 
@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Project Harness API",
-    version="0.8.0",
+    version="0.9.0",
     lifespan=lifespan,
 )
 
@@ -47,10 +47,11 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(user.router, prefix="/api/v1")
+app.include_router(security.router, prefix="/api/v1")
 app.include_router(ai.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health", tags=["system"])
 async def health():
-    return {"status": "ok", "service": "harness-backend", "version": "0.8.0"}
+    return {"status": "ok", "service": "harness-backend", "version": "0.9.0"}

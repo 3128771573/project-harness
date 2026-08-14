@@ -9,13 +9,59 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
-class UserLogin(BaseModel):
+class RegisterRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=32, pattern=r"^[a-zA-Z0-9_]+$")
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+
+
+class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class SessionItem(BaseModel):
+    id: str
+    device: str | None = None
+    ip: str | None = None
+    created_time: datetime
+    expires_at: datetime
+    revoked: bool
+
+
+class LoginLogItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    ip: str | None = None
+    device: str | None = None
+    user_agent: str | None = None
+    success: bool
+    reason: str | None = None
+    created_time: datetime
+
+
+class LoginLogList(BaseModel):
+    items: list[LoginLogItem]
+    total: int
 
 
 class UserOut(BaseModel):
@@ -156,3 +202,70 @@ class RefreshTokenAdminOut(BaseModel):
     created_time: datetime
     expires_at: datetime
     revoked: bool
+
+
+class RoleOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    description: str | None
+    created_time: datetime
+
+
+class SystemSettingsUpdate(BaseModel):
+    site_name: str | None = None
+    site_description: str | None = None
+    allow_register: bool | None = None
+    maintenance_mode: bool | None = None
+    default_ai_model: str | None = None
+    upload_limit_mb: int | None = Field(default=None, ge=1, le=100)
+
+
+class SystemSettingsOut(BaseModel):
+    site_name: str
+    site_description: str
+    allow_register: bool
+    maintenance_mode: bool
+    default_ai_model: str
+    upload_limit_mb: int
+
+
+class AdminLoginLogItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    uid: str | None = None
+    email: str | None = None
+    ip: str | None = None
+    device: str | None = None
+    success: bool
+    reason: str | None = None
+    created_time: datetime
+
+
+class AdminLoginLogList(BaseModel):
+    items: list[AdminLoginLogItem]
+    total: int
+
+
+class AuditLogItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    actor_name: str | None = None
+    action: str
+    resource: str | None = None
+    detail: str | None = None
+    ip: str | None = None
+    success: bool
+    created_time: datetime
+
+
+class AuditLogList(BaseModel):
+    items: list[AuditLogItem]
+    total: int
+
+
+class AdminResetPasswordRequest(BaseModel):
+    new_password: str = Field(min_length=8, max_length=128)

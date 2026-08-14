@@ -1,17 +1,25 @@
 from datetime import datetime, time, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
 from ..deps import get_current_user, get_role_by_name, require_roles
-from ..models import AiHistory, RefreshToken, Role, User
+from ..models import AiHistory, AuditLog, LoginLog, RefreshToken, Role, User
 from ..schemas import (
+    AdminLoginLogItem,
+    AdminLoginLogList,
+    AdminResetPasswordRequest,
     AdminStats,
     AiConfigOut,
     AiConfigUpdate,
+    AuditLogItem,
+    AuditLogList,
     RefreshTokenAdminOut,
+    RoleOut,
+    SystemSettingsOut,
+    SystemSettingsUpdate,
     SystemStatus,
     UserAdminList,
     UserAdminOut,
@@ -23,11 +31,19 @@ from ..schemas import (
 from ..security import ROLE_ADMIN, ROLE_SUPER_ADMIN
 from ..services import monitor
 from ..services import settings as settings_svc
+from ..services.audit import record_audit
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 # 依赖: 仅 admin / super_admin 可访问
 require_admin = require_roles(ROLE_ADMIN, ROLE_SUPER_ADMIN)
+
+
+def _client_ip(request) -> str | None:
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else None
 
 
 def _to_admin_out(user: User) -> UserAdminOut:
@@ -100,6 +116,7 @@ async def admin_users(
 async def admin_user_status(
     uid: str,
     payload: UserStatusUpdate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -111,6 +128,15 @@ async def admin_user_status(
     target.is_active = payload.is_active
     await db.commit()
     await db.refresh(target)
+    await record_audit(
+        db,
+        actor=current_user,
+        action="user.status",
+        resource=f"users/{uid}",
+        target_uid=uid,
+        detail=f"{'禁用' if not payload.is_active else '启用'}用户 {target.username}",
+        ip=_client_ip(request),
+    )
     return _to_admin_out(target)
 
 
@@ -118,6 +144,7 @@ async def admin_user_status(
 async def admin_user_role(
     uid: str,
     payload: UserRoleUpdate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -134,15 +161,30 @@ async def admin_user_role(
     # super_admin 保护：修改 admin 及以上角色的用户需要 super_admin
     if target_role_name in (ROLE_ADMIN, ROLE_SUPER_ADMIN) or payload.role in (ROLE_ADMIN, ROLE_SUPER_ADMIN):
         if current_user.role.name != ROLE_SUPER_ADMIN:
+            await record_audit(
+                db, actor=current_user, action="user.role.denied", resource=f"users/{uid}",
+                target_uid=uid, detail=f"尝试修改 {target.username} 角色为 {payload.role}（无权限）",
+                ip=_client_ip(request), success=False,
+            )
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="只有 super_admin 可以管理 admin 角色")
 
     # 不能修改自己的角色（防止降级自己后失去权限）
     if target.uid == current_user.uid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不能修改自己的角色")
 
+    old_role = target_role_name or "none"
     target.role_id = new_role.id
     await db.commit()
     await db.refresh(target)
+    await record_audit(
+        db,
+        actor=current_user,
+        action="user.role",
+        resource=f"users/{uid}",
+        target_uid=uid,
+        detail=f"修改 {target.username} 角色: {old_role} -> {payload.role}",
+        ip=_client_ip(request),
+    )
     return _to_admin_out(target)
 
 
@@ -304,6 +346,7 @@ async def revoke_token(
 @router.delete("/tokens/user/{uid}", status_code=status.HTTP_204_NO_CONTENT, summary="吊销某用户全部令牌")
 async def revoke_user_tokens(
     uid: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -312,4 +355,140 @@ async def revoke_user_tokens(
     for t in tokens:
         t.revoked = True
     await db.commit()
+    await record_audit(
+        db, actor=current_user, action="user.sessions.revoke", resource=f"users/{uid}",
+        target_uid=uid, detail=f"吊销用户 {uid} 全部 {len(tokens)} 个会话", ip=_client_ip(request),
+    )
     return None
+
+
+# ---------- 权限管理 ----------
+
+
+@router.get("/roles", response_model=list[RoleOut], summary="角色列表")
+async def admin_roles(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    result = await db.execute(select(Role).order_by(Role.created_time))
+    return result.scalars().all()
+
+
+# ---------- 系统设置 ----------
+
+
+@router.get("/settings", response_model=SystemSettingsOut, summary="读取全局设置")
+async def get_system_settings(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    site_name = await settings_svc.get_setting(db, "site.name", default="Harness Platform")
+    site_desc = await settings_svc.get_setting(db, "site.description", default="个人智能服务平台")
+    allow_register = (await settings_svc.get_setting(db, "site.allow_register", default="true")).lower() == "true"
+    maintenance = (await settings_svc.get_setting(db, "site.maintenance", default="false")).lower() == "true"
+    model = await settings_svc.get_setting(db, "site.default_ai_model", default="deepseek-chat")
+    upload_mb = int(await settings_svc.get_setting(db, "site.upload_limit_mb", default="10"))
+    return SystemSettingsOut(
+        site_name=site_name,
+        site_description=site_desc,
+        allow_register=allow_register,
+        maintenance_mode=maintenance,
+        default_ai_model=model,
+        upload_limit_mb=upload_mb,
+    )
+
+
+@router.put("/settings", response_model=SystemSettingsOut, summary="更新全局设置")
+async def update_system_settings(
+    payload: SystemSettingsUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    data = payload.model_dump(exclude_unset=True)
+    mapping = {
+        "site_name": "site.name",
+        "site_description": "site.description",
+        "allow_register": "site.allow_register",
+        "maintenance_mode": "site.maintenance",
+        "default_ai_model": "site.default_ai_model",
+        "upload_limit_mb": "site.upload_limit_mb",
+    }
+    for field, value in data.items():
+        if field in mapping:
+            await settings_svc.set_setting(db, mapping[field], str(value).lower() if isinstance(value, bool) else str(value))
+    await record_audit(
+        db, actor=current_user, action="settings.update", resource="settings",
+        detail=f"更新系统设置: {', '.join(data.keys())}", ip=_client_ip(request),
+    )
+    return await get_system_settings(db, current_user)
+
+
+# ---------- 安全中心 ----------
+
+
+@router.get("/login-logs", response_model=AdminLoginLogList, summary="登录日志")
+async def admin_login_logs(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    base = select(LoginLog).order_by(LoginLog.created_time.desc())
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
+    result = await db.execute(base.limit(page_size).offset((page - 1) * page_size))
+    return AdminLoginLogList(
+        items=[AdminLoginLogItem.model_validate(l) for l in result.scalars().all()], total=total
+    )
+
+
+@router.get("/audit-logs", response_model=AuditLogList, summary="操作审计日志")
+async def admin_audit_logs(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    base = select(AuditLog).order_by(AuditLog.created_time.desc())
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
+    result = await db.execute(base.limit(page_size).offset((page - 1) * page_size))
+    return AuditLogList(
+        items=[AuditLogItem.model_validate(l) for l in result.scalars().all()], total=total
+    )
+
+
+# ---------- 管理员重置密码 ----------
+
+
+@router.post("/users/{uid}/reset-password", summary="管理员重置密码")
+async def admin_reset_password(
+    uid: str,
+    payload: AdminResetPasswordRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    target = await db.get(User, uid)
+    if target is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
+
+    from ..security import hash_password as _hp, validate_password_policy
+
+    policy_error = validate_password_policy(payload.new_password)
+    if policy_error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=policy_error)
+
+    target.password_hash = _hp(payload.new_password)
+    target.password_changed_at = datetime.now(timezone.utc)
+    # 吊销全部会话
+    result = await db.execute(select(RefreshToken).where(RefreshToken.uid == uid, RefreshToken.revoked.is_(False)))
+    tokens = result.scalars().all()
+    for t in tokens:
+        t.revoked = True
+    await db.commit()
+    await record_audit(
+        db, actor=current_user, action="user.password.reset", resource=f"users/{uid}",
+        target_uid=uid, detail=f"管理员重置用户 {target.username} 密码，吊销 {len(tokens)} 个会话",
+        ip=_client_ip(request),
+    )
+    return {"message": f"已重置 {target.username} 的密码，该用户所有设备已下线"}

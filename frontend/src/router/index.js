@@ -1,22 +1,29 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+import LandingView from '../views/LandingView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import ChatView from '../views/ChatView.vue'
+import SettingsView from '../views/SettingsView.vue'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
 import AdminUsersView from '../views/admin/AdminUsersView.vue'
 import AdminSystemView from '../views/admin/AdminSystemView.vue'
 import AdminAiConfigView from '../views/admin/AdminAiConfigView.vue'
 import AdminUsageView from '../views/admin/AdminUsageView.vue'
+import AdminRolesView from '../views/admin/AdminRolesView.vue'
+import AdminAuditView from '../views/admin/AdminAuditView.vue'
+import AdminSecurityView from '../views/admin/AdminSecurityView.vue'
+import AdminSettingsView from '../views/admin/AdminSettingsView.vue'
 
 const routes = [
-  { path: '/', redirect: '/dashboard' },
+  { path: '/', name: 'home', component: LandingView },
   { path: '/login', name: 'login', component: LoginView },
   { path: '/register', name: 'register', component: RegisterView },
   { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
   { path: '/ai', name: 'ai', component: ChatView, meta: { requiresAuth: true } },
+  { path: '/settings', name: 'settings', component: SettingsView, meta: { requiresAuth: true } },
   {
     path: '/admin',
     component: AdminLayout,
@@ -28,6 +35,10 @@ const routes = [
       { path: 'system', name: 'admin-system', component: AdminSystemView },
       { path: 'ai-config', name: 'admin-ai-config', component: AdminAiConfigView },
       { path: 'usage', name: 'admin-usage', component: AdminUsageView },
+      { path: 'roles', name: 'admin-roles', component: AdminRolesView },
+      { path: 'audit', name: 'admin-audit', component: AdminAuditView },
+      { path: 'security', name: 'admin-security', component: AdminSecurityView },
+      { path: 'settings', name: 'admin-settings', component: AdminSettingsView },
     ],
   },
 ]
