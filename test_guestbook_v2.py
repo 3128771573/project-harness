@@ -36,7 +36,9 @@ async def main():
     from sqlalchemy import delete as _delete, select
 
     async with SessionLocal() as db:
-        await db.execute(_delete(GuestbookReply).where(GuestbookReply.sender_name == "归档测试访客"))
+        mids = [m for (m,) in (await db.execute(select(Message.id).where(Message.ip == "127.0.0.1"))).all()]
+        if mids:
+            await db.execute(_delete(GuestbookReply).where(GuestbookReply.guestbook_id.in_(mids)))
         await db.execute(_delete(Message).where(Message.ip == "127.0.0.1"))
         await db.execute(_delete(GuestbookTemplate).where(GuestbookTemplate.name.like("测试模板%")))
         await db.commit()
@@ -153,7 +155,9 @@ async def main():
 
         print("9. 清理")
         async with SessionLocal() as db:
-            await db.execute(_delete(GuestbookReply).where(GuestbookReply.sender_name == "归档测试访客"))
+            mids = [m for (m,) in (await db.execute(select(Message.id).where(Message.ip == "127.0.0.1"))).all()]
+            if mids:
+                await db.execute(_delete(GuestbookReply).where(GuestbookReply.guestbook_id.in_(mids)))
             await db.execute(_delete(Message).where(Message.ip == "127.0.0.1"))
             await db.execute(_delete(GuestbookTemplate).where(GuestbookTemplate.name.like("测试模板%")))
             await db.commit()
