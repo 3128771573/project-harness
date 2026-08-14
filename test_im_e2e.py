@@ -48,6 +48,8 @@ async def main():
         print("0. 清理旧测试数据")
         async with SessionLocal() as db:
             emails = ("alice-im@example.com", "bob-im@example.com", "carol-im@example.com")
+            from app.models import Report
+
             await db.execute(_delete(EmailCode).where(EmailCode.email.in_(emails)))
             urows = (await db.execute(select(User).where(User.email.in_(emails)))).scalars().all()
             uids = [u.uid for u in urows]

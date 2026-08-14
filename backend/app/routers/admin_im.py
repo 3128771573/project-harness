@@ -221,7 +221,7 @@ async def handle_report(
     try:
         bot = await ensure_bot(db)
         await send_bot_dm(
-            db, rep.reporter_id,
+            db, bot, rep.reporter_id,
             f"【举报处理结果】您举报的内容已处理：{result_note}" + (f"（备注：{payload.note}）" if payload.note else ""),
         )
     except Exception:
