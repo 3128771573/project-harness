@@ -118,7 +118,7 @@ async def forgot_password(
 async def reset_password(payload: ResetPasswordRequest, request: Request, db: AsyncSession = Depends(get_db)):
     from ..security import hash_password as _hp, validate_password_policy
 
-    if not await verify_code(db, payload.email, payload.code, "reset"):
+    if not await verify_code(db, payload.email, payload.token, "reset"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
 
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
