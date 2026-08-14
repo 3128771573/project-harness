@@ -38,7 +38,8 @@ async function onSubmit() {
   loading.value = true
   try {
     const { data } = await api.post('/auth/register', form)
-    localStorage.setItem('harness_token', data.access_token)
+    localStorage.setItem('harness_access', data.access_token)
+    localStorage.setItem('harness_refresh', data.refresh_token)
     localStorage.setItem('harness_user', JSON.stringify(data.user))
     router.push('/dashboard')
   } catch (e) {

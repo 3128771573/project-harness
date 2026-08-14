@@ -1,9 +1,10 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database import get_db
-from .models import User
+from .models import Role, User
 from .security import decode_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -15,10 +16,29 @@ async def get_current_user(
 ) -> User:
     if credentials is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="未登录")
-    uid = decode_token(credentials.credentials)
-    if uid is None:
+    payload = decode_token(credentials.credentials)
+    if payload is None or payload.get("type") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="凭证无效或已过期")
+    uid = payload.get("sub")
     user = await db.get(User, uid)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户不存在")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用")
     return user
+
+
+def require_roles(*roles: str):
+    """RBAC: 要求当前用户拥有指定角色之一（返回 FastAPI 依赖）"""
+
+    async def checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role is None or current_user.role.name not in roles:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="权限不足")
+        return current_user
+
+    return checker
+
+
+async def get_role_by_name(db: AsyncSession, name: str) -> Role | None:
+    result = await db.execute(select(Role).where(Role.name == name))
+    return result.scalar_one_or_none()
