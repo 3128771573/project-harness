@@ -40,10 +40,14 @@ export const useThemeStore = defineStore('theme', {
       this.apply()
     },
 
-    /** 应用当前主题到 <html data-theme> */
+    /** 应用当前主题到 <html data-theme>，并同步浏览器地址栏颜色 */
     apply() {
       const root = document.documentElement
       root.setAttribute('data-theme', this.effectiveTheme)
+      const meta = document.querySelector('meta[name="theme-color"]')
+      if (meta) {
+        meta.setAttribute('content', this.effectiveTheme === 'dark' ? '#020617' : '#f8fafc')
+      }
       // 触发过渡动画（避免首屏闪烁：首次应用不过渡）
       if (!root.classList.contains('theme-initialized')) {
         root.classList.add('theme-initialized')

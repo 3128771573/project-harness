@@ -52,3 +52,28 @@ html.theme-transition *::after {
     border-color 0.3s ease,
     fill 0.3s ease !important;
 }
+
+/* 品牌选中态 */
+::selection {
+  background: color-mix(in srgb, var(--primary-color) 25%, transparent);
+  color: var(--text-primary);
+}
+
+/* 键盘焦点环（仅键盘导航时显示） */
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* 用户系统偏好「减少动态」：关闭动画 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

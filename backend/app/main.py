@@ -1,17 +1,21 @@
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from .config import settings
 from .database import SessionLocal, engine
 from .errors import validation_error_handler
 from .middleware import VisitLogMiddleware
-from .models import Base, Role
+from .models import Base, Role, VisitLog
 from .routers import admin, ai, auth, security, system, user
 from .security import ROLE_ADMIN, ROLE_SUPER_ADMIN, ROLE_USER
+
+# 进程启动时间（用于公开统计接口的「稳定运行时长」）
+START_TIME = datetime.now(timezone.utc)
 
 
 async def seed_roles():
@@ -65,3 +69,17 @@ app.include_router(system.router, prefix="/api/v1")
 @app.get("/api/v1/health", tags=["system"])
 async def health():
     return {"status": "ok", "service": "harness-backend", "version": "0.10.1"}
+
+
+@app.get("/api/v1/public/stats", tags=["system"])
+async def public_stats():
+    """公开站点统计：版本 / 启动时间 / 稳定运行时长 / 累计访问"""
+    async with SessionLocal() as db:
+        visits = await db.scalar(select(func.count()).select_from(VisitLog)) or 0
+    now = datetime.now(timezone.utc)
+    return {
+        "version": app.version,
+        "started_at": START_TIME.isoformat(),
+        "uptime_seconds": max(0, int((now - START_TIME).total_seconds())),
+        "visits": visits,
+    }

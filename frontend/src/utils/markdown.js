@@ -66,6 +66,13 @@ export function renderMarkdown(text) {
     html = html.replaceAll(`@@KATEX_INLINE_${i}@@`, `<span class="katex-inline">${v}</span>`)
   })
 
+  // 代码块增强：语言徽章 + 复制按钮（消毒与公式还原之后注入，内容已安全）
+  html = html.replace(/<pre><code class="([^"]*)">([\s\S]*?)<\/code><\/pre>/g, (_m, cls, code) => {
+    const lang = (cls.match(/language-([\w+-]+)/) || [])[1] || 'code'
+    const safeLang = lang.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]))
+    return `<div class="code-block"><div class="code-toolbar"><span class="code-lang">${safeLang}</span><button type="button" class="code-copy">复制</button></div><pre><code class="${cls}">${code}</code></pre></div>`
+  })
+
   return html
 }
 

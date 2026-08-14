@@ -311,8 +311,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import SiteNav from '../components/SiteNav.vue'
+import api from '../api/client'
 
 const user = computed(() => {
   try {
@@ -340,6 +341,47 @@ const demos = [
   { icon: '🧩', name: '交互组件', desc: 'UI 实验集合' },
   { icon: '📈', name: '数据可视化', desc: '图表与曲线' },
 ]
+
+// ===== 页脚站点统计（公开接口 /public/stats） =====
+const stats = ref({ started_at: null, visits: 0 })
+const now = ref(Date.now())
+const year = new Date().getFullYear()
+let ticker = null
+
+const uptimeText = computed(() => {
+  if (!stats.value.started_at) return '—'
+  const sec = Math.max(0, Math.floor((now.value - new Date(stats.value.started_at).getTime()) / 1000))
+  const d = Math.floor(sec / 86400)
+  const h = Math.floor((sec % 86400) / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = sec % 60
+  if (d > 0) return `${d} 天 ${h} 小时`
+  if (h > 0) return `${h} 小时 ${m} 分`
+  if (m > 0) return `${m} 分 ${s} 秒`
+  return `${s} 秒`
+})
+
+const visitsText = computed(() => (stats.value.visits ? stats.value.visits.toLocaleString() + ' 次' : '—'))
+
+function fmtDate(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/public/stats')
+    stats.value = data
+  } catch { /* 统计接口不可用时静默 */ }
+  ticker = setInterval(() => {
+    now.value = Date.now()
+  }, 1000)
+})
+
+onBeforeUnmount(() => {
+  if (ticker) clearInterval(ticker)
+})
 </script>
 
 <style scoped>
@@ -347,7 +389,6 @@ const demos = [
   min-height: 100vh;
   background: var(--bg-card);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
 /* ===== 已登录控制中心 ===== */
@@ -381,17 +422,22 @@ const demos = [
   align-items: center;
   gap: 14px;
   padding: 20px;
-  border: 1px solid var(--border-light);
+  border: 1px solid transparent;
   border-radius: 16px;
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(var(--border-light), var(--border-light)) border-box;
+  transition: box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .quick-card:hover {
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  transform: translateY(-2px);
-  border-color: var(--text-secondary);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(135deg, var(--primary-color), var(--accent-color)) border-box;
 }
 
 .q-icon {
@@ -480,6 +526,15 @@ const demos = [
   inset: 0;
 }
 
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+}
+
 .grid-layer {
   position: absolute;
   inset: 0;
@@ -563,9 +618,16 @@ const demos = [
 .grad {
   display: block;
   background: var(--gradient-brand);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: gradShift 6s ease-in-out infinite alternate;
+}
+
+@keyframes gradShift {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
 }
 
 .hero-desc {
@@ -646,6 +708,12 @@ const demos = [
 /* ===== 产品预览图 mockup ===== */
 .hero-visual {
   position: relative;
+  transform: perspective(1200px) rotateY(-4deg);
+  transition: transform 0.4s ease;
+}
+
+.hero-visual:hover {
+  transform: perspective(1200px) rotateY(0);
 }
 
 .mock-window {
@@ -875,19 +943,24 @@ const demos = [
 }
 
 .core-card {
-  border: 1px solid var(--border-light);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
   padding: 30px 26px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(var(--border-light), var(--border-light)) border-box;
+  transition: box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .core-card:hover {
-  box-shadow: var(--shadow);
-  transform: translateY(-3px);
-  border-color: var(--border-color);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(135deg, var(--primary-color), var(--accent-color)) border-box;
 }
 
 .cc-icon {
@@ -1318,6 +1391,36 @@ const demos = [
   margin: 40px auto 0;
   padding-top: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.site-stats {
+  display: flex;
+  gap: 36px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stat-item b {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stat-item span {
+  font-size: 13.5px;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+
+.footer-copy {
   font-size: 12.5px;
   color: var(--text-muted);
 }

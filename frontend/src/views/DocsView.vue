@@ -97,7 +97,7 @@ import SiteNav from '../components/SiteNav.vue'
 }
 
 .doc-card {
-  border: 1px solid var(--border-light);
+  border: 1px solid transparent;
   border-radius: 16px;
   padding: 24px 20px;
   display: flex;
@@ -105,12 +105,18 @@ import SiteNav from '../components/SiteNav.vue'
   gap: 8px;
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.2s, transform 0.2s;
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(var(--border-light), var(--border-light)) border-box;
+  transition: box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .doc-card:hover {
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(135deg, var(--primary-color), var(--accent-color)) border-box;
 }
 
 .doc-icon {

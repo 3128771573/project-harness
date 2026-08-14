@@ -47,7 +47,7 @@
 
       <div class="chat-body">
         <!-- 聊天区 -->
-        <section class="chat-panel" ref="chatBox">
+        <section class="chat-panel" ref="chatBox" @click="onChatClick">
           <div v-if="messages.length === 0" class="chat-empty">
             <p class="empty-emoji">✨</p>
             <p class="empty-title">你好，我是 Harness AI</p>
@@ -59,6 +59,7 @@
 
           <div v-for="(m, i) in messages" :key="i" :class="['msg', m.role]">
             <div v-if="m.role === 'assistant'" class="msg-avatar">✦</div>
+            <div v-else class="msg-avatar user">{{ userInitial }}</div>
             <div class="bubble-wrap">
               <!-- 思考过程折叠 -->
               <div v-if="m.role === 'assistant' && m.reasoning" class="reasoning-block">
@@ -106,20 +107,22 @@
 
       <!-- 输入区 -->
       <form @submit.prevent="send" class="chat-input">
-        <textarea
-          ref="inputEl"
-          v-model.trim="question"
-          placeholder="问点什么…（Enter 发送 · Shift+Enter 换行）"
-          :disabled="loading"
-          maxlength="4000"
-          rows="1"
-          @keydown.enter.exact="onEnter"
-          @input="autoResize"
-        ></textarea>
-        <button type="submit" class="send-btn" :disabled="loading || !question">
-          <svg v-if="!loading" viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-          <span v-else class="send-dots"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span></span>
-        </button>
+        <div class="chat-input-box">
+          <textarea
+            ref="inputEl"
+            v-model.trim="question"
+            placeholder="问点什么…（Enter 发送 · Shift+Enter 换行）"
+            :disabled="loading"
+            maxlength="4000"
+            rows="1"
+            @keydown.enter.exact="onEnter"
+            @input="autoResize"
+          ></textarea>
+          <button type="submit" class="send-btn" :disabled="loading || !question">
+            <svg v-if="!loading" viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            <span v-else class="send-dots"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span></span>
+          </button>
+        </div>
       </form>
     </main>
   </div>
@@ -194,6 +197,35 @@ watch(question, () => {
     inputEl.value.style.height = 'auto'
   }
 })
+
+// 用户首字母头像（与 AI 的 ✦ 渐变方块形成对仗）
+const userInitial = computed(() => {
+  try {
+    const u = JSON.parse(localStorage.getItem('harness_user') || 'null')
+    const name = u?.name || u?.email || ''
+    return (name[0] || '我').toUpperCase()
+  } catch {
+    return '我'
+  }
+})
+
+// 代码块「复制」按钮（事件委托：v-html 内容无法直接绑监听）
+function onChatClick(e) {
+  const btn = e.target.closest('.code-copy')
+  if (!btn) return
+  const code = btn.closest('.code-block')?.querySelector('pre code')?.textContent || ''
+  if (!code) return
+  navigator.clipboard
+    ?.writeText(code)
+    .then(() => {
+      btn.textContent = '已复制'
+      setTimeout(() => { btn.textContent = '复制' }, 1500)
+    })
+    .catch(() => {
+      btn.textContent = '复制失败'
+      setTimeout(() => { btn.textContent = '复制' }, 2000)
+    })
+}
 
 async function loadModels() {
   try {
@@ -615,6 +647,13 @@ onMounted(() => {
   margin-top: 2px;
 }
 
+.msg-avatar.user {
+  background: var(--bg-active);
+  color: var(--primary-color);
+  border: 1px solid var(--border-light);
+  border-radius: 50%;
+}
+
 .bubble-wrap {
   max-width: 82%;
   min-width: 0;
@@ -635,8 +674,11 @@ onMounted(() => {
 }
 
 .msg.assistant .bubble {
-  background: var(--bg-secondary);
+  background: var(--bg-card);
   color: var(--text);
+  border: 1px solid var(--border-light);
+  border-left: 3px solid var(--accent-color);
+  box-shadow: var(--shadow-sm);
   border-bottom-left-radius: 4px;
 }
 
@@ -735,7 +777,7 @@ onMounted(() => {
   display: inline-block;
   width: 2px;
   height: 1em;
-  background: var(--primary);
+  background: linear-gradient(180deg, var(--primary), var(--accent));
   margin-left: 2px;
   vertical-align: -2px;
   animation: blink 0.9s infinite;
@@ -783,7 +825,7 @@ onMounted(() => {
 }
 
 .md-body :deep(code) {
-  background: rgba(15, 23, 42, 0.07);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
   padding: 2px 6px;
   border-radius: 5px;
   font-size: 12.5px;
@@ -804,6 +846,56 @@ onMounted(() => {
   color: var(--text-secondary);
   font-size: 12.5px;
   line-height: 1.6;
+}
+
+/* 代码块工具栏（语言徽章 + 复制按钮） */
+.md-body :deep(.code-block) {
+  margin: 10px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--brand-block);
+  border: 1px solid var(--border-color);
+}
+
+.md-body :deep(.code-toolbar) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.md-body :deep(.code-lang) {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.md-body :deep(.code-copy) {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 2px 8px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.md-body :deep(.code-copy:hover) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.md-body :deep(.code-block pre) {
+  margin: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .md-body :deep(table) {
@@ -900,40 +992,41 @@ onMounted(() => {
   word-break: break-all;
 }
 
-/* 输入区 */
+/* 输入区（ChatGPT 式容器） */
 .chat-input {
-  display: flex;
-  gap: 10px;
   margin-top: 14px;
-  align-items: flex-end;
 }
 
-.chat-input input,
-.chat-input textarea {
-  flex: 1;
-  padding: 13px 18px;
+.chat-input-box {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 10px 10px 10px 14px;
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  font-size: 14px;
-  background: var(--card);
-  font-family: inherit;
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.chat-input textarea {
-  resize: none;
-  line-height: 1.5;
-  min-height: 48px;
-  max-height: 180px;
-  display: block;
-  box-sizing: border-box;
-}
-
-.chat-input input:focus,
-.chat-input textarea:focus {
-  outline: none;
+.chat-input-box:focus-within {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.chat-input textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  resize: none;
+  padding: 6px 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 28px;
+  max-height: 180px;
+  font-family: inherit;
+  color: var(--text);
 }
 
 .send-btn {
