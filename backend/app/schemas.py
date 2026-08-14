@@ -137,7 +137,7 @@ class AiChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
     stream: bool = False
     reasoning: bool = False
-    conversation_id: str | None = Field(default=None, max_length=36, description="所属会话；缺省自动新建会话"),
+    conversation_id: str | None = Field(default=None, max_length=36, description="所属会话；缺省自动新建会话")
 
 
 class ConversationOut(BaseModel):
