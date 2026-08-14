@@ -4,14 +4,14 @@
 
 html[data-theme='dark'] {
   /* 背景 */
-  --bg-primary: #0f172a;
-  --bg-secondary: #111827;
-  --bg-card: #111827;
+  --bg-primary: #020617;
+  --bg-secondary: #0f172a;
+  --bg-card: #0f172a;
   --bg-hover: rgba(255, 255, 255, 0.05);
-  --bg-active: rgba(37, 99, 235, 0.15);
+  --bg-active: rgba(99, 102, 241, 0.15);
   --bg-input: #0b1220;
   --bg-code: #1e293b;
-  --bg-codeblock: #0b1220;
+  --bg-codeblock: #020617;
 
   /* 文字 */
   --text-primary: #f1f5f9;

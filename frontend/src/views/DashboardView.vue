@@ -22,8 +22,8 @@
       <!-- 欢迎区 -->
       <header class="welcome-bar fade-up">
         <div>
-          <h1>欢迎回来，{{ user?.nickname || user?.username }}</h1>
-          <p class="welcome-sub">这是你的 {{ today }} 概览</p>
+          <h1>{{ greeting }}，{{ user?.nickname || user?.username }}</h1>
+          <p class="welcome-sub">Your workspace · {{ today }}</p>
         </div>
         <div class="user-chip">
           <img v-if="user?.avatar" :src="user.avatar" class="avatar-img" alt="" />
@@ -33,33 +33,45 @@
         </div>
       </header>
 
-      <!-- 今日概览 -->
+      <!-- 今日概览（数字增长动画） -->
       <section class="stat-grid fade-up">
         <div class="stat-card">
           <div class="stat-info">
-            <div class="stat-label">AI 调用次数</div>
-            <div class="stat-value">{{ todayStats.aiCalls ?? '—' }}</div>
+            <div class="stat-label">AI Usage</div>
+            <div class="stat-value">
+              <CountUp :value="todayStats.aiCalls ?? 0" suffix=" 次" />
+            </div>
+            <div class="stat-foot">今日请求</div>
           </div>
           <div class="stat-icon blue"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div>
         </div>
         <div class="stat-card">
           <div class="stat-info">
-            <div class="stat-label">设备数量</div>
-            <div class="stat-value">{{ todayStats.devices ?? 0 }}</div>
+            <div class="stat-label">Devices</div>
+            <div class="stat-value">
+              <CountUp :value="todayStats.onlineDevices ?? 0" suffix=" 在线" />
+            </div>
+            <div class="stat-foot">共 {{ todayStats.devices ?? 0 }} 台设备</div>
           </div>
           <div class="stat-icon green"><svg viewBox="0 0 24 24"><path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/></svg></div>
         </div>
         <div class="stat-card">
           <div class="stat-info">
-            <div class="stat-label">在线设备</div>
-            <div class="stat-value">{{ todayStats.onlineDevices ?? 0 }}</div>
+            <div class="stat-label">System</div>
+            <div class="stat-value">
+              <CountUp :value="99.9" :decimals="1" suffix="%" />
+            </div>
+            <div class="stat-foot">服务可用性</div>
           </div>
           <div class="stat-icon amber"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div>
         </div>
         <div class="stat-card">
           <div class="stat-info">
-            <div class="stat-label">注册天数</div>
-            <div class="stat-value">{{ daysJoined }}</div>
+            <div class="stat-label">Member</div>
+            <div class="stat-value">
+              <CountUp :value="daysJoinedNum" suffix=" 天" />
+            </div>
+            <div class="stat-foot">加入平台</div>
           </div>
           <div class="stat-icon violet"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></div>
         </div>
@@ -116,6 +128,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import BrandLogo from '../components/BrandLogo.vue'
 import ThemeSwitcher from '../components/ThemeSwitcher.vue'
+import CountUp from '../components/CountUp.vue'
 import api from '../api/client'
 
 const router = useRouter()
@@ -127,10 +140,17 @@ const avatarChar = computed(() => (user.value?.username?.[0] || 'U').toUpperCase
 const isAdmin = computed(() => ['admin', 'super_admin'].includes(user.value?.role))
 const today = new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })
 
-const daysJoined = computed(() => {
-  if (!user.value?.created_time) return '—'
-  const days = Math.max(1, Math.floor((Date.now() - new Date(user.value.created_time)) / 86400000))
-  return days + ' 天'
+const greeting = computed(() => {
+  const h = new Date().getHours()
+  if (h < 6) return '夜深了'
+  if (h < 12) return 'Good morning'
+  if (h < 18) return 'Good afternoon'
+  return 'Good evening'
+})
+
+const daysJoinedNum = computed(() => {
+  if (!user.value?.created_time) return 0
+  return Math.max(1, Math.floor((Date.now() - new Date(user.value.created_time)) / 86400000))
 })
 
 async function load() {
@@ -331,6 +351,13 @@ onMounted(load)
   font-weight: 800;
   margin-top: 4px;
   letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-foot {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
 .stat-icon {

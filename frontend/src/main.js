@@ -4,6 +4,9 @@ import App from './App.vue'
 import router from './router'
 import { useThemeStore } from './stores/theme'
 
+// Inter 字体（离线打包）
+import '@fontsource-variable/inter'
+
 // 主题样式（顺序：变量 → light → dark）
 import './styles/theme.css'
 import './styles/light.css'

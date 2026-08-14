@@ -1,16 +1,16 @@
-﻿/* ============================================
+/* ============================================
    Light Mode（浅色主题）
    ============================================ */
 
 html[data-theme='light'] {
   /* 背景 */
-  --bg-primary: #fafafa;
-  --bg-secondary: #f4f5f7;
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
   --bg-card: #ffffff;
-  --bg-hover: #f8f9fc;
+  --bg-hover: #f8fafc;
   --bg-active: #eef2ff;
-  --bg-input: #fafbfd;
-  --bg-code: #f6f8fa;
+  --bg-input: #f8fafc;
+  --bg-code: #f1f5f9;
   --bg-codeblock: #0f172a;
 
   /* 文字 */
@@ -20,8 +20,8 @@ html[data-theme='light'] {
   --text-inverse: #ffffff;
 
   /* 边框 */
-  --border-color: var(--border-color);
-  --border-color: var(--border-light);
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
 
   /* 阴影 */
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
@@ -48,7 +48,7 @@ html[data-theme='light'] {
   --admin-bg: #f1f5f9;
   --admin-sidebar-bg: #0b1220;
   --admin-card: #ffffff;
-  --admin-border-color: var(--border-color);
+  --admin-border: #e2e8f0;
   --admin-row-hover: #f8fafc;
   --admin-text: #1e293b;
   --admin-text-muted: #64748b;

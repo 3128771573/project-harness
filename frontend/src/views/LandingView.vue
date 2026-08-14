@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="landing">
     <SiteNav />
 
@@ -69,33 +69,73 @@
       <section class="hero">
         <div class="hero-bg" aria-hidden="true">
           <div class="grid-layer"></div>
+          <div class="glow glow-1"></div>
+          <div class="glow glow-2"></div>
         </div>
-        <div class="hero-content">
-          <div class="hero-badge">
-            <span class="badge-dot"></span>
-            AI + IoT Digital Platform
+
+        <div class="hero-inner">
+          <!-- 左：文案 -->
+          <div class="hero-text">
+            <div class="hero-badge">
+              <span class="badge-dot"></span>
+              AI + IoT Digital Platform
+            </div>
+            <h1 class="hero-title">
+              Build Intelligent Systems
+              <span class="grad">with AI + IoT</span>
+            </h1>
+            <p class="hero-desc">
+              面向个人开发者的智能服务平台。连接人工智能、物联网与数字服务，从原型到产品。
+            </p>
+            <div class="hero-actions">
+              <router-link to="/register" class="btn dark lg">Start Building →</router-link>
+              <router-link to="/demo" class="btn outline lg">Explore Demo</router-link>
+            </div>
+            <div class="hero-stats">
+              <div class="hs-item"><b>9+</b><span>版本迭代</span></div>
+              <div class="hs-item"><b>20+</b><span>API 接口</span></div>
+              <div class="hs-item"><b>3</b><span>核心模块</span></div>
+            </div>
           </div>
-          <h1 class="hero-title">
-            Harness
-            <span class="hero-sub-title">连接 AI · IoT · 数字服务</span>
-          </h1>
-          <p class="hero-desc">
-            构建个人智能服务与物联网实验平台。
-            <br />
-            Connect AI, Devices and Digital Experiences.
-          </p>
-          <div class="hero-actions">
-            <router-link to="/register" class="btn dark lg">开始使用 →</router-link>
-            <router-link to="/demo" class="btn outline lg">查看 Demo</router-link>
-          </div>
-          <div class="hero-flow">
-            <span class="flow-node ai">AI</span>
-            <span class="flow-line"></span>
-            <span class="flow-node api">API</span>
-            <span class="flow-line"></span>
-            <span class="flow-node data">DATA</span>
-            <span class="flow-line"></span>
-            <span class="flow-node dev">DEVICE</span>
+
+          <!-- 右：产品预览图 mockup -->
+          <div class="hero-visual">
+            <div class="mock-window">
+              <div class="mock-bar">
+                <span class="mb-dot red"></span><span class="mb-dot yellow"></span><span class="mb-dot green"></span>
+                <span class="mb-title">harness · workspace</span>
+              </div>
+              <div class="mock-body">
+                <!-- AI 对话气泡 -->
+                <div class="mock-ai">
+                  <div class="mock-ai-head"><span class="mai-dot"></span> AI Assistant</div>
+                  <div class="mock-msg ai">帮我分析今天的设备数据</div>
+                  <div class="mock-msg user">温度稳定在 26.5°C，湿度 60%，无异常告警。建议继续监测。</div>
+                </div>
+                <!-- IoT 指标 -->
+                <div class="mock-iot">
+                  <div class="mi-item"><span>温度</span><b>26.5<small>°C</small></b></div>
+                  <div class="mi-item"><span>湿度</span><b>60<small>%</small></b></div>
+                  <div class="mi-item online"><span>在线</span><b>🟢</b></div>
+                </div>
+                <!-- Analytics 曲线 -->
+                <div class="mock-chart">
+                  <div class="mc-head"><span>Analytics</span><b class="mc-live">LIVE</b></div>
+                  <svg viewBox="0 0 260 70" preserveAspectRatio="none" class="mc-svg">
+                    <polyline points="0,55 30,48 60,52 90,38 120,42 150,28 180,34 210,18 240,24 260,12"
+                      fill="none" stroke="url(#mcgrad)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                    <defs>
+                      <linearGradient id="mcgrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0" stop-color="#6366F1"/><stop offset="1" stop-color="#8B5CF6"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <!-- 浮动徽章 -->
+            <div class="float-chip chip-1">✦ AI 流式输出</div>
+            <div class="float-chip chip-2">📡 设备在线</div>
           </div>
         </div>
       </section>
@@ -122,24 +162,20 @@
         </div>
       </section>
 
-      <!-- 快速入口 -->
-      <section class="section quick">
-        <div class="quick-grid">
-          <router-link to="/ai" class="quick-card ai">
-            <div class="q-icon">✦</div>
-            <div><b>AI</b><span>智能助手 · 多模型对话</span></div>
-            <span class="q-arrow">→</span>
-          </router-link>
-          <router-link to="/iot" class="quick-card iot">
-            <div class="q-icon">◎</div>
-            <div><b>IoT</b><span>设备接入 · 实时数据</span></div>
-            <span class="q-arrow">→</span>
-          </router-link>
-          <router-link to="/demo" class="quick-card demo">
-            <div class="q-icon">◫</div>
-            <div><b>Demo</b><span>实验展示 · 技术试验场</span></div>
-            <span class="q-arrow">→</span>
-          </router-link>
+      <!-- 架构链路 -->
+      <section class="section arch">
+        <h2 class="section-title">全链路架构</h2>
+        <p class="arch-sub">从浏览器到设备，一条完整的数据通路</p>
+        <div class="arch-chain">
+          <div class="arch-node" v-for="(a, i) in arch" :key="a.name">
+            <div class="arch-icon">{{ a.icon }}</div>
+            <b>{{ a.name }}</b>
+            <span>{{ a.desc }}</span>
+            <div v-if="i < arch.length - 1" class="arch-connector">
+              <span class="ac-line"></span>
+              <span class="ac-arrow">↓</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -288,6 +324,14 @@ const user = computed(() => {
 
 const stack = ['Vue 3', 'FastAPI', 'PostgreSQL', 'Docker', 'Nginx', 'Linux']
 
+const arch = [
+  { icon: '⚡', name: 'Vue 3', desc: 'Web 前端 · SPA' },
+  { icon: '🖥', name: 'FastAPI', desc: 'API 服务 · 鉴权' },
+  { icon: '🗄', name: 'PostgreSQL', desc: '数据持久化' },
+  { icon: '📡', name: 'MQTT', desc: '设备通信协议' },
+  { icon: '🔌', name: 'Devices', desc: '传感器 · 智能硬件' },
+]
+
 const demos = [
   { icon: '💳', name: '支付 Demo', desc: '订单 · 支付流程模拟' },
   { icon: '🎬', name: '视频播放器', desc: '媒体播放组件' },
@@ -421,16 +465,14 @@ const demos = [
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2);
 }
 
-/* ===== Hero ===== */
+/* ===== Hero（左右布局） ===== */
 .hero {
   position: relative;
   overflow: hidden;
-  background: var(--bg-input);
-  min-height: 620px;
+  background: var(--bg-primary);
+  min-height: 640px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
 }
 
 .hero-bg {
@@ -442,18 +484,48 @@ const demos = [
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
+    linear-gradient(var(--border-light) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
   background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 80% 70% at 60% 40%, #000 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 60% 40%, #000 20%, transparent 70%);
 }
 
-.hero-content {
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(110px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.glow-1 {
+  width: 520px;
+  height: 520px;
+  background: #6366f1;
+  top: -180px;
+  right: 5%;
+}
+
+.glow-2 {
+  width: 440px;
+  height: 440px;
+  background: #8b5cf6;
+  bottom: -200px;
+  left: -120px;
+}
+
+.hero-inner {
   position: relative;
   z-index: 2;
-  padding: 80px 28px;
-  max-width: 780px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 72px 28px;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 56px;
+  align-items: center;
+  width: 100%;
 }
 
 .hero-badge {
@@ -463,11 +535,12 @@ const demos = [
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.8);
-  border-color: var(--border-color);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 999px;
   padding: 7px 16px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
 }
 
 .badge-dot {
@@ -475,40 +548,38 @@ const demos = [
   height: 7px;
   border-radius: 50%;
   background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
 }
 
 .hero-title {
-  font-size: 64px;
+  font-size: 50px;
   font-weight: 800;
   letter-spacing: -0.035em;
-  line-height: 1.05;
-  margin-bottom: 18px;
+  line-height: 1.12;
+  margin-bottom: 20px;
+  color: var(--text-primary);
 }
 
-.hero-sub-title {
+.grad {
   display: block;
-  font-size: 30px;
-  font-weight: 600;
-  background: linear-gradient(135deg, #2b6de9, #8b5cf6);
+  background: var(--gradient-brand);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  margin-top: 10px;
-  letter-spacing: -0.02em;
 }
 
 .hero-desc {
-  font-size: 17px;
+  font-size: 16.5px;
   color: var(--text-muted);
   line-height: 1.75;
-  margin-bottom: 34px;
+  margin-bottom: 32px;
+  max-width: 460px;
 }
 
 .hero-actions {
   display: flex;
   gap: 14px;
-  justify-content: center;
-  margin-bottom: 48px;
+  margin-bottom: 40px;
 }
 
 .btn {
@@ -524,66 +595,261 @@ const demos = [
 }
 
 .btn.lg {
-  padding: 14px 30px;
+  padding: 14px 28px;
   font-size: 15px;
 }
 
 .btn.dark {
   background: var(--brand-block);
   color: #fff;
+  box-shadow: var(--shadow);
 }
 
 .btn.dark:hover {
-  background: #1f2937;
+  opacity: 0.9;
   transform: translateY(-1px);
 }
 
 .btn.outline {
   background: transparent;
   color: var(--text-primary);
-  border-color: #d1d5db;
+  border-color: var(--border-color);
 }
 
 .btn.outline:hover {
   border-color: var(--text-primary);
 }
 
-.hero-flow {
+.hero-stats {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
+  gap: 36px;
 }
 
-.flow-node {
+.hs-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.hs-item b {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.hs-item span {
   font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border-color: var(--border-color);
-  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
-.flow-node.ai { color: #4338ca; }
-.flow-node.api { color: #059669; }
-.flow-node.data { color: #b45309; }
-.flow-node.dev { color: #7c3aed; }
-
-.flow-line {
-  width: 36px;
-  height: 1px;
-  background: #d1d5db;
+/* ===== 产品预览图 mockup ===== */
+.hero-visual {
   position: relative;
 }
 
-.flow-line::after {
-  content: '';
+.mock-window {
+  background: var(--brand-block);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+}
+
+.mock-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mb-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.mb-dot.red { background: #ef4444; }
+.mb-dot.yellow { background: #f59e0b; }
+.mb-dot.green { background: #10b981; }
+
+.mb-title {
+  margin-left: 8px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.02em;
+}
+
+.mock-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mock-ai {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.mock-ai-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 10px;
+}
+
+.mai-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+.mock-msg {
+  font-size: 12px;
+  line-height: 1.6;
+  border-radius: 10px;
+  padding: 9px 12px;
+  margin-bottom: 7px;
+}
+
+.mock-msg:last-child {
+  margin-bottom: 0;
+}
+
+.mock-msg.ai {
+  background: rgba(255, 255, 255, 0.07);
+  color: #cbd5e1;
+  border-bottom-left-radius: 3px;
+}
+
+.mock-msg.user {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border-bottom-right-radius: 3px;
+  margin-left: 30px;
+}
+
+.mock-iot {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.mi-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.mi-item span {
+  display: block;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 4px;
+}
+
+.mi-item b {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.mi-item b small {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mi-item.online b {
+  font-size: 14px;
+}
+
+.mock-chart {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.mc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #cbd5e1;
+  margin-bottom: 8px;
+}
+
+.mc-live {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: #ef4444;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 4px;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.mc-svg {
+  width: 100%;
+  height: 56px;
+}
+
+/* 浮动徽章 */
+.float-chip {
   position: absolute;
-  right: 0;
-  top: -2px;
-  border: 3px solid transparent;
-  border-left-color: #d1d5db;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow);
+  animation: floaty 4s ease-in-out infinite;
+}
+
+.chip-1 {
+  top: -16px;
+  left: -20px;
+}
+
+.chip-2 {
+  bottom: -14px;
+  right: -14px;
+  animation-delay: 2s;
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@media (max-width: 900px) {
+  .hero-inner {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .hero-title {
+    font-size: 38px;
+  }
+  .hero-visual {
+    max-width: 460px;
+  }
 }
 
 /* ===== 通用 section ===== */
@@ -647,6 +913,97 @@ const demos = [
 .core-card span {
   font-size: 13.5px;
   color: var(--text-muted);
+}
+
+/* 架构链路 */
+.arch {
+  text-align: center;
+}
+
+.arch-sub {
+  color: var(--text-muted);
+  font-size: 14.5px;
+  margin-top: -32px;
+  margin-bottom: 44px;
+}
+
+.arch-chain {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.arch-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 150px;
+  padding: 0 10px;
+}
+
+.arch-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.arch-node b {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.arch-node span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.arch-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 4px;
+  align-self: flex-start;
+  margin-top: 20px;
+}
+
+.ac-line {
+  width: 40px;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.ac-arrow {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+@media (max-width: 900px) {
+  .arch-chain {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .arch-connector {
+    flex-direction: row;
+    margin: 0;
+    padding: 4px 0;
+    transform: rotate(90deg);
+  }
+  .arch-node {
+    width: auto;
+  }
 }
 
 .module {

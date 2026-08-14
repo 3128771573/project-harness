@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.1.0",
     "axios": "^1.7.9",
     "highlight.js": "^11.10.0",
     "katex": "^0.16.11",
