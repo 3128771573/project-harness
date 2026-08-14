@@ -6,7 +6,7 @@
         <router-link to="/dashboard" class="nav-item">仪表盘</router-link>
         <router-link to="/ai" class="nav-item">AI 对话</router-link>
         <a class="nav-item">Demo 平台</a>
-        <a class="nav-item">管理后台</a>
+        <router-link v-if="isAdmin" to="/admin/dashboard" class="nav-item">管理后台</router-link>
       </nav>
       <button class="logout" @click="logout">退出登录</button>
     </aside>
@@ -89,6 +89,7 @@ const saving = ref(false)
 const uploadMsg = ref('')
 
 const avatarChar = computed(() => (user.value?.username?.[0] || 'U').toUpperCase())
+const isAdmin = computed(() => ['admin', 'super_admin'].includes(user.value?.role))
 
 async function loadProfile() {
   try {

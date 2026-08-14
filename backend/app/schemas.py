@@ -74,3 +74,45 @@ class AiHistoryItem(BaseModel):
 class AiHistoryList(BaseModel):
     items: list[AiHistoryItem]
     total: int
+
+
+# --- Admin ---
+
+
+class AdminStats(BaseModel):
+    total_users: int
+    today_new_users: int
+    total_ai_calls: int
+    today_ai_calls: int
+
+
+class UserAdminOut(BaseModel):
+    uid: str
+    username: str
+    email: EmailStr
+    role: str | None = None
+    is_active: bool
+    created_time: datetime
+
+
+class UserAdminList(BaseModel):
+    items: list[UserAdminOut]
+    total: int
+    page: int
+    page_size: int
+
+
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+
+
+class UserRoleUpdate(BaseModel):
+    role: str = Field(min_length=1, max_length=32)
+
+
+class SystemStatus(BaseModel):
+    cpu: int
+    memory: int
+    disk: int
+    uptime: str
+    collected_at: datetime

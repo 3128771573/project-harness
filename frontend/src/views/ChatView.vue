@@ -6,7 +6,7 @@
         <router-link to="/dashboard" class="nav-item">仪表盘</router-link>
         <router-link to="/ai" class="nav-item active">AI 对话</router-link>
         <a class="nav-item">Demo 平台</a>
-        <a class="nav-item">管理后台</a>
+        <router-link v-if="isAdmin" to="/admin/dashboard" class="nav-item">管理后台</router-link>
       </nav>
       <button class="logout" @click="logout">退出登录</button>
     </aside>
@@ -45,11 +45,19 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
 
 const router = useRouter()
+const isAdmin = computed(() => {
+  try {
+    const u = JSON.parse(localStorage.getItem('harness_user') || 'null')
+    return ['admin', 'super_admin'].includes(u?.role)
+  } catch {
+    return false
+  }
+})
 const messages = ref([])
 const question = ref('')
 const loading = ref(false)
