@@ -423,6 +423,13 @@ async def send_group_message(
 ):
     group = await _require_group(db, gid)
     await _require_member(db, gid, current_user.uid)
+    if payload.kind == "text":
+        from ..services.moderation import check_content
+
+        hit = await check_content(db, payload.content)
+        if hit:
+            await record_audit(db, actor=current_user, action="im.moderation_blocked", resource=f"word:{hit}", detail="敏感词拦截（群聊）")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="内容包含违规内容，请修改后发送")
     msg = GroupMessage(group_id=gid, sender_id=current_user.uid, content=payload.content, kind=payload.kind)
     db.add(msg)
     await db.commit()

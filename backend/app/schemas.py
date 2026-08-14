@@ -763,3 +763,25 @@ class WatermarkGrantOut(BaseModel):
     created_time: datetime
 
 
+# ==================== 敏感词库（合规 FR8.3） ====================
+
+class SensitiveWordIn(BaseModel):
+    word: str = Field(min_length=1, max_length=64)
+    category: str = Field(default="custom", max_length=32)
+
+
+class SensitiveWordOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    word: str
+    category: str
+    enabled: bool
+    created_time: datetime
+
+
+class SensitiveWordList(BaseModel):
+    items: list[SensitiveWordOut]
+    total: int
+
+

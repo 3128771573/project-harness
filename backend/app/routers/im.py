@@ -289,6 +289,13 @@ async def send_message(
     if await _is_blocked(db, current_user.uid, other_uid):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无法发送消息（拉黑状态下双向禁止）")
     _check_rate(_MSG_LOG, current_user.uid, 60, 60)
+    if payload.kind == "text":
+        from ..services.moderation import check_content
+
+        hit = await check_content(db, payload.content)
+        if hit:
+            await record_audit(db, actor=current_user, action="im.moderation_blocked", resource=f"word:{hit}", detail="敏感词拦截（私信）")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="内容包含违规内容，请修改后发送")
     message = await send_dm(db, conv, current_user.uid, payload.content, kind=payload.kind)
     # 发送即自读
     my_member = await _get_member(db, conversation_id, current_user.uid)

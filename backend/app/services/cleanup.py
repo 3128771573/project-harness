@@ -6,7 +6,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import delete, or_
 
 from ..database import SessionLocal
-from ..models import AiHistory, DeviceTelemetry, EmailCode, LoginLog, RefreshToken, VisitLog
+from ..models import AiHistory, DeviceTelemetry, DmMessage, EmailCode, GroupMessage, LoginLog, RefreshToken, VisitLog
+from .settings import get_setting
 
 logger = logging.getLogger("cleanup")
 _INTERVAL = 24 * 3600
@@ -60,6 +61,23 @@ async def cleanup_expired() -> dict:
         stats["ai_history"] = (
             await db.execute(
                 delete(AiHistory).where(AiHistory.created_time < now - timedelta(days=365))
+            )
+        ).rowcount or 0
+
+        # 站内消息保留期（合规 FR8.5）：默认 365 天，可经 AppSetting im.message_retention_days 配置
+        try:
+            retention_days = int(await get_setting(db, "im.message_retention_days", "365"))
+        except ValueError:
+            retention_days = 365
+        retention_days = max(1, min(retention_days, 3650))
+        stats["dm_messages"] = (
+            await db.execute(
+                delete(DmMessage).where(DmMessage.created_time < now - timedelta(days=retention_days))
+            )
+        ).rowcount or 0
+        stats["group_messages"] = (
+            await db.execute(
+                delete(GroupMessage).where(GroupMessage.created_time < now - timedelta(days=retention_days))
             )
         ).rowcount or 0
 

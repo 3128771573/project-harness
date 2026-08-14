@@ -313,6 +313,11 @@
             <router-link to="/login">登录</router-link>
             <router-link to="/register">注册</router-link>
           </div>
+          <div class="footer-col">
+            <b>合规</b>
+            <router-link to="/terms">用户协议</router-link>
+            <router-link to="/privacy">隐私政策</router-link>
+          </div>
         </div>
       </div>
       <div class="footer-bottom">© 2026 Harness Platform · 个人智能服务平台</div>

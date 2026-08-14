@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
 from ..deps import get_current_user, require_roles
-from ..models import DmConversation, DmMessage, GroupMessage, Report, User, WatermarkGrant
+from ..models import DmConversation, DmMessage, GroupMessage, Report, SensitiveWord, User, WatermarkGrant
 from ..schemas import (
     BotBroadcastIn,
     BotDmIn,
@@ -17,6 +17,9 @@ from ..schemas import (
     ReportAdminItem,
     ReportAdminList,
     ReportHandleIn,
+    SensitiveWordIn,
+    SensitiveWordList,
+    SensitiveWordOut,
     WatermarkGrantIn,
     WatermarkGrantOut,
 )
@@ -309,4 +312,85 @@ async def revoke_grant(
     await db.commit()
     await record_audit(db, actor=current_user, action="im.watermark_revoke", resource=f"grant:{grant_id}", target_uid=grant.user_id)
     return {"ok": True}
+
+
+
+# ==================== 敏感词库（合规 FR8.3） ====================
+
+@router.get("/sensitive-words", response_model=SensitiveWordList, summary="敏感词列表")
+async def list_sensitive_words(
+    q: str | None = Query(default=None, max_length=64),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    qb = select(SensitiveWord)
+    if q:
+        qb = qb.where(SensitiveWord.word.contains(q, autoescape=True))
+    total = (await db.scalar(select(func.count()).select_from(qb.subquery()))) or 0
+    rows = (
+        await db.execute(qb.order_by(SensitiveWord.created_time.desc()).offset((page - 1) * page_size).limit(page_size))
+    ).scalars().all()
+    return SensitiveWordList(items=[SensitiveWordOut.model_validate(w) for w in rows], total=total)
+
+
+@router.post("/sensitive-words", response_model=SensitiveWordOut, status_code=status.HTTP_201_CREATED, summary="新增敏感词")
+async def create_sensitive_word(
+    payload: SensitiveWordIn,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from ..services.moderation import invalidate_cache
+
+    exists = (
+        await db.execute(select(SensitiveWord).where(SensitiveWord.word == payload.word))
+    ).scalar_one_or_none()
+    if exists is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="该词已存在")
+    w = SensitiveWord(word=payload.word, category=payload.category)
+    db.add(w)
+    await db.commit()
+    await db.refresh(w)
+    invalidate_cache()
+    await record_audit(db, actor=current_user, action="im.sensitive_word_add", detail=f"新增敏感词：{payload.word}")
+    return SensitiveWordOut.model_validate(w)
+
+
+@router.delete("/sensitive-words/{word_id}", status_code=status.HTTP_204_NO_CONTENT, summary="删除敏感词")
+async def delete_sensitive_word(
+    word_id: str,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from ..services.moderation import invalidate_cache
+
+    w = await db.get(SensitiveWord, word_id)
+    if w is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="词不存在")
+    await db.delete(w)
+    await db.commit()
+    invalidate_cache()
+    await record_audit(db, actor=current_user, action="im.sensitive_word_del", detail=f"删除敏感词：{w.word}")
+    return None
+
+
+@router.post("/sensitive-words/{word_id}/toggle", response_model=SensitiveWordOut, summary="启用/停用敏感词")
+async def toggle_sensitive_word(
+    word_id: str,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from ..services.moderation import invalidate_cache
+
+    w = await db.get(SensitiveWord, word_id)
+    if w is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="词不存在")
+    w.enabled = not w.enabled
+    await db.commit()
+    await db.refresh(w)
+    invalidate_cache()
+    await record_audit(db, actor=current_user, action="im.sensitive_word_toggle", detail=f"{'启用' if w.enabled else '停用'}敏感词：{w.word}")
+    return SensitiveWordOut.model_validate(w)
+
 

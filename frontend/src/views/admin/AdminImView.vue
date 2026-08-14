@@ -10,6 +10,12 @@
       </div>
     </header>
 
+    <div class="tabs">
+      <button :class="{ on: tab === 'reports' }" @click="tab = 'reports'">举报审核</button>
+      <button :class="{ on: tab === 'words' }" @click="tab = 'words'">敏感词库</button>
+    </div>
+
+    <template v-if="tab === 'reports'">
     <div class="filter-bar">
       <button
         v-for="f in filters"
@@ -50,12 +56,84 @@
       <span class="muted">{{ page }} / {{ Math.ceil(total / pageSize) }}</span>
       <button class="btn sm" :disabled="page * pageSize >= total" @click="page++; load()">下一页</button>
     </div>
+    </template>
+
+    <template v-else>
+      <section class="panel">
+        <div class="panel-title">敏感词库（内容审核 · 命中即拦截发送）</div>
+        <p class="muted" style="margin:0 0 12px">
+          私信与群聊消息发送时自动校验，命中违规词返回拦截提示并记录审计。内置基础词库，可增删启停。
+        </p>
+        <form @submit.prevent="addWord" class="word-add">
+          <input v-model.trim="newWord" maxlength="64" placeholder="输入要拦截的词…" required />
+          <button class="btn primary" type="submit" :disabled="addingWord">{{ addingWord ? '添加中…' : '添加' }}</button>
+        </form>
+        <div class="word-list">
+          <div v-for="w in words" :key="w.id" class="word-row">
+            <span class="word-text">{{ w.word }}</span>
+            <span class="muted small">{{ w.category === 'builtin' ? '内置' : '自定义' }}</span>
+            <span :class="['status-badge', w.enabled ? 'active' : 'disabled']">{{ w.enabled ? '启用' : '停用' }}</span>
+            <button class="action-btn" @click="toggleWord(w)">{{ w.enabled ? '停用' : '启用' }}</button>
+            <button class="action-btn danger" @click="removeWord(w)">删除</button>
+          </div>
+          <div v-if="words.length === 0" class="muted" style="padding: 12px 0">词库为空</div>
+        </div>
+      </section>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue'
 import api from '../../api/client'
+
+const tab = ref('reports')
+
+// ===== 敏感词库 =====
+const words = ref([])
+const newWord = ref('')
+const addingWord = ref(false)
+
+async function loadWords() {
+  try {
+    const { data } = await api.get('/admin/im/sensitive-words?page_size=200')
+    words.value = data.items || []
+  } catch {
+    /* ignore */
+  }
+}
+
+async function addWord() {
+  addingWord.value = true
+  try {
+    await api.post('/admin/im/sensitive-words', { word: newWord.value })
+    newWord.value = ''
+    await loadWords()
+  } catch (e) {
+    alert(e.response?.data?.detail || '添加失败')
+  } finally {
+    addingWord.value = false
+  }
+}
+
+async function toggleWord(w) {
+  try {
+    await api.post('/admin/im/sensitive-words/' + w.id + '/toggle')
+    w.enabled = !w.enabled
+  } catch (e) {
+    alert(e.response?.data?.detail || '操作失败')
+  }
+}
+
+async function removeWord(w) {
+  if (!confirm('删除敏感词「' + w.word + '」？')) return
+  try {
+    await api.delete('/admin/im/sensitive-words/' + w.id)
+    words.value = words.value.filter((x) => x.id !== w.id)
+  } catch (e) {
+    alert(e.response?.data?.detail || '删除失败')
+  }
+}
 
 const items = ref([])
 const total = ref(0)
@@ -107,7 +185,10 @@ function formatTime(iso) {
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes())
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadWords()
+})
 </script>
 
 <style scoped src="../../assets/admin.css"></style>
@@ -178,5 +259,66 @@ onMounted(load)
   gap: 12px;
   justify-content: center;
   margin-top: 16px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tabs button {
+  padding: 7px 18px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-card);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--admin-text-muted);
+}
+
+.tabs button.on {
+  background: #2563eb;
+  color: #fff;
+  border-color: transparent;
+}
+
+.word-add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.word-add input {
+  flex: 1;
+  max-width: 320px;
+  padding: 8px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--admin-card);
+  color: var(--admin-text);
+}
+
+.word-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.word-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+}
+
+.word-text {
+  font-weight: 600;
+  font-size: 13.5px;
+  min-width: 120px;
 }
 </style>

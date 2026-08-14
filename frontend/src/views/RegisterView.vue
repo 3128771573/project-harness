@@ -31,10 +31,20 @@
         <input v-model="form.confirm" type="password" placeholder="再次输入密码" required autocomplete="new-password" />
       </label>
 
+      <label class="checkbox-row">
+        <input v-model="agree" type="checkbox" required />
+        <span>
+          我已年满 18 周岁（或已由监护人同意），并已阅读、理解且同意
+          <router-link to="/terms" target="_blank">《用户协议》</router-link> 与
+          <router-link to="/privacy" target="_blank">《隐私政策》</router-link>
+          （含即时通讯功能条款：消息保存期限、内容审核、水印溯源声明）
+        </span>
+      </label>
+
       <p v-if="error" class="error">{{ error }}</p>
       <p v-if="msg" class="success-msg">{{ msg }}</p>
 
-      <button type="submit" class="btn" :disabled="loading">
+      <button type="submit" class="btn" :disabled="loading || !agree">
         {{ loading ? '注册中…' : '注 册' }}
       </button>
       <p class="switch">已有账号？<router-link to="/login">直接登录</router-link></p>
@@ -50,6 +60,7 @@ import AuthLayout from '../layouts/AuthLayout.vue'
 
 const router = useRouter()
 const form = reactive({ username: '', email: '', password: '', confirm: '', code: '' })
+const agree = ref(false)
 const error = ref('')
 const msg = ref('')
 const loading = ref(false)

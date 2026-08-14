@@ -11,6 +11,8 @@ const SettingsView = () => import('../views/SettingsView.vue')
 const DemoView = () => import('../views/DemoView.vue')
 const IotView = () => import('../views/IotView.vue')
 const DocsView = () => import('../views/DocsView.vue')
+const TermsView = () => import('../views/TermsView.vue')
+const PrivacyView = () => import('../views/PrivacyView.vue')
 const PricingView = () => import('../views/PricingView.vue')
 const StatusView = () => import('../views/StatusView.vue')
 const NotFoundView = () => import('../views/NotFoundView.vue')
@@ -44,6 +46,8 @@ const routes = [
   { path: '/demo', name: 'demo', component: DemoView },
   { path: '/iot', name: 'iot', component: IotView, meta: { requiresAuth: true } },
   { path: '/docs', name: 'docs', component: DocsView },
+  { path: '/terms', name: 'terms', component: TermsView },
+  { path: '/privacy', name: 'privacy', component: PrivacyView },
   { path: '/pricing', name: 'pricing', component: PricingView },
   { path: '/status', name: 'status', component: StatusView },
   { path: '/guestbook', name: 'guestbook', component: GuestbookView },

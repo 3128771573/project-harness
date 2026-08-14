@@ -97,6 +97,7 @@
         <div class="ch-actions">
           <span class="ws-state" :class="wsState">{{ wsLabel }}</span>
           <button v-if="!isBot" class="btn ghost sm" @click="blockPartner" title="拉黑对方（双向禁止互发，可随时解除）">拉黑</button>
+          <button class="btn ghost sm" @click="exportChat" title="导出聊天记录（数据携带权）">导出</button>
           <button class="btn ghost sm" @click="hideConv" title="删除会话（仅隐藏我的视图，对方记录保留）">删除</button>
         </div>
       </header>
@@ -134,6 +135,7 @@
         <textarea v-model="draft" rows="2" maxlength="4000" placeholder="输入消息…（Enter 发送，Shift+Enter 换行）" @keydown.enter.exact.prevent="sendText"></textarea>
         <button class="btn primary" :disabled="sending || !draft.trim()" @click="sendText">发送</button>
       </div>
+      <div class="comply-note">内容经自动审核 · 传输全程加密（HTTPS/WSS）· 消息默认保留 365 天 · 页面含水印可溯源</div>
     </section>
 
     <!-- ===== 群聊天窗 ===== -->
@@ -468,6 +470,31 @@ async function hideConv() {
     closeChat()
   } catch (e) {
     alert(e.response?.data?.detail || '删除失败')
+  }
+}
+
+async function exportChat() {
+  if (!active.value) return
+  try {
+    const token = localStorage.getItem('harness_access') || ''
+    const resp = await fetch('/api/v1/user/conversations/' + active.value.id + '/export', {
+      headers: { Authorization: 'Bearer ' + token },
+    })
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}))
+      throw new Error(body.detail || '导出失败')
+    }
+    const blob = await resp.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'chat-' + active.value.id.slice(0, 8) + '.txt'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    alert(e.message || '导出失败')
   }
 }
 
@@ -1718,6 +1745,15 @@ onUnmounted(() => {
   font-size: 16px;
   cursor: pointer;
   flex: none;
+}
+
+.comply-note {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  text-align: center;
+  padding: 4px 10px 8px;
+  background: var(--bg-card, #fff);
+  border-top: 1px solid var(--border-color, #e5e7eb);
 }
 
 /* ===== 空态 ===== */

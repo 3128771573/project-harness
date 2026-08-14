@@ -53,6 +53,8 @@ async def main():
             await db.execute(_delete(EmailCode).where(EmailCode.email.in_(emails)))
             urows = (await db.execute(select(User).where(User.email.in_(emails)))).scalars().all()
             uids = [u.uid for u in urows]
+            if alice_uid not in uids:
+                uids.append(alice_uid)
             if uids:
                 from app.models import GroupChat, GroupMember, GroupMessage, WatermarkGrant, WatermarkLog
 
@@ -555,6 +557,119 @@ async def main():
             assert len(logs) >= 4, "取证调用应有日志"
             assert any(l.consumed for l in logs) and any(not l.consumed for l in logs), "命中/未命中日志都应存在"
 
+
+        print("23. 敏感词过滤（合规 FR8.3）")
+        # 私信发送违规词 → 400
+        r = await c.post(
+            f"/api/v1/im/conversations/{conv_id}/messages",
+            json={"kind": "text", "content": "今晚一起看博彩网站下注"},
+            headers=H(ta),
+        )
+        assert r.status_code == 400 and "违规" in r.json()["detail"], r.text
+        # 群消息违规 → 400（临时建群）
+        r = await c.post("/api/v1/im/groups", json={"name": "审核测试群", "member_uids": [bob_uid]}, headers=H(ta))
+        gid2 = r.json()["id"]
+        r = await c.post(
+            f"/api/v1/im/groups/{gid2}/messages",
+            json={"kind": "text", "content": "出售大麻请联系"},
+            headers=H(ta),
+        )
+        assert r.status_code == 400 and "违规" in r.json()["detail"], r.text
+        # 正常消息不受影响
+        r = await c.post(
+            f"/api/v1/im/conversations/{conv_id}/messages",
+            json={"kind": "text", "content": "正常交流没问题"},
+            headers=H(ta),
+        )
+        assert r.status_code == 200
+        # admin 新增词 → 立即拦截；停用 → 放行；删除 → 放行
+        r = await c.post("/api/v1/admin/im/sensitive-words", json={"word": "合规测试词"}, headers=H(tsu))
+        assert r.status_code == 201, r.text
+        wid = r.json()["id"]
+        r = await c.post(
+            f"/api/v1/im/conversations/{conv_id}/messages",
+            json={"kind": "text", "content": "这里出现合规测试词了"},
+            headers=H(ta),
+        )
+        assert r.status_code == 400, "新增词应立即生效"
+        await c.post(f"/api/v1/admin/im/sensitive-words/{wid}/toggle", headers=H(tsu))
+        r = await c.post(
+            f"/api/v1/im/conversations/{conv_id}/messages",
+            json={"kind": "text", "content": "合规测试词已停用"},
+            headers=H(ta),
+        )
+        assert r.status_code == 200, "停用后应放行"
+        r = await c.delete(f"/api/v1/admin/im/sensitive-words/{wid}", headers=H(tsu))
+        assert r.status_code == 204
+        # 词库列表
+        r = await c.get("/api/v1/admin/im/sensitive-words?page_size=10", headers=H(tsu))
+        assert r.status_code == 200 and r.json()["total"] >= 30, "内置词库应存在"
+
+        print("24. 聊天记录导出（数据携带权）")
+        r = await c.get(f"/api/v1/user/conversations/{conv_id}/export", headers=H(ta))
+        assert r.status_code == 200, r.text
+        assert "你好 Bob，这是第一条" in r.text and "正常交流没问题" in r.text
+        assert "已撤回" in r.text, "撤回消息应在导出中标注"
+        assert "图片" in r.text, "图片消息应在导出中标注"
+        # 越权导出 → 404
+        r = await c.get(f"/api/v1/user/conversations/{conv_id}/export", headers=H(tc))
+        assert r.status_code == 404
+
+        print("25. 账号注销（合规：删除权）")
+        # 密码错误 → 400
+        r = await c.post("/api/v1/user/deactivate", json={"password": "WrongPass"}, headers=H(ta))
+        assert r.status_code == 400
+        # 群消息匿名化准备：alice 在 gid2 发一条
+        r = await c.post(
+            f"/api/v1/im/groups/{gid2}/messages",
+            json={"kind": "text", "content": "这条将被匿名化"},
+            headers=H(ta),
+        )
+        assert r.status_code == 200
+        gm_anon = r.json()["id"]
+        # 注销 alice
+        r = await c.post("/api/v1/user/deactivate", json={"password": PASS}, headers=H(ta))
+        assert r.status_code == 200, r.text
+        # alice 登录被拒
+        r = await c.post("/api/v1/auth/login", json={"email": "alice-im@example.com", "password": PASS})
+        assert r.status_code == 401, "注销后应无法登录"
+        async with SessionLocal() as db:
+            alice_now = await db.get(User, alice_uid)
+            assert alice_now is not None and alice_now.is_active is False
+            assert alice_now.email.startswith("deleted-"), "邮箱应匿名化"
+            assert alice_now.nickname == "已注销用户"
+            # bob 与 alice 的会话已删除
+            conv_left = (
+                await db.execute(
+                    select(DmConversation).where(
+                        (DmConversation.user_a == alice_uid) | (DmConversation.user_b == alice_uid)
+                    )
+                )
+            ).scalar_one_or_none()
+            assert conv_left is None, "私信会话应被删除"
+            # 群消息匿名化
+            anon = await db.get(GroupMessage, gm_anon)
+            assert anon.sender_id == "deleted-user-0000-4000-8000-000000000001", "群消息应匿名化"
+            # alice 已退出所有群
+            gm_left = (
+                await db.execute(select(GroupMember).where(GroupMember.user_id == alice_uid))
+            ).scalar_one_or_none()
+            assert gm_left is None, "应退出所有群"
+        # bob 侧会话列表无 alice 会话
+        r = await c.get("/api/v1/im/conversations", headers=H(tb))
+        assert all(x["other"]["uid"] != alice_uid for x in r.json()["items"]), "bob 侧会话应消失"
+        # gid2 由 alice 创建，alice 已注销 → 群里只有 bob；bob 非 owner 删群应 403
+        r = await c.delete(f"/api/v1/im/groups/{gid2}", headers=H(tb))
+        assert r.status_code == 403, r.text
+        r = await c.get(f"/api/v1/im/groups/{gid2}/messages", headers=H(tb))
+        assert r.status_code == 404 or r.status_code == 200
+
+        print("26. 保留期配置读取")
+        from app.services import settings as settings_svc
+
+        async with SessionLocal() as db:
+            days = await settings_svc.get_setting(db, "im.message_retention_days", "365")
+        assert days == "365", days
         print("18. 清理测试数据")
         async with SessionLocal() as db:
             uids = [alice_uid, bob_uid]

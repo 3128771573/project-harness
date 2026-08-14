@@ -417,6 +417,19 @@ class WatermarkLog(Base):
 
 
 
+class SensitiveWord(Base):
+    """敏感词库（内容审核拦截；管理员可增删启停）"""
+
+    __tablename__ = "sensitive_words"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    word: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    category: Mapped[str] = mapped_column(String(32), default="other", nullable=False)  # builtin / custom
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+
 class Report(Base):
     """举报（P0 落数据；P1 Admin 审核页流转）"""
 

@@ -164,6 +164,26 @@
           </span>
         </div>
       </section>
+
+      <!-- 危险操作：注销账号（个人信息删除权） -->
+      <section class="panel danger-panel">
+        <h3>注销账号</h3>
+        <p class="muted small">
+          注销后：您的私信记录将被删除，群聊中您发送的消息将匿名化为「已注销用户」，登录凭证与个人资料被清除，账号无法恢复。
+          依据《个人信息保护法》您有权删除个人信息，本操作即为行使该权利。
+        </p>
+        <div class="deact-row">
+          <input
+            v-model="deactPassword"
+            type="password"
+            placeholder="输入当前密码确认注销"
+            class="deact-input"
+          />
+          <button class="btn danger sm" :disabled="deacting || !deactPassword" @click="deactivateAccount">
+            {{ deacting ? '注销中…' : '注销账号' }}
+          </button>
+        </div>
+      </section>
     </main>
   </div>
 </template>
@@ -203,6 +223,28 @@ async function loadOAuthAccounts() {
 
 function providerName(p) {
   return { github: 'GitHub' }[p] || p
+}
+
+// ===== 注销账号 =====
+const deactPassword = ref('')
+const deacting = ref(false)
+
+async function deactivateAccount() {
+  if (!confirm('注销后账号无法恢复，确定要注销吗？')) return
+  if (!confirm('再次确认：注销将删除您的私信记录并使群消息匿名化。')) return
+  deacting.value = true
+  try {
+    await api.post('/user/deactivate', { password: deactPassword.value })
+    alert('账号已注销，感谢使用')
+    localStorage.removeItem('harness_access')
+    localStorage.removeItem('harness_refresh')
+    localStorage.removeItem('harness_user')
+    window.location.href = '/'
+  } catch (e) {
+    alert(e.response?.data?.detail || '注销失败')
+  } finally {
+    deacting.value = false
+  }
 }
 
 function methodLabel(m) {
@@ -639,5 +681,39 @@ onMounted(() => {
 
 .small {
   font-size: 12px;
+}
+
+.danger-panel {
+  border-color: rgba(229, 72, 77, 0.35) !important;
+}
+
+.deact-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.deact-input {
+  flex: 1;
+  min-width: 220px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 9px;
+  font-size: 13.5px;
+  background: var(--bg-secondary, #f1f3f5);
+  color: var(--text-primary, #111);
+  outline: none;
+}
+
+.btn.danger {
+  background: var(--error, #e5484d);
+  color: #fff;
+  border-color: transparent;
+}
+
+.btn.danger:hover {
+  background: #d1353a;
 }
 </style>
