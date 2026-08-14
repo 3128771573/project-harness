@@ -150,7 +150,7 @@ async def list_reports(
         dm_msgs = {m.id: m for m in dm_rows}
         gm_rows = (await db.execute(select(GroupMessage).where(GroupMessage.id.in_(msg_ids)))).scalars().all()
         gm_msgs = {m.id: m for m in gm_rows}
-    sender_ids = {m.sender_id for m in dm_msgs.values()} | {m.sender_id for m in gm_msgs.values()}
+    sender_ids = {m.sender_id for m in dm_msgs.values()} | {m.sender_id for m in gm_msgs.values()} | {r.sender_uid for r in rows if r.sender_uid}
     senders: dict[str, User] = {}
     if sender_ids:
         srows = (await db.execute(select(User).where(User.uid.in_(sender_ids)))).scalars().all()
@@ -158,7 +158,8 @@ async def list_reports(
     items = []
     for r in rows:
         msg = dm_msgs.get(r.target_id) or gm_msgs.get(r.target_id)
-        sender = senders.get(msg.sender_id) if msg else None
+        sender_uid = (msg.sender_id if msg else None) or r.sender_uid
+        sender = senders.get(sender_uid) if sender_uid else None
         items.append(
             ReportAdminItem(
                 id=r.id,
@@ -200,9 +201,10 @@ async def handle_report(
         msg = await db.get(DmMessage, rep.target_id)
         if msg is None:
             msg = await db.get(GroupMessage, rep.target_id)
-        if msg is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="消息已不存在")
-        target_user = await db.get(User, msg.sender_id)
+        sender_uid = (msg.sender_id if msg else None) or rep.sender_uid
+        if sender_uid is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="无法定位发送者（消息已不存在且无记录）")
+        target_user = await db.get(User, sender_uid)
         if target_user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="发送者账号已不存在")
         target_user.is_active = False

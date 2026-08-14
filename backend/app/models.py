@@ -426,6 +426,7 @@ class Report(Base):
     reporter_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     target_type: Mapped[str] = mapped_column(String(8), nullable=False)  # dm / group
     target_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    sender_uid: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)  # 被举报消息发送者（消息删除后仍可处置）
     reason: Mapped[str] = mapped_column(String(200), nullable=False)
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(12), default="pending", nullable=False)  # pending / handled / ignored

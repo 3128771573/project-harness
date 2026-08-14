@@ -447,6 +447,7 @@ async def report_message(
             reporter_id=current_user.uid,
             target_type="dm",
             target_id=msg.id,
+            sender_uid=msg.sender_id,
             reason=payload.reason,
             detail=None,
             status="pending",
