@@ -8,6 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import SessionLocal
 from ..models import LoginLog, User
 
+# 后台任务引用集：防止 asyncio 任务被 GC 中断
+_TASKS: set[asyncio.Task] = set()
+
 
 def _parse_device(user_agent: str | None) -> str:
     """识别设备：设备类型 · 操作系统 · 浏览器（含版本），识别不出写「未知」"""
@@ -120,7 +123,9 @@ def schedule_login_location(log_id: str, ip: str | None):
         except Exception:
             pass
 
-    asyncio.create_task(_run())
+    task = asyncio.create_task(_run())
+    _TASKS.add(task)
+    task.add_done_callback(_TASKS.discard)
 
 
 async def update_last_login(db: AsyncSession, user: User, ip: str | None):

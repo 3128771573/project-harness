@@ -15,6 +15,9 @@ from .loginlog import _parse_device
 # 同 IP + 同路径 + 同用户 去重窗口（秒）：刷新/重复点击不再重复计数
 DEDUP_WINDOW = 60
 
+# 后台任务引用集：防止 asyncio 任务被 GC 中断（事件循环只持弱引用）
+_TASKS: set[asyncio.Task] = set()
+
 
 async def _recent_visit(db: AsyncSession, *, ip: str | None, path: str, uid: str | None) -> bool:
     """窗口内是否已有同 IP 同路径的页面访问记录"""
@@ -96,4 +99,6 @@ def schedule_location_lookup(visit_id: str, ip: str | None):
         except Exception:
             pass
 
-    asyncio.create_task(_run())
+    task = asyncio.create_task(_run())
+    _TASKS.add(task)
+    task.add_done_callback(_TASKS.discard)
