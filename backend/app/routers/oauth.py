@@ -228,7 +228,7 @@ async def _create_oauth_user(db: AsyncSession, gh_user: dict, gh_id: str, email:
     username = base
     for _ in range(5):
         exists = (
-            await db.execute(select(User.id).where(User.username == username))
+            await db.execute(select(User.uid).where(User.username == username))
         ).scalar_one_or_none()
         if exists is None:
             break
