@@ -333,7 +333,7 @@ async def chat(
                 async for chunk in _stream_generator(payload, current_user, db, conv):
                     yield chunk
             finally:
-                _release_slot(current_user.uid)
+                await _release_slot(current_user.uid)
 
         return StreamingResponse(
             _stream_with_slot(),

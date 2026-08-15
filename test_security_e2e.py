@@ -18,6 +18,7 @@ async def main():
     from sqlalchemy import delete as _delete, select
 
     async with SessionLocal() as db:
+        from app.models import AiHistory as _AH
         from app.models import EmailCode as _EC
         from app.models import LoginLog as _LL
         from app.models import RefreshToken as _RT
@@ -25,6 +26,7 @@ async def main():
         await db.execute(_delete(_EC).where(_EC.email.like("sec-%@example.com")))
         urows = (await db.execute(select(User).where(User.email.like("sec-%@example.com")))).scalars().all()
         for u in urows:
+            await db.execute(_delete(_AH).where(_AH.uid == u.uid))
             await db.execute(_delete(_RT).where(_RT.uid == u.uid))
             await db.execute(_delete(_LL).where(_LL.uid == u.uid))
             await db.delete(u)
@@ -81,8 +83,9 @@ async def main():
         r = await c.post(
             "/api/v1/auth/login",
             json={"email": "sec-a@example.com", "password": "TestPass123"},
-            headers={"User-Agent": "Mozilla/5.0 Chrome/120"},
+            headers={"User-Agent": "Mozilla/5.0 Chrome/120", "X-Real-IP": "10.1.1.1"},
         )
+        assert r.status_code == 200, r.text
         ta = r.json()["access_token"]
         h = {"Authorization": f"Bearer {ta}"}
         # 伪图：HTML 伪装 image/jpeg
@@ -136,19 +139,20 @@ async def main():
         async with SessionLocal() as db:
             su = (await db.execute(select(User).where(User.email == "superadmin@platformharness.ltd"))).scalar_one()
             otp = pyotp.TOTP(su.totp_secret).now()
-        r = await c.post("/api/v1/auth/login", json={"email": "superadmin@platformharness.ltd", "password": "SuAdmin@2026Cloud", "totp_code": otp})
+        r = await c.post("/api/v1/auth/login", json={"email": "superadmin@platformharness.ltd", "password": "SuAdmin@2026Cloud", "totp_code": otp}, headers={"X-Real-IP": "10.1.1.2"})
+        assert r.status_code == 200, r.text
         ts = r.json()["access_token"]
         hs = {"Authorization": f"Bearer {ts}"}
         r = await c.get("/api/v1/user/profile", headers=h)
         uid_a = r.json()["uid"]
         # 改角色缺密码 → 400（sec-a 是普通用户，改普通角色不需密码——用 admin 角色场景：给 sec-a 升 admin）
-        r = await c.put(f"/api/v1/admin/users/{uid_a}/role", json={"role": "admin"}, headers=hs)
+        r = await c.patch(f"/api/v1/admin/users/{uid_a}/role", json={"role": "admin"}, headers=hs)
         assert r.status_code == 400 and "当前密码" in r.json()["detail"], r.text
         # 带错误密码 → 400
-        r = await c.put(f"/api/v1/admin/users/{uid_a}/role", json={"role": "admin", "operator_password": "WrongPass"}, headers=hs)
+        r = await c.patch(f"/api/v1/admin/users/{uid_a}/role", json={"role": "admin", "operator_password": "WrongPass"}, headers=hs)
         assert r.status_code == 400, r.text
         # 正确密码 → 200
-        r = await c.put(f"/api/v1/admin/users/{uid_a}/role", json={"role": "admin", "operator_password": "SuAdmin@2026Cloud"}, headers=hs)
+        r = await c.patch(f"/api/v1/admin/users/{uid_a}/role", json={"role": "admin", "operator_password": "SuAdmin@2026Cloud"}, headers=hs)
         assert r.status_code == 200, r.text
         # 重置密码缺操作人密码 → 400
         r = await c.post(f"/api/v1/admin/users/{uid_a}/reset-password", json={"new_password": "NewPass123"}, headers=hs)
@@ -181,8 +185,11 @@ async def main():
 
         print("11. 清理")
         async with SessionLocal() as db:
+            from app.models import AiHistory as _AH
+
             urows = (await db.execute(select(User).where(User.email.like("sec-%@example.com")))).scalars().all()
             for u in urows:
+                await db.execute(_delete(_AH).where(_AH.uid == u.uid))
                 await db.execute(_delete(_RT).where(_RT.uid == u.uid))
                 await db.execute(_delete(_LL).where(_LL.uid == u.uid))
                 await db.delete(u)
