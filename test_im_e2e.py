@@ -216,7 +216,23 @@ async def main():
         assert "harness_official" not in hit_names and "alice_im" not in hit_names, hit_names
 
         print("11. 图片消息")
-        png = b"\x89PNG\r\n\x1a\n" + b"0" * 100
+        import struct as _struct
+        import zlib as _zlib
+
+        def _make_png(w=4, h=4):
+            sig = b"\x89PNG\r\n\x1a\n"
+            ihdr = _struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)
+            raw = b""
+            for _ in range(h):
+                raw += b"\x00" + b"\x80\x40\x20" * w
+            idat = _zlib.compress(raw)
+
+            def chunk(t, d):
+                return _struct.pack(">I", len(d)) + t + d + _struct.pack(">I", _zlib.crc32(t + d) & 0xFFFFFFFF)
+
+            return sig + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b"")
+
+        png = _make_png()
         r = await c.post(
             "/api/v1/im/upload",
             files={"file": ("t.png", io.BytesIO(png), "image/png")},
