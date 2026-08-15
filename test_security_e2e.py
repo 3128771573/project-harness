@@ -39,15 +39,21 @@ async def main():
         print("   ", codes)
         assert codes[:5] == [401] * 5 and codes[5] == 429, codes
 
-        print("2. 邮箱失败锁定：5 次后 15 分钟锁（429）")
+        print("2. 邮箱失败锁定：轮换 IP 无法绕过（按邮箱累计，5 次后锁）")
         codes = []
-        for _ in range(6):
-            r = await c.post("/api/v1/auth/login", json={"email": "sec-lock@example.com", "password": "WrongPass1"})
+        for i in range(6):
+            r = await c.post(
+                "/api/v1/auth/login",
+                json={"email": "sec-lock@example.com", "password": "WrongPass1"},
+                headers={"X-Real-IP": f"10.0.0.{i + 1}"},
+            )
             codes.append(r.status_code)
-        assert codes[5] == 429, codes
-        # 不同 IP 无法绕过邮箱锁（模拟 XFF 轮换无效——同一邮箱仍锁）
+        print("   ", codes)
+        assert codes[:5] == [401] * 5 and codes[5] == 429, "邮箱锁应按邮箱累计且独立于 IP"
+        # 新 IP 请求仍被邮箱锁拦截（XFF/X-Real-IP 轮换无效）
         r = await c.post("/api/v1/auth/login", json={"email": "sec-lock@example.com", "password": "WrongPass1"}, headers={"X-Real-IP": "9.9.9.9", "X-Forwarded-For": "1.1.1.1"})
-        assert r.status_code == 429, "邮箱锁不受 IP 变化影响"
+        print("   换新IP后:", r.status_code, r.json().get("detail", "")[:30])
+        assert r.status_code == 429, f"邮箱锁不受 IP 变化影响（实际 {r.status_code}）"
 
         print("3. 登出吊销 refresh")
         r = await c.post("/api/v1/auth/send-code", json={"email": "sec-a@example.com", "purpose": "register"})
