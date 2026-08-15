@@ -66,9 +66,23 @@ async def _lookup_ipapi(ip: str) -> str | None:
     return None
 
 
+import ipaddress
+
+
+def _valid_ip(ip: str) -> bool:
+    """IP 格式校验（防参数注入：仅接受合法 IPv4/IPv6）"""
+    try:
+        ipaddress.ip_address(ip.strip())
+        return True
+    except ValueError:
+        return False
+
+
 async def resolve_location(ip: str | None) -> str:
     """解析 IP 属地；查不到返回「未知」"""
     if not ip:
+        return "未知"
+    if not _valid_ip(ip):
         return "未知"
     if ip in _LOCAL_IPS:
         return "本机"

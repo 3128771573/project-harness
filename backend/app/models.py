@@ -83,6 +83,7 @@ class RefreshToken(Base):
     uid: Mapped[str] = mapped_column(String(36), ForeignKey("users.uid"), index=True, nullable=False)
     jti: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     device: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    device_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # sha256(UA)：设备绑定硬校验
     ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

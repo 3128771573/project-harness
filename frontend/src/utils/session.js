@@ -11,6 +11,23 @@ export function clearSession() {
   localStorage.removeItem('harness_user')
 }
 
+// 登出：吊销服务端 refresh token + 清理本地会话（安全基线 §1.4：防 refresh 盗用窗口）
+export async function logoutSession() {
+  const refresh = localStorage.getItem('harness_refresh')
+  try {
+    if (refresh) {
+      await fetch('/api/v1/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refresh }),
+      })
+    }
+  } catch {
+    /* 网络失败不影响本地登出 */
+  }
+  clearSession()
+}
+
 export function getUser() {
   try {
     return JSON.parse(localStorage.getItem('harness_user') || 'null')

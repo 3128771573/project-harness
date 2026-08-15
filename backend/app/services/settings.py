@@ -55,7 +55,12 @@ async def get_ai_config(db: AsyncSession) -> dict:
 
 
 async def set_ai_config(db: AsyncSession, api_key: str | None, base_url: str | None, model: str | None) -> dict:
-    """写入 AI 配置。None 表示恢复默认（删除 DB 记录，回退 env）"""
+    """写入 AI 配置。None 表示恢复默认（删除 DB 记录，回退 env）
+
+    安全（基线 §2.3）：AI_API_KEY 由环境变量管理时禁止写入 DB（防密钥落库）
+    """
+    if api_key and env_settings.AI_API_KEY:
+        raise ValueError("AI Key 由环境变量管理，禁止写入数据库（请修改环境变量）")
     for key, val in ((AI_KEY, api_key), (AI_BASE_URL, base_url), (AI_MODEL, model)):
         result = await db.execute(select(AppSetting).where(AppSetting.key == key))
         row = result.scalar_one_or_none()

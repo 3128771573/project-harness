@@ -187,12 +187,14 @@ async def iot_ws(websocket: WebSocket):
         if user is None or not user.is_active:
             await websocket.close(code=4401)
             return
-    await manager.connect(websocket, uid)
+    ok = await manager.connect(websocket, f"user:{uid}", uid)
+    if not ok:
+        return
     try:
         while True:
             # 接收客户端消息以检测断开（客户端发空串保活）
             await websocket.receive_text()
     except WebSocketDisconnect:
-        manager.disconnect(websocket, uid)
+        manager.disconnect(websocket, f"user:{uid}", uid)
     except Exception:
-        manager.disconnect(websocket, uid)
+        manager.disconnect(websocket, f"user:{uid}", uid)

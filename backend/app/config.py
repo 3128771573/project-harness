@@ -2,10 +2,13 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # 运行环境：生产环境强制安全基线（关闭 API 文档等）
+    DEBUG: bool = False
+
     # 数据库
     DATABASE_URL: str = "postgresql+asyncpg://harness:harness_dev_pw@localhost:5432/harness"
 
-    # JWT 双 Token
+    # JWT 双 Token（生产必须配置 ≥32 字符随机值，main.py fail-fast）
     JWT_SECRET: str = "change-me-in-prod-please"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15

@@ -585,11 +585,23 @@ async def upload_image(
     content = await file.read()
     if len(content) > IM_MAX_IMAGE_SIZE:
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="图片不能超过 5MB")
-    ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}[file.content_type]
-    filename = f"{current_user.uid}_{uuid.uuid4().hex[:8]}.{ext}"
+    # 真实图像内容校验 + 重编码剥离附加 payload（安全基线 §1.5）
+    import io
+
+    from PIL import Image
+
+    try:
+        img = Image.open(io.BytesIO(content))
+        img.verify()
+        img = Image.open(io.BytesIO(content))
+        out = io.BytesIO()
+        img.convert("RGB" if img.mode not in ("RGB", "RGBA") else img.mode).save(out, format="PNG")
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="文件不是有效图片")
+    filename = f"{current_user.uid}_{uuid.uuid4().hex[:8]}.png"  # 统一转 PNG
     img_dir = Path(settings.UPLOAD_DIR) / "im"
     img_dir.mkdir(parents=True, exist_ok=True)
-    (img_dir / filename).write_bytes(content)
+    (img_dir / filename).write_bytes(out.getvalue())
     return {"url": f"/uploads/im/{filename}"}
 
 
@@ -701,7 +713,9 @@ async def im_ws(websocket: WebSocket):
             if not is_admin and snap["mode"] != "block_new":
                 await websocket.close(code=1013)  # try again later：维护中
                 return
-    await manager.connect(websocket, f"user:{uid}")
+    ok = await manager.connect(websocket, f"user:{uid}", uid)
+    if not ok:
+        return
     joined: set[str] = set()
     try:
         while True:
@@ -744,6 +758,6 @@ async def im_ws(websocket: WebSocket):
     except Exception:
         pass
     finally:
-        manager.disconnect(websocket, f"user:{uid}")
+        manager.disconnect(websocket, f"user:{uid}", uid)
         for cid in joined:
             manager.leave(websocket, f"conv:{cid}")

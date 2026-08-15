@@ -123,10 +123,9 @@ const isSuperAdmin = computed(() => {
   }
 })
 
-function logout() {
-  localStorage.removeItem('harness_access')
-  localStorage.removeItem('harness_refresh')
-  localStorage.removeItem('harness_user')
+async function logout() {
+  const { logoutSession } = await import('../utils/session')
+  await logoutSession()
   router.push('/')
 }
 </script>

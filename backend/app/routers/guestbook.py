@@ -54,10 +54,10 @@ class ReadIn(BaseModel):
 
 
 def _client_ip(request: Request) -> str | None:
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else None
+    """可信 IP：nginx 注入的 X-Real-IP（客户端不可控）"""
+    from ..services.httputil import client_ip
+
+    return client_ip(request)
 
 
 def _gen_query_code() -> str:

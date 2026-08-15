@@ -37,13 +37,10 @@ async def _recent_visit(db: AsyncSession, *, ip: str | None, path: str, uid: str
 
 
 def parse_client(request) -> tuple[str | None, str | None]:
-    """提取客户端 IP 和 User-Agent"""
-    ip = None
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        ip = fwd.split(",")[0].strip()
-    else:
-        ip = request.client.host if request.client else None
+    """提取客户端 IP 和 User-Agent（IP 使用可信来源：nginx 注入的 X-Real-IP）"""
+    from .httputil import client_ip
+
+    ip = client_ip(request)
     ua = request.headers.get("user-agent")
     return ip, ua
 

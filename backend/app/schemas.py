@@ -242,6 +242,7 @@ class UserStatusUpdate(BaseModel):
 
 class UserRoleUpdate(BaseModel):
     role: str = Field(min_length=1, max_length=32)
+    operator_password: str | None = Field(default=None, max_length=128, description="操作人当前密码（提升/变更 admin 角色时必填）")
 
 
 class SystemStatus(BaseModel):
@@ -364,6 +365,7 @@ class AuditLogList(BaseModel):
 
 class AdminResetPasswordRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
+    operator_password: str | None = Field(default=None, max_length=128, description="操作人当前密码（必填，敏感操作二次验证）")
 
 
 class NoticeOut(BaseModel):

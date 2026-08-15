@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db
 from ..deps import get_current_user, get_role_by_name
 from ..models import RefreshToken, User
+from ..services import ratelimit
+from ..services.httputil import client_ip
 from ..schemas import (
     CodeLoginRequest,
     LoginRequest,
@@ -41,14 +43,36 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def _client_ip(request: Request) -> str | None:
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else None
+    """可信 IP：nginx 注入的 X-Real-IP（客户端不可控）"""
+    return client_ip(request)
 
 
 def _client_ua(request: Request) -> str | None:
     return request.headers.get("user-agent")
+
+
+def _device_hash(ua: str | None) -> str | None:
+    if not ua:
+        return None
+    import hashlib
+
+    return hashlib.sha256(ua.encode("utf-8")).hexdigest()
+
+
+# 邮箱登录失败锁定（P2）：email -> 失败时间戳列表，5 次 / 15 分钟
+_EMAIL_FAIL_LOG: dict[str, list[float]] = {}
+_EMAIL_LOCK_MINUTES = 15
+_EMAIL_LOCK_LIMIT = 5
+
+# 登录时序侧信道防护：用户不存在也执行一次密码校验（恒定耗时）
+_DUMMY_HASH: str | None = None
+
+
+def _get_dummy_hash() -> str:
+    global _DUMMY_HASH
+    if _DUMMY_HASH is None:
+        _DUMMY_HASH = hash_password("timing-equalizer-dummy-password")
+    return _DUMMY_HASH
 
 
 async def _issue_tokens(db: AsyncSession, user: User, request: Request) -> Token:
@@ -60,6 +84,7 @@ async def _issue_tokens(db: AsyncSession, user: User, request: Request) -> Token
             jti=jti,
             expires_at=expires_at,
             device=_parse_device(_client_ua(request))[:120],  # 原始 UA 可能超 128 列宽，存解析后的设备名
+            device_hash=_device_hash(_client_ua(request)),
             ip=_client_ip(request),
         )
     )
@@ -69,11 +94,15 @@ async def _issue_tokens(db: AsyncSession, user: User, request: Request) -> Token
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    ip = _client_ip(request) or "unknown"
+    if not ratelimit.check(f"register:{ip}", 5, 60):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="尝试过于频繁，请稍后再试")
     existing = await db.execute(
         select(User).where(or_(User.username == payload.username, User.email == payload.email))
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="用户名或邮箱已被注册")
+        # 枚举统一：不暴露存在性（依赖注册限流防轰炸）
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="注册未成功，请检查输入或稍后重试")
 
     # 邮箱验证码校验（无论 SMTP 是否配置，只要注册就必须验证码）
     if not payload.code:
@@ -101,9 +130,10 @@ async def register(payload: RegisterRequest, request: Request, db: AsyncSession 
 
 @router.post("/send-code", summary="发送邮箱验证码")
 async def send_code(payload: SendCodeRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    # IP 级限流：同一 IP 每小时最多 10 次（防 SMTP 轰炸）
-    fwd = request.headers.get("x-forwarded-for")
-    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
+    # IP 级限流：同一 IP 每小时最多 10 次（防 SMTP 轰炸）+ 60s 内 5 次（叠加）
+    ip = _client_ip(request) or "unknown"
+    if not ratelimit.check(f"sendcode:{ip}", 5, 60):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="发送过于频繁，请稍后再试")
     now_ts = _time()
     q = _send_code_log.setdefault(ip, deque())
     while q and q[0] < now_ts - 3600:
@@ -165,8 +195,10 @@ async def reset_password(payload: ResetPasswordRequest, request: Request, db: As
 
 @router.post("/login-code", response_model=Token, summary="邮箱验证码登录")
 async def login_with_code(payload: CodeLoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    ip = _client_ip(request)
+    ip = _client_ip(request) or "unknown"
     ua = _client_ua(request)
+    if not ratelimit.check(f"login:{ip}", 5, 60):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="尝试过于频繁，请稍后再试")
     if not await verify_code(db, payload.email, payload.code, "login"):
         await record_login(db, email=payload.email.lower(), ip=ip, user_agent=ua, method="code", success=False, reason="验证码错误")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
@@ -204,18 +236,40 @@ async def login_with_code(payload: CodeLoginRequest, request: Request, db: Async
 
 @router.post("/login", response_model=Token)
 async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    ip = _client_ip(request)
+    ip = _client_ip(request) or "unknown"
     ua = _client_ua(request)
+    # IP 限流：5 次 / 60s（防字典爆破）
+    if not ratelimit.check(f"login:{ip}", 5, 60):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="尝试过于频繁，请稍后再试")
+    # 邮箱失败锁定：5 次 / 15 分钟
+    from time import time as _now_ts
+
+    now_ts = _now_ts()
+    fails = [t for t in _EMAIL_FAIL_LOG.get(payload.email.lower(), []) if now_ts - t < _EMAIL_LOCK_MINUTES * 60]
+    if len(fails) >= _EMAIL_LOCK_LIMIT:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="尝试过于频繁，请 15 分钟后再试")
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
     user = result.scalar_one_or_none()
     if user is not None and user.is_bot:
         await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, method="password", success=False, reason="机器人账号不可登录")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="机器人账号不可登录")
-    if user is None or not verify_password(payload.password, user.password_hash):
+    if user is None:
+        # 时序侧信道防护：用户不存在也执行一次密码校验（恒定耗时）
+        verify_password(payload.password, _get_dummy_hash())
+        _EMAIL_FAIL_LOG.setdefault(payload.email.lower(), []).append(now_ts)
         await record_login(
             db, email=payload.email.lower(), ip=ip, user_agent=ua, method="password", success=False, reason="密码错误或账号不存在"
         )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="邮箱或密码错误")
+    if not verify_password(payload.password, user.password_hash):
+        _EMAIL_FAIL_LOG.setdefault(payload.email.lower(), []).append(now_ts)
+        await record_login(
+            db, email=payload.email.lower(), ip=ip, user_agent=ua, method="password", success=False, reason="密码错误或账号不存在"
+        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="邮箱或密码错误")
+    # 登录成功：解除邮箱锁定
+    _EMAIL_FAIL_LOG.pop(payload.email.lower(), None)
+    ratelimit.reset(f"login:{ip}")
     if not user.is_active:
         await record_login(db, uid=user.uid, email=user.email, ip=ip, user_agent=ua, method="password", success=False, reason="账号已禁用")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用")
@@ -254,6 +308,21 @@ async def refresh(payload: RefreshRequest, request: Request, db: AsyncSession = 
     )
     stored = result.scalar_one_or_none()
     if stored is None or stored.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="刷新凭证已失效")
+
+    # 设备绑定硬校验：UA 哈希不一致 → 判定 token 被盗用，吊销该用户全部刷新凭证
+    device_hash = _device_hash(_client_ua(request))
+    if stored.device_hash and device_hash and stored.device_hash != device_hash:
+        from sqlalchemy import delete as _delete
+
+        await db.execute(_delete(RefreshToken).where(RefreshToken.uid == uid))
+        await db.commit()
+        from ..services.audit import record_audit
+
+        await record_audit(
+            db, actor=None, action="auth.refresh_device_mismatch", target_uid=uid,
+            detail="刷新凭证设备指纹不匹配，已吊销全部会话（疑似盗用）",
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="刷新凭证已失效")
 
     # 轮换: 吊销旧 token，签发新 token

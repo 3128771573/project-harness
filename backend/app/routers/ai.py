@@ -278,6 +278,28 @@ async def delete_conversation(
     await db.commit()
 
 
+# 每用户流式并发上限（单实例内存计数；多实例需 Redis）
+_inflight: dict[str, int] = {}
+_inflight_lock = asyncio.Lock()
+MAX_CONCURRENT_STREAMS = 2
+
+
+async def _acquire_slot(uid: str):
+    async with _inflight_lock:
+        n = _inflight.get(uid, 0)
+        if n >= MAX_CONCURRENT_STREAMS:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="同时进行的对话过多，请等待当前回复完成",
+            )
+        _inflight[uid] = n + 1
+
+
+async def _release_slot(uid: str):
+    async with _inflight_lock:
+        _inflight[uid] = max(0, _inflight.get(uid, 1) - 1)
+
+
 @router.post("/chat", response_model=AiChatResponse)
 async def chat(
     payload: AiChatRequest,
@@ -302,10 +324,19 @@ async def chat(
         db.add(conv)
         await db.flush()
 
-    # 流式模式
+    # 流式模式（每用户并发槽位限制，防上游连接/内存耗尽）
     if payload.stream:
+        await _acquire_slot(current_user.uid)
+
+        async def _stream_with_slot():
+            try:
+                async for chunk in _stream_generator(payload, current_user, db, conv):
+                    yield chunk
+            finally:
+                _release_slot(current_user.uid)
+
         return StreamingResponse(
-            _stream_generator(payload, current_user, db, conv),
+            _stream_with_slot(),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",

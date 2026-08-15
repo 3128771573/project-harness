@@ -33,6 +33,11 @@ async def update_profile(
     db: AsyncSession = Depends(get_db),
 ):
     data = payload.model_dump(exclude_unset=True)
+    # 头像 URL 校验：仅允许空或站内 /uploads/ 路径（防外部追踪像素/任意 URL，基线 §2.5）
+    if "avatar" in data:
+        avatar = data.get("avatar")
+        if avatar is not None and avatar and not avatar.startswith("/uploads/"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="头像仅支持站内上传图片")
     for field, value in data.items():
         setattr(current_user, field, value)
     await db.commit()
@@ -54,12 +59,25 @@ async def upload_avatar(
     if len(content) > settings.MAX_AVATAR_SIZE:
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="头像不能超过 2MB")
 
-    ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}[file.content_type]
-    filename = f"{current_user.uid}_{uuid.uuid4().hex[:8]}.{ext}"
+    # 真实图像内容校验 + 重编码剥离附加 payload（安全基线 §1.5）
+    import io
+
+    from PIL import Image
+
+    try:
+        img = Image.open(io.BytesIO(content))
+        img.verify()
+        img = Image.open(io.BytesIO(content))
+        out = io.BytesIO()
+        img.convert("RGB" if img.mode not in ("RGB", "RGBA") else img.mode).save(out, format="PNG")
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="文件不是有效图片")
+
+    filename = f"{current_user.uid}_{uuid.uuid4().hex[:8]}.png"  # 统一转 PNG
 
     avatar_dir = Path(settings.UPLOAD_DIR) / "avatars"
     avatar_dir.mkdir(parents=True, exist_ok=True)
-    (avatar_dir / filename).write_bytes(content)
+    (avatar_dir / filename).write_bytes(out.getvalue())
 
     # 通过 nginx 公开访问路径
     current_user.avatar = f"/uploads/avatars/{filename}"

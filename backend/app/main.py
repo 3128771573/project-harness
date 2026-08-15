@@ -45,10 +45,10 @@ APP_VERSION = "0.10.1"
 # 进程启动时间（用于公开统计接口的「稳定运行时长」）
 START_TIME = datetime.now(timezone.utc)
 
-# 安全校验：生产环境禁止使用默认 JWT 密钥（fail-fast）
-if settings.JWT_SECRET in ("", "change-me-in-prod-please"):
+# 安全校验：JWT 密钥 fail-fast（生产环境禁止默认/弱密钥）
+if settings.JWT_SECRET in ("", "change-me-in-prod-please") or len(settings.JWT_SECRET) < 32:
     raise RuntimeError(
-        "JWT_SECRET 未配置或仍为默认值：请在生产环境 .env 中设置随机密钥（如 openssl rand -hex 32）"
+        "JWT_SECRET 未配置或强度不足（需 ≥32 字符随机值）：请在生产环境 .env 中设置（openssl rand -hex 32）"
     )
 
 
@@ -100,6 +100,10 @@ app = FastAPI(
     title="Project Harness API",
     version=APP_VERSION,
     lifespan=lifespan,
+    # 生产环境关闭 API 文档（DEBUG=true 时才开放）
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None,
 )
 
 # 校验错误 → 友好中文提示

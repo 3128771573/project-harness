@@ -181,6 +181,13 @@ async def admin_user_role(
 
     target_role_name = target.role.name if target.role else None
 
+    # 敏感操作二次验证（基线 §2.4）：提升/变更 admin 角色需操作人当前密码
+    if target_role_name in (ROLE_ADMIN, ROLE_SUPER_ADMIN) or payload.role in (ROLE_ADMIN, ROLE_SUPER_ADMIN):
+        from ..security import verify_password as _vp
+
+        if not payload.operator_password or not _vp(payload.operator_password, current_user.password_hash):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="需要输入您的当前密码以确认操作")
+
     # super_admin 保护：修改 admin 及以上角色的用户需要 super_admin
     if target_role_name in (ROLE_ADMIN, ROLE_SUPER_ADMIN) or payload.role in (ROLE_ADMIN, ROLE_SUPER_ADMIN):
         if current_user.role.name != ROLE_SUPER_ADMIN:
@@ -252,7 +259,10 @@ async def update_ai_config(
     # 读取当前配置
     cfg = await settings_svc.get_ai_config(db)
     new_key = payload.api_key if payload.api_key else (None if payload.clear_api_key else cfg.get("api_key"))
-    await settings_svc.set_ai_config(db, api_key=new_key, base_url=payload.base_url, model=payload.model)
+    try:
+        await settings_svc.set_ai_config(db, api_key=new_key, base_url=payload.base_url, model=payload.model)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if payload.daily_quota is not None:
         await settings_svc.set_setting(db, "ai.daily_quota", str(payload.daily_quota))
     cfg = await settings_svc.get_ai_config(db)
@@ -517,6 +527,12 @@ async def admin_reset_password(
     target = await db.get(User, uid)
     if target is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
+
+    # 敏感操作二次验证（基线 §2.4）：需操作人当前密码
+    from ..security import verify_password as _vp
+
+    if not payload.operator_password or not _vp(payload.operator_password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="需要输入您的当前密码以确认操作")
 
     from ..security import hash_password as _hp, validate_password_policy
 
