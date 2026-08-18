@@ -26,7 +26,7 @@
 import SiteNav from '../components/SiteNav.vue'
 
 const demos = [
-  { icon: '🦓', name: '图灵斑图', desc: 'Gray-Scott 反应扩散 · GPU 实时模拟 7 种动物纹路', state: 'active', link: '/' },
+  { icon: '🦓', name: '图灵斑图', desc: 'Gray-Scott 反应扩散 · GPU 实时模拟 7 种动物纹路', state: 'active', link: '/demo/turing' },
   { icon: '💳', name: '支付 Demo', desc: '订单生成 · 支付流程 · 状态机', state: 'planned' },
   { icon: '🎬', name: '视频播放器', desc: '在线播放 · 媒体组件', state: 'planned' },
   { icon: '🎵', name: '音乐播放器', desc: '音频播放 · 播放列表', state: 'planned' },

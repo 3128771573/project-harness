@@ -9,6 +9,7 @@ const DashboardView = () => import('../views/DashboardView.vue')
 const ChatView = () => import('../views/ChatView.vue')
 const SettingsView = () => import('../views/SettingsView.vue')
 const DemoView = () => import('../views/DemoView.vue')
+const TuringDemoView = () => import('../views/demo/TuringDemoView.vue')
 const IotView = () => import('../views/IotView.vue')
 const DocsView = () => import('../views/DocsView.vue')
 const TermsView = () => import('../views/TermsView.vue')
@@ -47,6 +48,7 @@ const routes = [
   { path: '/ai', name: 'ai', component: ChatView, meta: { requiresAuth: true } },
   { path: '/settings', name: 'settings', component: SettingsView, meta: { requiresAuth: true } },
   { path: '/demo', name: 'demo', component: DemoView },
+  { path: '/demo/turing', name: 'demo-turing', component: TuringDemoView },
   { path: '/iot', name: 'iot', component: IotView, meta: { requiresAuth: true } },
   { path: '/docs', name: 'docs', component: DocsView },
   { path: '/terms', name: 'terms', component: TermsView },
