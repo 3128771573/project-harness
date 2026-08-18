@@ -9,15 +9,15 @@
       </header>
 
       <div class="demo-grid">
-        <div v-for="d in demos" :key="d.name" class="demo-card" :class="d.state">
+        <router-link v-for="d in demos" :key="d.name" :to="d.link || undefined" class="demo-card" :class="d.state">
           <div class="demo-icon">{{ d.icon }}</div>
           <b>{{ d.name }}</b>
           <span class="demo-desc">{{ d.desc }}</span>
-          <span class="demo-state">{{ stateText(d.state) }}</span>
-        </div>
+          <span class="demo-state">{{ stateText(d.state) }}<template v-if="d.link"> →</template></span>
+        </router-link>
       </div>
 
-      <p class="hint">每个 Demo 都在规划中，随着平台迭代逐步开放。</p>
+      <p class="hint">每个 Demo 都在规划中，随着平台迭代逐步开放。图灵斑图已上线，点击即可体验。</p>
     </div>
   </div>
 </template>
@@ -26,10 +26,11 @@
 import SiteNav from '../components/SiteNav.vue'
 
 const demos = [
+  { icon: '🦓', name: '图灵斑图', desc: 'Gray-Scott 反应扩散 · GPU 实时模拟 7 种动物纹路', state: 'active', link: '/' },
   { icon: '💳', name: '支付 Demo', desc: '订单生成 · 支付流程 · 状态机', state: 'planned' },
   { icon: '🎬', name: '视频播放器', desc: '在线播放 · 媒体组件', state: 'planned' },
   { icon: '🎵', name: '音乐播放器', desc: '音频播放 · 播放列表', state: 'planned' },
-  { icon: '🧠', name: 'AI 组件', desc: '对话式交互 · 流式输出', state: 'active' },
+  { icon: '🧠', name: 'AI 组件', desc: '对话式交互 · 流式输出', state: 'planned' },
   { icon: '🧩', name: '交互组件', desc: 'UI 组件实验集合', state: 'planned' },
   { icon: '📈', name: '数据可视化', desc: '实时图表 · 数据曲线', state: 'planned' },
 ]
@@ -90,6 +91,7 @@ function stateText(s) {
   align-items: center;
   text-align: center;
   gap: 10px;
+  text-decoration: none;
   background:
     linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
     linear-gradient(var(--border-light), var(--border-light)) border-box;
@@ -115,6 +117,7 @@ function stateText(s) {
 
 .demo-card b {
   font-size: 16px;
+  color: var(--text-primary);
 }
 
 .demo-desc {

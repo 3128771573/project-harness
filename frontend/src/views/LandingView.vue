@@ -5,6 +5,44 @@
     <div class="turing-stage">
       <canvas ref="canvasRef" class="turing-canvas"></canvas>
 
+      <!-- 中央品牌区 -->
+      <div class="hero" v-if="!infoCollapsed">
+        <span class="hero-badge">REACTION · DIFFUSION · LIVE</span>
+        <h1 class="hero-title">Project Harness</h1>
+        <p class="hero-sub">AI 对话 · IoT 接入 · 图灵斑图实时演示<br class="br-mobile" />——自然界的算法，跑在你的浏览器里</p>
+        <div class="hero-actions">
+          <router-link to="/demo" class="hero-btn primary">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            进入 Demo 实验室
+          </router-link>
+          <router-link to="/login" class="hero-btn ghost">开始使用</router-link>
+        </div>
+      </div>
+
+      <!-- 功能入口 -->
+      <div class="feature-row" v-if="!infoCollapsed">
+        <router-link to="/ai" class="feature-card">
+          <span class="fc-icon">🧠</span>
+          <span class="fc-name">AI 对话</span>
+          <span class="fc-desc">流式输出 · 多模型</span>
+        </router-link>
+        <router-link to="/iot" class="feature-card">
+          <span class="fc-icon">📡</span>
+          <span class="fc-name">IoT 接入</span>
+          <span class="fc-desc">设备连接 · 实时监控</span>
+        </router-link>
+        <router-link to="/guestbook" class="feature-card">
+          <span class="fc-icon">💬</span>
+          <span class="fc-name">留言板</span>
+          <span class="fc-desc">档案号 · 多轮回复</span>
+        </router-link>
+        <router-link to="/demo" class="feature-card">
+          <span class="fc-icon">🧪</span>
+          <span class="fc-name">Demo 实验室</span>
+          <span class="fc-desc">技术实验 · 组件展示</span>
+        </router-link>
+      </div>
+
       <!-- 介绍面板（半透明，不遮挡主体） -->
       <div class="info-panel" :class="{ collapsed: infoCollapsed }">
         <button class="info-toggle" @click="infoCollapsed = !infoCollapsed">{{ infoCollapsed ? '☰' : '✕' }}</button>
@@ -129,6 +167,151 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+/* 中央品牌区 */
+.hero {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -56%);
+  text-align: center;
+  z-index: 9;
+  pointer-events: none;
+  max-width: 92vw;
+}
+
+.hero-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(10, 12, 16, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 6px 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  margin-bottom: 18px;
+}
+
+.hero-title {
+  margin: 0;
+  font-size: clamp(34px, 6vw, 60px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+  line-height: 1.1;
+}
+
+.hero-sub {
+  margin: 14px auto 24px;
+  font-size: clamp(13px, 1.7vw, 16.5px);
+  color: rgba(238, 242, 247, 0.85);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
+  line-height: 1.8;
+  max-width: 620px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  font-size: 14.5px;
+  font-weight: 600;
+  padding: 12px 26px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.hero-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.hero-btn.primary {
+  background: linear-gradient(135deg, #ffd27a, #f5a623);
+  color: #1a1408;
+  box-shadow: 0 6px 24px rgba(245, 166, 35, 0.35);
+}
+
+.hero-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 32px rgba(245, 166, 35, 0.45);
+}
+
+.hero-btn.ghost {
+  background: rgba(10, 12, 16, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #eef2f7;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.hero-btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* 功能入口 */
+.feature-row {
+  position: absolute;
+  bottom: 74px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 9;
+  pointer-events: none;
+  max-width: 94vw;
+}
+
+.feature-card {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 132px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  text-decoration: none;
+  background: rgba(10, 12, 16, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.22s ease;
+}
+
+.feature-card:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.32);
+  transform: translateY(-4px);
+}
+
+.fc-icon {
+  font-size: 22px;
+}
+
+.fc-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #f2f5f9;
+}
+
+.fc-desc {
+  font-size: 11px;
+  color: rgba(238, 242, 247, 0.6);
 }
 
 /* 介绍面板：半透明、左上角、不遮挡主体 */
@@ -287,6 +470,31 @@ onUnmounted(() => {
 }
 
 @media (max-width: 640px) {
+  .hero {
+    top: 42%;
+    transform: translate(-50%, -50%);
+  }
+  .hero-actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .hero-btn {
+    padding: 11px 22px;
+    font-size: 13.5px;
+  }
+  .feature-row {
+    bottom: 64px;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .feature-card {
+    min-width: 0;
+    flex: 1 1 42%;
+    max-width: 170px;
+    padding: 10px 12px;
+  }
   .info-panel {
     max-width: 78vw;
     padding: 12px 14px;
