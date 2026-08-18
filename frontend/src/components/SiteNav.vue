@@ -8,7 +8,6 @@
 
       <nav class="nav-links" :class="{ open: navOpen }">
         <router-link to="/ai" class="nav-link">AI</router-link>
-        <router-link to="/demo" class="nav-link">Demo</router-link>
         <router-link to="/iot" class="nav-link">IoT</router-link>
         <router-link to="/docs" class="nav-link">Docs</router-link>
         <router-link to="/pricing" class="nav-link">定价</router-link>

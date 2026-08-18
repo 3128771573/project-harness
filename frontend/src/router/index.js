@@ -46,7 +46,7 @@ const routes = [
   { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
   { path: '/ai', name: 'ai', component: ChatView, meta: { requiresAuth: true } },
   { path: '/settings', name: 'settings', component: SettingsView, meta: { requiresAuth: true } },
-  { path: '/demo', name: 'demo', component: DemoView },
+  { path: '/demo', redirect: '/' }, // 旧 Demo 已下线（图灵斑图演示为首页核心）
   { path: '/iot', name: 'iot', component: IotView, meta: { requiresAuth: true } },
   { path: '/docs', name: 'docs', component: DocsView },
   { path: '/terms', name: 'terms', component: TermsView },
