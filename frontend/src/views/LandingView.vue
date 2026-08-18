@@ -2,6 +2,16 @@
   <div class="landing">
     <SiteNav />
 
+    <!-- 站内公告横幅 -->
+    <div v-if="notice && !noticeDismissed" class="notice-banner">
+      <span class="nb-badge">公告</span>
+      <button class="nb-toggle" @click="noticeOpen = !noticeOpen">
+        <span class="nb-title">{{ notice.title }}</span>
+        <span class="nb-desc">{{ noticeOpen ? notice.content : truncateNotice(notice.content) }}</span>
+      </button>
+      <button class="nb-close" @click="noticeDismissed = true" title="关闭">✕</button>
+    </div>
+
     <!-- ===== 已登录：个人控制中心 ===== -->
     <div v-if="user" class="home-shell">
       <section class="welcome">
@@ -72,54 +82,110 @@
           <div class="glow glow-1"></div>
           <div class="glow glow-2"></div>
         </div>
-        <div class="hero-content">
-          <div class="hero-badge">
-            <span class="badge-dot"></span>
-            持续进化的智能服务平台
+
+        <div class="hero-inner">
+          <!-- 左：文案 -->
+          <div class="hero-text">
+            <div class="hero-badge">
+              <span class="badge-dot"></span>
+              AI + IoT Digital Platform
+            </div>
+            <h1 class="hero-title">
+              Build Intelligent Systems
+              <span class="grad">with AI + IoT</span>
+            </h1>
+            <p class="hero-desc">
+              面向个人开发者的智能服务平台。连接人工智能、物联网与数字服务，从原型到产品。
+            </p>
+            <div class="hero-actions">
+              <router-link to="/register" class="btn dark lg">Start Building →</router-link>
+              <router-link to="/demo" class="btn outline lg">Explore Demo</router-link>
+            </div>
+            <div class="hero-stats">
+              <div class="hs-item"><b>9+</b><span>版本迭代</span></div>
+              <div class="hs-item"><b>20+</b><span>API 接口</span></div>
+              <div class="hs-item"><b>3</b><span>核心模块</span></div>
+            </div>
           </div>
-          <h1 class="hero-title">
-            Harness
-            <span class="hero-sub-title">连接 AI · IoT · 数字服务</span>
-          </h1>
-          <p class="hero-desc">
-            Connect AI, Devices and Digital Experiences.
-            <br />
-            一个平台，承载你的智能能力与创意实验。
-          </p>
-          <div class="hero-actions">
-            <router-link to="/register" class="btn dark lg">开始体验 →</router-link>
-            <router-link to="/demo" class="btn outline lg">进入 Demo 实验室</router-link>
-          </div>
-          <div class="hero-flow">
-            <span class="flow-node ai">AI</span>
-            <span class="flow-line"></span>
-            <span class="flow-node api">API</span>
-            <span class="flow-line"></span>
-            <span class="flow-node data">DATA</span>
-            <span class="flow-line"></span>
-            <span class="flow-node dev">DEVICE</span>
+
+          <!-- 右：产品预览图 mockup -->
+          <div class="hero-visual">
+            <div class="mock-window">
+              <div class="mock-bar">
+                <span class="mb-dot red"></span><span class="mb-dot yellow"></span><span class="mb-dot green"></span>
+                <span class="mb-title">harness · workspace</span>
+              </div>
+              <div class="mock-body">
+                <!-- AI 对话气泡 -->
+                <div class="mock-ai">
+                  <div class="mock-ai-head"><span class="mai-dot"></span> AI Assistant</div>
+                  <div class="mock-msg ai">帮我分析今天的设备数据</div>
+                  <div class="mock-msg user">温度稳定在 26.5°C，湿度 60%，无异常告警。建议继续监测。</div>
+                </div>
+                <!-- IoT 指标 -->
+                <div class="mock-iot">
+                  <div class="mi-item"><span>温度</span><b>26.5<small>°C</small></b></div>
+                  <div class="mi-item"><span>湿度</span><b>60<small>%</small></b></div>
+                  <div class="mi-item online"><span>在线</span><b>🟢</b></div>
+                </div>
+                <!-- Analytics 曲线 -->
+                <div class="mock-chart">
+                  <div class="mc-head"><span>Analytics</span><b class="mc-live">LIVE</b></div>
+                  <svg viewBox="0 0 260 70" preserveAspectRatio="none" class="mc-svg">
+                    <polyline points="0,55 30,48 60,52 90,38 120,42 150,28 180,34 210,18 240,24 260,12"
+                      fill="none" stroke="url(#mcgrad)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                    <defs>
+                      <linearGradient id="mcgrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0" stop-color="#6366F1"/><stop offset="1" stop-color="#8B5CF6"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <!-- 浮动徽章 -->
+            <div class="float-chip chip-1">✦ AI 流式输出</div>
+            <div class="float-chip chip-2">📡 设备在线</div>
           </div>
         </div>
       </section>
 
-      <!-- 快速入口 -->
-      <section class="section quick">
-        <div class="quick-grid">
-          <router-link to="/ai" class="quick-card ai">
-            <div class="q-icon">✦</div>
-            <div><b>AI</b><span>智能助手 · 多模型对话</span></div>
-            <span class="q-arrow">→</span>
-          </router-link>
-          <router-link to="/iot" class="quick-card iot">
-            <div class="q-icon">◎</div>
-            <div><b>IoT</b><span>设备接入 · 实时数据</span></div>
-            <span class="q-arrow">→</span>
-          </router-link>
-          <router-link to="/demo" class="quick-card demo">
-            <div class="q-icon">◫</div>
-            <div><b>Demo</b><span>实验展示 · 技术试验场</span></div>
-            <span class="q-arrow">→</span>
-          </router-link>
+      <!-- 核心能力 -->
+      <section class="section core">
+        <h2 class="section-title">核心能力</h2>
+        <div class="core-grid">
+          <div class="core-card">
+            <div class="cc-icon ai">✦</div>
+            <b>AI Service</b>
+            <span>多模型对话 · 历史记录 · 用量统计</span>
+          </div>
+          <div class="core-card">
+            <div class="cc-icon iot">◎</div>
+            <b>IoT Platform</b>
+            <span>设备接入 · 实时数据 · 可视化</span>
+          </div>
+          <div class="core-card">
+            <div class="cc-icon dev">⌘</div>
+            <b>Developer Tools</b>
+            <span>REST API · 统一鉴权 · 版本化</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 架构链路 -->
+      <section class="section arch">
+        <h2 class="section-title">全链路架构</h2>
+        <p class="arch-sub">从浏览器到设备，一条完整的数据通路</p>
+        <div class="arch-chain">
+          <div class="arch-node" v-for="(a, i) in arch" :key="a.name">
+            <div class="arch-icon">{{ a.icon }}</div>
+            <b>{{ a.name }}</b>
+            <span>{{ a.desc }}</span>
+            <div v-if="i < arch.length - 1" class="arch-connector">
+              <span class="ac-line"></span>
+              <span class="ac-arrow">↓</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -188,7 +254,7 @@
             <div class="lab-icon">{{ d.icon }}</div>
             <b>{{ d.name }}</b>
             <span>{{ d.desc }}</span>
-            <span class="lab-state">{{ d.state === 'active' ? '已上线 →' : '规划中' }}</span>
+            <span class="lab-state">{{ d.state === 'active' ? '新上线 →' : '规划中' }}</span>
           </component>
         </div>
         <div class="lab-cta">
@@ -255,6 +321,11 @@
             <router-link to="/login">登录</router-link>
             <router-link to="/register">注册</router-link>
           </div>
+          <div class="footer-col">
+            <b>合规</b>
+            <router-link to="/terms">用户协议</router-link>
+            <router-link to="/privacy">隐私政策</router-link>
+          </div>
         </div>
       </div>
       <div class="footer-bottom">© 2026 Harness Platform · 个人智能服务平台</div>
@@ -263,8 +334,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import SiteNav from '../components/SiteNav.vue'
+import api from '../api/client'
 
 const user = computed(() => {
   try {
@@ -276,6 +348,14 @@ const user = computed(() => {
 
 const stack = ['Vue 3', 'FastAPI', 'PostgreSQL', 'Docker', 'Nginx', 'Linux']
 
+const arch = [
+  { icon: '⚡', name: 'Vue 3', desc: 'Web 前端 · SPA' },
+  { icon: '🖥', name: 'FastAPI', desc: 'API 服务 · 鉴权' },
+  { icon: '🗄', name: 'PostgreSQL', desc: '数据持久化' },
+  { icon: '📡', name: 'MQTT', desc: '设备通信协议' },
+  { icon: '🔌', name: 'Devices', desc: '传感器 · 智能硬件' },
+]
+
 const demos = [
   { icon: '🦓', name: '图灵斑图', desc: '反应扩散实时模拟 · GPU 加速', link: '/demo/turing', state: 'active' },
   { icon: '💳', name: '支付 Demo', desc: '订单 · 支付流程模拟' },
@@ -285,14 +365,147 @@ const demos = [
   { icon: '🧩', name: '交互组件', desc: 'UI 实验集合' },
   { icon: '📈', name: '数据可视化', desc: '图表与曲线' },
 ]
+
+// ===== 站内公告横幅（公开接口 /public/notices） =====
+const notice = ref(null)
+const noticeOpen = ref(false)
+const noticeDismissed = ref(false)
+
+function truncateNotice(text, n = 80) {
+  return text.length > n ? text.slice(0, n) + '…' : text
+}
+
+async function loadNotice() {
+  try {
+    const { data } = await api.get('/public/notices')
+    if (data.items?.length) {
+      notice.value = data.items[0]
+      noticeDismissed.value = sessionStorage.getItem('harness_notice_dismissed') === notice.value.id
+    }
+  } catch { /* 公告接口不可用时静默 */ }
+}
+
+// ===== 页脚站点统计（公开接口 /public/stats） =====
+const stats = ref({ started_at: null, visits: 0 })
+const now = ref(Date.now())
+const year = new Date().getFullYear()
+let ticker = null
+
+const uptimeText = computed(() => {
+  if (!stats.value.started_at) return '—'
+  const sec = Math.max(0, Math.floor((now.value - new Date(stats.value.started_at).getTime()) / 1000))
+  const d = Math.floor(sec / 86400)
+  const h = Math.floor((sec % 86400) / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = sec % 60
+  if (d > 0) return `${d} 天 ${h} 小时`
+  if (h > 0) return `${h} 小时 ${m} 分`
+  if (m > 0) return `${m} 分 ${s} 秒`
+  return `${s} 秒`
+})
+
+const visitsText = computed(() => (stats.value.visits ? stats.value.visits.toLocaleString() + ' 次' : '—'))
+
+function fmtDate(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+onMounted(async () => {
+  loadNotice()
+  try {
+    const { data } = await api.get('/public/stats')
+    stats.value = data
+  } catch { /* 统计接口不可用时静默 */ }
+  ticker = setInterval(() => {
+    now.value = Date.now()
+  }, 1000)
+})
+
+onBeforeUnmount(() => {
+  if (ticker) clearInterval(ticker)
+})
+
+// 关闭横幅（本次会话内不再显示）
+watch(noticeDismissed, (v) => {
+  if (v && notice.value) {
+    try {
+      sessionStorage.setItem('harness_notice_dismissed', notice.value.id)
+    } catch { /* ignore */ }
+  }
+})
 </script>
 
 <style scoped>
 .landing {
   min-height: 100vh;
-  background: #fff;
-  color: #111827;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* ===== 站内公告横幅 ===== */
+.notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 1120px;
+  margin: 14px auto 0;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--primary-color);
+  border-radius: 12px;
+}
+
+.nb-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: var(--gradient-brand);
+  padding: 3px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.nb-toggle {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+}
+
+.nb-title {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.nb-desc {
+  display: block;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  white-space: pre-line;
+}
+
+.nb-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.nb-close:hover {
+  color: var(--text-primary);
 }
 
 /* ===== 已登录控制中心 ===== */
@@ -309,7 +522,7 @@ const demos = [
 }
 
 .welcome-sub {
-  color: #6b7280;
+  color: var(--text-muted);
   margin-top: 8px;
   font-size: 15px;
 }
@@ -326,17 +539,22 @@ const demos = [
   align-items: center;
   gap: 14px;
   padding: 20px;
-  border: 1px solid #eef0f5;
+  border: 1px solid transparent;
   border-radius: 16px;
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(var(--border-light), var(--border-light)) border-box;
+  transition: box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .quick-card:hover {
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  transform: translateY(-2px);
-  border-color: #e2e8f0;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(135deg, var(--primary-color), var(--accent-color)) border-box;
 }
 
 .q-icon {
@@ -350,10 +568,10 @@ const demos = [
   flex-shrink: 0;
 }
 
-.quick-card.ai .q-icon { background: #eef2ff; color: #4338ca; }
-.quick-card.iot .q-icon { background: #ecfdf5; color: #059669; }
-.quick-card.demo .q-icon { background: #f5f3ff; color: #7c3aed; }
-.quick-card.settings .q-icon { background: #fffbeb; color: #b45309; }
+.quick-card.ai .q-icon { background: var(--bg-active); color: var(--primary-color); }
+.quick-card.iot .q-icon { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
+.quick-card.demo .q-icon { background: color-mix(in srgb, var(--accent-color) 12%, transparent); color: var(--accent-color); }
+.quick-card.settings .q-icon { background: color-mix(in srgb, var(--warning) 12%, transparent); color: var(--warning); }
 
 .quick-card b {
   font-size: 15px;
@@ -363,12 +581,12 @@ const demos = [
 
 .quick-card span {
   font-size: 12.5px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .q-arrow {
   margin-left: auto;
-  color: #9ca3af;
+  color: var(--text-muted);
   font-size: 16px;
 }
 
@@ -379,7 +597,7 @@ const demos = [
 }
 
 .panel-card {
-  border: 1px solid #eef0f5;
+  border: 1px solid var(--border-light);
   border-radius: 16px;
   padding: 22px;
 }
@@ -387,7 +605,7 @@ const demos = [
 .panel-card h3 {
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .panel-num {
@@ -398,7 +616,7 @@ const demos = [
 
 .panel-sub {
   font-size: 12.5px;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .live-dot {
@@ -410,16 +628,14 @@ const demos = [
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2);
 }
 
-/* ===== Hero ===== */
+/* ===== Hero（左右布局） ===== */
 .hero {
   position: relative;
   overflow: hidden;
-  background: #fafbfd;
-  min-height: 620px;
+  background: var(--bg-primary);
+  min-height: 640px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
 }
 
 .hero-bg {
@@ -427,45 +643,61 @@ const demos = [
   inset: 0;
 }
 
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+}
+
 .grid-layer {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+    linear-gradient(var(--border-light) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
   background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 80% 70% at 60% 40%, #000 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 60% 40%, #000 20%, transparent 70%);
 }
 
 .glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
+  filter: blur(110px);
   opacity: 0.35;
+  pointer-events: none;
 }
 
 .glow-1 {
-  width: 480px;
-  height: 480px;
-  background: #2b6de9;
-  top: -160px;
-  left: -120px;
+  width: 520px;
+  height: 520px;
+  background: #6366f1;
+  top: -180px;
+  right: 5%;
 }
 
 .glow-2 {
-  width: 420px;
-  height: 420px;
+  width: 440px;
+  height: 440px;
   background: #8b5cf6;
-  bottom: -180px;
-  right: -100px;
+  bottom: -200px;
+  left: -120px;
 }
 
-.hero-content {
+.hero-inner {
   position: relative;
   z-index: 2;
-  padding: 80px 28px;
-  max-width: 780px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 72px 28px;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 56px;
+  align-items: center;
+  width: 100%;
 }
 
 .hero-badge {
@@ -474,12 +706,13 @@ const demos = [
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #4b5563;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid #e5e7eb;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 999px;
   padding: 7px 16px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
 }
 
 .badge-dot {
@@ -487,40 +720,45 @@ const demos = [
   height: 7px;
   border-radius: 50%;
   background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
 }
 
 .hero-title {
-  font-size: 64px;
+  font-size: 50px;
   font-weight: 800;
   letter-spacing: -0.035em;
-  line-height: 1.05;
-  margin-bottom: 18px;
+  line-height: 1.12;
+  margin-bottom: 20px;
+  color: var(--text-primary);
 }
 
-.hero-sub-title {
+.grad {
   display: block;
-  font-size: 30px;
-  font-weight: 600;
-  background: linear-gradient(135deg, #2b6de9, #8b5cf6);
+  background: var(--gradient-brand);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  margin-top: 10px;
-  letter-spacing: -0.02em;
+  animation: gradShift 6s ease-in-out infinite alternate;
+}
+
+@keyframes gradShift {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
 }
 
 .hero-desc {
-  font-size: 17px;
-  color: #6b7280;
+  font-size: 16.5px;
+  color: var(--text-muted);
   line-height: 1.75;
-  margin-bottom: 34px;
+  margin-bottom: 32px;
+  max-width: 460px;
 }
 
 .hero-actions {
   display: flex;
   gap: 14px;
-  justify-content: center;
-  margin-bottom: 48px;
+  margin-bottom: 40px;
 }
 
 .btn {
@@ -536,66 +774,267 @@ const demos = [
 }
 
 .btn.lg {
-  padding: 14px 30px;
+  padding: 14px 28px;
   font-size: 15px;
 }
 
 .btn.dark {
-  background: #111827;
+  background: var(--brand-block);
   color: #fff;
+  box-shadow: var(--shadow);
 }
 
 .btn.dark:hover {
-  background: #1f2937;
+  opacity: 0.9;
   transform: translateY(-1px);
 }
 
 .btn.outline {
   background: transparent;
-  color: #111827;
-  border-color: #d1d5db;
+  color: var(--text-primary);
+  border-color: var(--border-color);
 }
 
 .btn.outline:hover {
-  border-color: #111827;
+  border-color: var(--text-primary);
 }
 
-.hero-flow {
+.hero-stats {
+  display: flex;
+  gap: 36px;
+}
+
+.hs-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.hs-item b {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.hs-item span {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ===== 产品预览图 mockup ===== */
+.hero-visual {
+  position: relative;
+  transform: perspective(1200px) rotateY(-4deg);
+  transition: transform 0.4s ease;
+}
+
+.hero-visual:hover {
+  transform: perspective(1200px) rotateY(0);
+}
+
+.mock-window {
+  background: var(--brand-block);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+}
+
+.mock-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mb-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.mb-dot.red { background: #ef4444; }
+.mb-dot.yellow { background: #f59e0b; }
+.mb-dot.green { background: #10b981; }
+
+.mb-title {
+  margin-left: 8px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.02em;
+}
+
+.mock-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
 }
 
-.flow-node {
-  font-size: 12.5px;
+.mock-ai {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.mock-ai-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: rgba(255, 255, 255, 0.7);
+  color: #e2e8f0;
+  margin-bottom: 10px;
 }
 
-.flow-node.ai { color: #4338ca; }
-.flow-node.api { color: #059669; }
-.flow-node.data { color: #b45309; }
-.flow-node.dev { color: #7c3aed; }
-
-.flow-line {
-  width: 36px;
-  height: 1px;
-  background: #d1d5db;
-  position: relative;
+.mai-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
-.flow-line::after {
-  content: '';
+.mock-msg {
+  font-size: 12px;
+  line-height: 1.6;
+  border-radius: 10px;
+  padding: 9px 12px;
+  margin-bottom: 7px;
+}
+
+.mock-msg:last-child {
+  margin-bottom: 0;
+}
+
+.mock-msg.ai {
+  background: rgba(255, 255, 255, 0.07);
+  color: #cbd5e1;
+  border-bottom-left-radius: 3px;
+}
+
+.mock-msg.user {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border-bottom-right-radius: 3px;
+  margin-left: 30px;
+}
+
+.mock-iot {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.mi-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.mi-item span {
+  display: block;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 4px;
+}
+
+.mi-item b {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.mi-item b small {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mi-item.online b {
+  font-size: 14px;
+}
+
+.mock-chart {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.mc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #cbd5e1;
+  margin-bottom: 8px;
+}
+
+.mc-live {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: #ef4444;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 4px;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.mc-svg {
+  width: 100%;
+  height: 56px;
+}
+
+/* 浮动徽章 */
+.float-chip {
   position: absolute;
-  right: 0;
-  top: -2px;
-  border: 3px solid transparent;
-  border-left-color: #d1d5db;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow);
+  animation: floaty 4s ease-in-out infinite;
+}
+
+.chip-1 {
+  top: -16px;
+  left: -20px;
+}
+
+.chip-2 {
+  bottom: -14px;
+  right: -14px;
+  animation-delay: 2s;
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@media (max-width: 900px) {
+  .hero-inner {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .hero-title {
+    font-size: 38px;
+  }
+  .hero-visual {
+    max-width: 460px;
+  }
 }
 
 /* ===== 通用 section ===== */
@@ -603,6 +1042,158 @@ const demos = [
   max-width: 1120px;
   margin: 0 auto;
   padding: 80px 28px;
+}
+
+.section-title {
+  font-size: 30px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: -0.02em;
+  margin-bottom: 44px;
+}
+
+/* 核心能力 */
+.core-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+.core-card {
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  padding: 30px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(var(--border-light), var(--border-light)) border-box;
+  transition: box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.core-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(135deg, var(--primary-color), var(--accent-color)) border-box;
+}
+
+.cc-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 21px;
+  margin-bottom: 6px;
+}
+
+.cc-icon.ai { background: var(--bg-active); color: var(--primary-color); }
+.cc-icon.iot { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
+.cc-icon.dev { background: color-mix(in srgb, var(--accent-color) 12%, transparent); color: var(--accent-color); }
+
+.core-card b {
+  font-size: 16.5px;
+  font-weight: 700;
+}
+
+.core-card span {
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+/* 架构链路 */
+.arch {
+  text-align: center;
+}
+
+.arch-sub {
+  color: var(--text-muted);
+  font-size: 14.5px;
+  margin-top: -32px;
+  margin-bottom: 44px;
+}
+
+.arch-chain {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.arch-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 150px;
+  padding: 0 10px;
+}
+
+.arch-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.arch-node b {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.arch-node span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.arch-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 4px;
+  align-self: flex-start;
+  margin-top: 20px;
+}
+
+.ac-line {
+  width: 40px;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.ac-arrow {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+@media (max-width: 900px) {
+  .arch-chain {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .arch-connector {
+    flex-direction: row;
+    margin: 0;
+    padding: 4px 0;
+    transform: rotate(90deg);
+  }
+  .arch-node {
+    width: auto;
+  }
 }
 
 .module {
@@ -639,7 +1230,7 @@ const demos = [
 
 .module-desc {
   font-size: 15.5px;
-  color: #6b7280;
+  color: var(--text-muted);
   line-height: 1.75;
   margin-bottom: 22px;
 }
@@ -654,18 +1245,18 @@ const demos = [
 
 .module-feats li {
   font-size: 14.5px;
-  color: #374151;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .module-feats li::first-letter {
-  color: #059669;
+  color: var(--success);
 }
 
 /* AI 对话 demo */
 .chat-demo {
-  background: #fff;
-  border: 1px solid #eef0f5;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 18px;
   padding: 24px;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
@@ -684,21 +1275,21 @@ const demos = [
 
 .chat-line.user {
   align-self: flex-end;
-  background: #111827;
+  background: var(--brand-block);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
 
 .chat-line.ai {
   align-self: flex-start;
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-code);
+  color: var(--text-secondary);
   border-bottom-left-radius: 4px;
 }
 
 /* IoT 设备 demo */
 .device-demo {
-  background: #111827;
+  background: var(--brand-block);
   border-radius: 18px;
   padding: 24px;
   color: #fff;
@@ -711,7 +1302,7 @@ const demos = [
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin-bottom: 18px;
 }
 
@@ -731,7 +1322,7 @@ const demos = [
 .dev-metric span {
   display: block;
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin-bottom: 6px;
 }
 
@@ -743,7 +1334,7 @@ const demos = [
 .dev-metric b small {
   font-size: 13px;
   font-weight: 500;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .dev-metric b.ok {
@@ -752,7 +1343,7 @@ const demos = [
 
 /* 代码 demo */
 .code-demo {
-  background: #111827;
+  background: var(--brand-block);
   border-radius: 18px;
   padding: 26px;
   font-family: 'SF Mono', Consolas, monospace;
@@ -789,7 +1380,7 @@ const demos = [
 }
 
 .lab-card {
-  border: 1px solid #eef0f5;
+  border: 1px solid var(--border-light);
   border-radius: 16px;
   padding: 26px 18px;
   display: flex;
@@ -817,20 +1408,18 @@ const demos = [
 
 .lab-card span {
   font-size: 12.5px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
-/* 已上线 demo 卡片：醒目强调 */
+/* 新上线 demo：温和强调 */
 .lab-card.active {
-  border: 1.5px solid #2b6de9;
-  background: linear-gradient(160deg, #f0f4ff, #ffffff);
-  box-shadow: 0 8px 26px rgba(43, 109, 233, 0.14);
+  border-color: var(--primary-color);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--primary-color) 8%, transparent), transparent);
 }
 
 .lab-card.active:hover {
-  border-color: #8b5cf6;
-  box-shadow: 0 14px 38px rgba(43, 109, 233, 0.22);
-  transform: translateY(-3px);
+  border-color: var(--accent-color);
+  box-shadow: 0 12px 34px color-mix(in srgb, var(--primary-color) 18%, transparent);
 }
 
 .lab-state {
@@ -839,12 +1428,12 @@ const demos = [
   letter-spacing: 0.04em;
   padding: 4px 12px;
   border-radius: 999px;
-  background: #eef0f5;
-  color: #6b7280 !important;
+  background: var(--bg-secondary);
+  color: var(--text-muted) !important;
 }
 
 .lab-card.active .lab-state {
-  background: linear-gradient(135deg, #2b6de9, #8b5cf6);
+  background: var(--gradient-brand);
   color: #fff !important;
 }
 
@@ -863,7 +1452,7 @@ const demos = [
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.16em;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin-bottom: 20px;
 }
 
@@ -877,16 +1466,16 @@ const demos = [
 .trust-chip {
   font-size: 13px;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--text-secondary);
   padding: 8px 18px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 999px;
-  background: #fafbfd;
+  background: var(--bg-input);
 }
 
 /* Footer */
 .footer {
-  background: #0f1117;
+  background: var(--brand-block);
   color: #d1d5db;
   padding: 56px 28px 24px;
 }
@@ -913,7 +1502,7 @@ const demos = [
 
 .footer-brand span {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .footer-cols {
@@ -929,7 +1518,7 @@ const demos = [
 
 .footer-col b {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
@@ -948,8 +1537,38 @@ const demos = [
   margin: 40px auto 0;
   padding-top: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.site-stats {
+  display: flex;
+  gap: 36px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stat-item b {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stat-item span {
+  font-size: 13.5px;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+
+.footer-copy {
   font-size: 12.5px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 @media (max-width: 860px) {
