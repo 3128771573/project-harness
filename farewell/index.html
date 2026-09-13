@@ -4,141 +4,367 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Project Harness · 感谢陪伴</title>
-<meta name="description" content="Project Harness 已停止对外服务。感谢每一位曾经使用的朋友。">
+<meta name="description" content="Project Harness 已停止对外服务。运行 30 天的完整数据与日志回顾。">
 <meta name="robots" content="noindex">
 <style>
   :root{
-    --bg:#070a0f; --bg2:#0d1219; --fg:#eef2f7; --muted:#8b97a8;
-    --line:rgba(255,255,255,.10); --card:rgba(255,255,255,.045);
-    --accent:#5b8def; --accent2:#a78bfa; --warm:#ffd27a;
+    --bg:#06080d; --fg:#eef2f7; --muted:#8695a9; --dim:#5d6b7e;
+    --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16); --card:rgba(255,255,255,.035);
+    --accent:#5b8def; --accent2:#a78bfa; --warm:#ffd27a; --ok:#34d399; --err:#f87171;
+    --mono:"SF Mono",SFMono-Regular,ui-monospace,Consolas,"Liberation Mono",Menlo,monospace;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
-  body{
-    min-height:100vh; background:var(--bg); color:var(--fg);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-    -webkit-font-smoothing:antialiased; overflow-x:hidden;
-    display:flex; flex-direction:column; align-items:center;
-  }
-  /* 背景：微弱的斑图质感 + 双色光晕 */
-  .bg-pattern{
-    position:fixed; inset:0; pointer-events:none; opacity:.5; z-index:0;
-    background-image:
-      radial-gradient(circle at 12% 22%, rgba(91,141,239,.20) 0 2px, transparent 3px),
-      radial-gradient(circle at 37% 68%, rgba(167,139,250,.16) 0 2px, transparent 3px),
-      radial-gradient(circle at 63% 31%, rgba(91,141,239,.14) 0 2px, transparent 3px),
-      radial-gradient(circle at 82% 74%, rgba(255,210,122,.12) 0 2px, transparent 3px);
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);overflow-x:hidden;-webkit-font-smoothing:antialiased;line-height:1.65;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .bg-pattern{position:fixed;inset:0;pointer-events:none;opacity:.55;z-index:0;
+    background-image:radial-gradient(circle at 12% 22%,rgba(91,141,239,.20) 0 2px,transparent 3px),radial-gradient(circle at 37% 68%,rgba(167,139,250,.16) 0 2px,transparent 3px),radial-gradient(circle at 63% 31%,rgba(91,141,239,.14) 0 2px,transparent 3px),radial-gradient(circle at 82% 74%,rgba(255,210,122,.12) 0 2px,transparent 3px);
     background-size:180px 180px,240px 240px,210px 210px,280px 280px;
-    -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 40%, #000 20%, transparent 78%);
-            mask-image:radial-gradient(ellipse 70% 60% at 50% 40%, #000 20%, transparent 78%);
-  }
-  .glow{position:fixed; border-radius:50%; filter:blur(110px); pointer-events:none; z-index:0}
-  .glow.a{width:520px;height:520px;background:rgba(91,141,239,.28);top:-200px;left:-140px}
-  .glow.b{width:460px;height:460px;background:rgba(167,139,250,.22);bottom:-220px;right:-120px}
-  main{position:relative; z-index:1; width:100%; max-width:860px; padding:72px 24px 56px; text-align:center}
-
-  .badge{
-    display:inline-flex; align-items:center; gap:9px; font-size:12px; font-weight:700;
-    letter-spacing:.22em; color:#c9d4e4; background:rgba(255,255,255,.05);
-    border:1px solid var(--line); border-radius:999px; padding:9px 18px;
-    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  }
+    -webkit-mask-image:radial-gradient(ellipse 80% 55% at 50% 30%,#000 15%,transparent 80%);mask-image:radial-gradient(ellipse 80% 55% at 50% 30%,#000 15%,transparent 80%)}
+  .glow{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
+  .glow.a{width:560px;height:560px;background:rgba(91,141,239,.22);top:-220px;left:-160px}
+  .glow.b{width:500px;height:500px;background:rgba(167,139,250,.18);top:32%;right:-200px}
+  .glow.c{width:520px;height:520px;background:rgba(255,210,122,.10);bottom:-240px;left:22%}
+  .wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:0 24px}
+  .hero{padding:86px 0 44px;text-align:center}
+  .badge{display:inline-flex;align-items:center;gap:9px;font-size:11.5px;font-weight:700;letter-spacing:.22em;color:#c9d4e4;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:9px 18px;backdrop-filter:blur(8px)}
   .dot{width:7px;height:7px;border-radius:50%;background:#e5484d;box-shadow:0 0 0 4px rgba(229,72,77,.16)}
-
-  h1{
-    margin:30px 0 0; font-size:clamp(38px,8vw,72px); font-weight:800; letter-spacing:-.03em; line-height:1.06;
-    background:linear-gradient(120deg,#fff 10%,#b9cdf5 45%,var(--accent2) 90%);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
-  .sub{margin:18px auto 0; max-width:620px; font-size:clamp(14px,2.1vw,17px); line-height:1.85; color:#b7c2d1}
-  .sub b{color:#fff; font-weight:600}
-  .date{
-    margin-top:26px; display:inline-block; font-size:13px; letter-spacing:.1em; color:var(--warm);
-    background:rgba(255,210,122,.09); border:1px solid rgba(255,210,122,.22);
-    border-radius:10px; padding:8px 16px;
-  }
-
-  .stats{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin:48px 0 0;
-  }
-  .stat{
-    background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px 14px;
-    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); transition:transform .25s ease,border-color .25s ease;
-  }
-  .stat:hover{transform:translateY(-3px); border-color:rgba(255,255,255,.22)}
-  .stat .n{font-size:24px; font-weight:800; letter-spacing:-.02em; color:#fff}
-  .stat .n small{font-size:13px; font-weight:600; color:var(--muted); margin-left:2px}
-  .stat .l{margin-top:7px; font-size:12px; color:var(--muted); letter-spacing:.05em}
-
-  .recall{
-    margin-top:44px; text-align:left; background:var(--card); border:1px solid var(--line);
-    border-radius:18px; padding:26px 26px 22px;
-  }
-  .recall h2{margin:0 0 14px; font-size:15px; letter-spacing:.14em; color:#cfd8e6; font-weight:700}
-  .recall ul{margin:0; padding:0; list-style:none; display:grid; gap:10px}
-  .recall li{font-size:14px; color:#b7c2d1; line-height:1.7; padding-left:20px; position:relative}
-  .recall li::before{content:""; position:absolute; left:2px; top:9px; width:6px; height:6px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2))}
-
-  .actions{margin-top:40px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
-  .btn{
-    display:inline-flex; align-items:center; gap:9px; text-decoration:none; font-weight:600; font-size:14.5px;
-    padding:13px 26px; border-radius:999px; transition:transform .2s ease,box-shadow .2s ease,background .2s ease;
-  }
-  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; box-shadow:0 10px 30px rgba(91,141,239,.28)}
-  .btn.primary:hover{transform:translateY(-2px); box-shadow:0 16px 40px rgba(91,141,239,.38)}
-  .btn.ghost{border:1px solid var(--line); color:#dbe3ee; background:rgba(255,255,255,.04)}
-  .btn.ghost:hover{background:rgba(255,255,255,.10); transform:translateY(-2px)}
+  h1{margin:26px 0 0;font-size:clamp(40px,8.5vw,76px);font-weight:800;letter-spacing:-.035em;line-height:1.04;background:linear-gradient(115deg,#fff 8%,#bcd0f7 46%,var(--accent2) 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{margin:18px auto 0;max-width:660px;font-size:clamp(14px,2vw,16.5px);color:#b3bfd0}
+  .lede b{color:#fff;font-weight:600}
+  .pillrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+  .pill{font-size:12.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 15px}
+  .pill b{color:var(--warm);font-weight:700}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin:52px 0 0}
+  .kpi{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));border:1px solid var(--line);border-radius:16px;padding:20px 16px;backdrop-filter:blur(10px);transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
+  .kpi:hover{transform:translateY(-4px);border-color:var(--line2);box-shadow:0 16px 40px rgba(0,0,0,.35)}
+  .kpi .n{font-size:27px;font-weight:800;letter-spacing:-.02em;color:#fff;font-variant-numeric:tabular-nums}
+  .kpi .n small{font-size:12.5px;font-weight:600;color:var(--muted);margin-left:3px}
+  .kpi .l{margin-top:6px;font-size:12px;color:var(--muted);letter-spacing:.04em}
+  .kpi .s{margin-top:3px;font-size:11px;color:var(--dim)}
+  section{margin-top:64px}
+  .shead{display:flex;align-items:baseline;gap:12px;margin-bottom:20px}
+  .snum{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.12em;border:1px solid rgba(91,141,239,.3);border-radius:6px;padding:3px 8px;background:rgba(91,141,239,.08)}
+  .stitle{font-size:19px;font-weight:700;letter-spacing:-.01em;margin:0}
+  .sdesc{font-size:12.5px;color:var(--dim);margin-left:auto;text-align:right}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;backdrop-filter:blur(8px)}
+  .panel+.panel{margin-top:14px}
+  .ptitle{font-size:13px;font-weight:700;color:#cfd8e6;letter-spacing:.1em;margin:0 0 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .ptitle span{font-size:11.5px;color:var(--dim);font-weight:500;letter-spacing:0}
+  .chart{display:flex;align-items:flex-end;gap:5px;height:170px;padding-top:18px}
+  .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+  .bar::before{content:"";display:block;width:100%;height:var(--h);border-radius:4px 4px 2px 2px;background:linear-gradient(180deg,var(--accent),rgba(91,141,239,.35));animation:grow .9s cubic-bezier(.2,.8,.2,1) both}
+  .bar:nth-child(4n)::before{background:linear-gradient(180deg,var(--accent2),rgba(167,139,250,.32))}
+  .bv{font-size:10px;color:var(--muted);margin-bottom:4px;font-variant-numeric:tabular-nums}
+  .bl{font-size:9.5px;color:var(--dim);margin-top:6px;white-space:nowrap;transform:rotate(-45deg)}
+  @keyframes grow{from{height:0;opacity:.2}to{height:var(--h);opacity:1}}
+  .strip{display:flex;align-items:flex-end;gap:3px;height:74px;margin-top:6px}
+  .hbar{flex:1;height:var(--h);background:linear-gradient(180deg,rgba(52,211,153,.85),rgba(52,211,153,.22));border-radius:3px 3px 0 0;animation:grow2 .8s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes grow2{from{height:0}to{height:var(--h)}}
+  .axis{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:7px;font-family:var(--mono)}
+  .trow{display:grid;grid-template-columns:minmax(120px,180px) 1fr 84px;align-items:center;gap:12px;padding:5px 0}
+  .tn{font-family:var(--mono);font-size:11.5px;color:#a9b6c7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tb{height:8px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+  .tb i{display:block;height:100%;width:var(--w);border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));animation:wide .9s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes wide{from{width:0}to{width:var(--w)}}
+  .tc{font-size:11.5px;color:#cfd8e6;text-align:right;font-variant-numeric:tabular-nums}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+  .dlist{margin:0;padding:0;list-style:none}
+  .dlist li{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.07);font-size:13.5px}
+  .dlist li:last-child{border-bottom:none}
+  .dlist .k{color:var(--muted)}
+  .dlist .v{color:#fff;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+  .dlist .v em{font-style:normal;color:var(--dim);font-weight:500;font-size:12px;margin-left:5px}
+  .term{background:#04060a;border:1px solid var(--line2);border-radius:14px;overflow:hidden;font-family:var(--mono)}
+  .termbar{display:flex;align-items:center;gap:7px;padding:11px 14px;background:rgba(255,255,255,.045);border-bottom:1px solid var(--line)}
+  .termbar i{width:10px;height:10px;border-radius:50%;display:block}
+  .termbar i:nth-child(1){background:#ff5f57}.termbar i:nth-child(2){background:#febc2e}.termbar i:nth-child(3){background:#28c840}
+  .termbar span{margin-left:8px;font-size:11.5px;color:var(--dim);letter-spacing:.06em}
+  .termbody{padding:16px 18px;font-size:12px;line-height:2;max-height:440px;overflow:auto}
+  .termbody .row{white-space:pre-wrap;word-break:break-word}
+  .t{color:var(--dim)}
+  .lv-i{color:var(--ok)}.lv-w{color:var(--warm)}.lv-e{color:var(--err)}
+  .mod{color:var(--accent)}.mod2{color:var(--accent2)}
+  .msg{color:#c8d3e1}
+  .cursor{display:inline-block;width:7px;height:13px;background:var(--ok);animation:blink 1.1s steps(1) infinite;vertical-align:-2px}
+  @keyframes blink{50%{opacity:0}}
+  .tl{position:relative;margin:0;padding:0 0 0 26px;list-style:none}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:1px;background:linear-gradient(180deg,transparent,var(--line2),transparent)}
+  .tl li{position:relative;padding:9px 0 9px 6px;font-size:13.5px;color:#b9c5d4}
+  .tl li::before{content:"";position:absolute;left:-24px;top:16px;width:9px;height:9px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
+  .tl li.done::before{border-color:var(--ok);background:var(--ok)}
+  .tl li.end::before{border-color:#e5484d;background:#e5484d}
+  .tl b{color:#fff;font-weight:600}
+  .tl .when{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-right:8px}
+  .recall ul{margin:0;padding:0;list-style:none;display:grid;gap:9px}
+  .recall li{font-size:13.5px;color:#b3bfd0;padding-left:20px;position:relative}
+  .recall li::before{content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .actions{margin:52px 0 0;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:9px;text-decoration:none;font-weight:600;font-size:14.5px;padding:13px 26px;border-radius:999px;transition:transform .2s,box-shadow .2s,background .2s}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 10px 30px rgba(91,141,239,.28)}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(91,141,239,.4)}
+  .btn.ghost{border:1px solid var(--line2);color:#dbe3ee;background:rgba(255,255,255,.04)}
+  .btn.ghost:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
   .btn svg{width:16px;height:16px;fill:currentColor}
-
-  .farewell{margin:52px auto 0; max-width:560px; font-size:14.5px; line-height:2; color:#9aa6b6; font-style:italic}
-  footer{
-    position:relative; z-index:1; margin-top:auto; padding:26px 24px 34px; font-size:12.5px; color:#5f6b7c; text-align:center;
-  }
-  footer .sep{margin:0 8px; opacity:.5}
-  @media (max-width:560px){
-    main{padding:52px 18px 40px}
-    .recall{padding:20px 18px}
-    .btn{width:100%; justify-content:center}
+  .farewell{margin:56px auto 0;max-width:620px;text-align:center;font-size:14.5px;color:#9aa6b6;font-style:italic;line-height:2}
+  footer{margin-top:64px;border-top:1px solid var(--line);padding:26px 0 40px;text-align:center;font-size:12.5px;color:var(--dim)}
+  footer .sep{margin:0 8px;opacity:.5}
+  @media (max-width:640px){
+    .hero{padding:60px 0 30px}
+    .panel{padding:18px 16px}
+    .sdesc{display:none}
+    .bl{display:none}
+    .chart{height:130px}
+    .trow{grid-template-columns:1fr auto;gap:8px}
+    .tb{display:none}
+    .btn{width:100%;justify-content:center}
   }
 </style>
 </head>
 <body>
 <div class="bg-pattern"></div>
-<div class="glow a"></div>
-<div class="glow b"></div>
+<div class="glow a"></div><div class="glow b"></div><div class="glow c"></div>
+<div class="wrap">
 
-<main>
-  <span class="badge"><span class="dot"></span>PROJECT HARNESS · 已下线</span>
-
-  <h1>感谢陪伴</h1>
-
-  <p class="sub">
-    Project Harness 已于 <b>2026 年 9 月</b> 正式停止对外服务。<br>
-    承载它的云服务器即将到期，这个从零搭建、持续迭代了一年多的个人智能服务平台，
-    在这里与大家道别。
-  </p>
-
-  <div class="date">2026.09 · 服务终止</div>
-
-  <div class="stats">
-    <div class="stat"><div class="n">33</div><div class="l">张数据表</div></div>
-    <div class="stat"><div class="n">129<small>万+</small></div><div class="l">条设备遥测</div></div>
-    <div class="stat"><div class="n">5</div><div class="l">个容器服务</div></div>
-    <div class="stat"><div class="n">7</div><div class="l">种图灵斑图</div></div>
+  <div class="hero">
+    <span class="badge"><span class="dot"></span>PROJECT HARNESS · 已停止服务</span>
+    <h1>感谢陪伴</h1>
+    <p class="lede">Project Harness 已于 <b>2026 年 9 月 13 日</b> 停止对外服务，官网切换为这张告别页。<br>从 8 月 14 日第一次启动，到 9 月 13 日最后一次写入遥测，这台小小的服务器运行了 <b>30 天</b>。</p>
+    <div class="pillrow">
+      <span class="pill">运行时长 <b>30 天</b></span>
+      <span class="pill">数据表 <b>33 张</b></span>
+      <span class="pill">容器 <b>5 个</b></span>
+      <span class="pill">版本 <b>v0.10.1</b></span>
+      <span class="pill">数据已完整备份</span>
+    </div>
   </div>
 
-  <div class="recall">
-    <h2>这一路做过的事</h2>
-    <ul>
-      <li>完整用户体系：JWT 双 Token + 设备指纹、TOTP 两步验证、GitHub SSO</li>
-      <li>AI 对话服务：SSE 流式输出、深度思考、Markdown / LaTeX / 代码高亮</li>
-      <li>站内即时通讯：私信与群聊、公告机器人、可见水印 + 零宽字符文本水印溯源</li>
-      <li>留言板：档案号追踪、多轮回复时间线、邮件通知</li>
-      <li>企业级维护模式：四模式、三级自动恢复、紧急逃生令牌、部署自动联动</li>
-      <li>安全与合规：IP 限流、敏感词过滤、账号注销、数据导出、协议与隐私政策</li>
-      <li>图灵斑图实验室：WebGL2 实时反应扩散，斑马、豹、苏眉鱼、箱鲀等七种动物纹路</li>
-    </ul>
+  <div class="kpis">
+    <div class="kpi"><div class="n">856</div><div class="l">页面访问</div><div class="s">来自 139 个独立 IP</div></div>
+    <div class="kpi"><div class="n">30</div><div class="l">注册用户</div><div class="s">含 2 个机器人账号</div></div>
+    <div class="kpi"><div class="n">680</div><div class="l">私信消息</div><div class="s">23 个会话 · 撤回 1 条</div></div>
+    <div class="kpi"><div class="n">129.5<small>万</small></div><div class="l">设备遥测记录</div><div class="s">连续 30 天不间断</div></div>
+    <div class="kpi"><div class="n">1,180</div><div class="l">审计日志</div><div class="s">覆盖 30+ 类操作</div></div>
+    <div class="kpi"><div class="n">441</div><div class="l">登录尝试</div><div class="s">成功 206 · 2FA 91</div></div>
+    <div class="kpi"><div class="n">58</div><div class="l">水印取证</div><div class="s">零宽文本水印解码</div></div>
+    <div class="kpi"><div class="n">67</div><div class="l">敏感词拦截</div><div class="s">词库 37 条</div></div>
   </div>
+
+  <section>
+    <div class="shead"><span class="snum">01</span><h2 class="stitle">访问趋势</h2><span class="sdesc">2026-08-24 ~ 09-13 · 最近 21 天</span></div>
+    <div class="panel">
+      <div class="ptitle">每日页面访问（次）<span>峰值 09-04 · 23 次 / 日均约 10 次</span></div>
+      <div class="chart">
+      <div class="bar" style="--h:22%" title="08-24 · 5 次"><span class="bv">5</span><span class="bl">08-24</span></div>
+      <div class="bar" style="--h:74%" title="08-25 · 17 次"><span class="bv">17</span><span class="bl">08-25</span></div>
+      <div class="bar" style="--h:17%" title="08-26 · 4 次"><span class="bv">4</span><span class="bl">08-26</span></div>
+      <div class="bar" style="--h:26%" title="08-27 · 6 次"><span class="bv">6</span><span class="bl">08-27</span></div>
+      <div class="bar" style="--h:78%" title="08-28 · 18 次"><span class="bv">18</span><span class="bl">08-28</span></div>
+      <div class="bar" style="--h:57%" title="08-29 · 13 次"><span class="bv">13</span><span class="bl">08-29</span></div>
+      <div class="bar" style="--h:30%" title="08-30 · 7 次"><span class="bv">7</span><span class="bl">08-30</span></div>
+      <div class="bar" style="--h:35%" title="08-31 · 8 次"><span class="bv">8</span><span class="bl">08-31</span></div>
+      <div class="bar" style="--h:52%" title="09-01 · 12 次"><span class="bv">12</span><span class="bl">09-01</span></div>
+      <div class="bar" style="--h:17%" title="09-02 · 4 次"><span class="bv">4</span><span class="bl">09-02</span></div>
+      <div class="bar" style="--h:26%" title="09-03 · 6 次"><span class="bv">6</span><span class="bl">09-03</span></div>
+      <div class="bar" style="--h:100%" title="09-04 · 23 次"><span class="bv">23</span><span class="bl">09-04</span></div>
+      <div class="bar" style="--h:39%" title="09-05 · 9 次"><span class="bv">9</span><span class="bl">09-05</span></div>
+      <div class="bar" style="--h:17%" title="09-06 · 4 次"><span class="bv">4</span><span class="bl">09-06</span></div>
+      <div class="bar" style="--h:26%" title="09-07 · 6 次"><span class="bv">6</span><span class="bl">09-07</span></div>
+      <div class="bar" style="--h:78%" title="09-08 · 18 次"><span class="bv">18</span><span class="bl">09-08</span></div>
+      <div class="bar" style="--h:26%" title="09-09 · 6 次"><span class="bv">6</span><span class="bl">09-09</span></div>
+      <div class="bar" style="--h:30%" title="09-10 · 7 次"><span class="bv">7</span><span class="bl">09-10</span></div>
+      <div class="bar" style="--h:48%" title="09-11 · 11 次"><span class="bv">11</span><span class="bl">09-11</span></div>
+      <div class="bar" style="--h:52%" title="09-12 · 12 次"><span class="bv">12</span><span class="bl">09-12</span></div>
+      <div class="bar" style="--h:30%" title="09-13 · 7 次"><span class="bv">7</span><span class="bl">09-13</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">遥测写入节律（每小时记录数）<span>模拟设备每 2 秒上报一次 · 24 小时恒定</span></div>
+      <div class="strip">
+      <div class="hbar" style="--h:100%" title="00:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="01:00 · 3598 条"></div>
+      <div class="hbar" style="--h:100%" title="02:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="03:00 · 3598 条"></div>
+      <div class="hbar" style="--h:100%" title="04:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="05:00 · 3598 条"></div>
+      <div class="hbar" style="--h:100%" title="06:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="07:00 · 3598 条"></div>
+      <div class="hbar" style="--h:100%" title="08:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="09:00 · 3599 条"></div>
+      <div class="hbar" style="--h:100%" title="10:00 · 3599 条"></div>
+      <div class="hbar" style="--h:100%" title="11:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="12:00 · 3598 条"></div>
+      <div class="hbar" style="--h:100%" title="13:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="14:00 · 3598 条"></div>
+      <div class="hbar" style="--h:100%" title="15:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="16:00 · 3598 条"></div>
+      <div class="hbar" style="--h:100%" title="17:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="18:00 · 3598 条"></div>
+      <div class="hbar" style="--h:100%" title="19:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="20:00 · 3598 条"></div>
+      <div class="hbar" style="--h:100%" title="21:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="22:00 · 3600 条"></div>
+      <div class="hbar" style="--h:100%" title="23:00 · 3598 条"></div>
+      </div>
+      <div class="axis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="snum">02</span><h2 class="stitle">数据全景</h2><span class="sdesc">截至 2026-09-13 · 仅聚合统计，不含任何用户隐私字段</span></div>
+    <div class="grid2">
+      <div class="panel">
+        <div class="ptitle">👤 用户体系</div>
+        <ul class="dlist">
+          <li><span class="k">注册用户</span><span class="v">30<em>普通 23 · 管理员 2 · 超管 1 · 机器人 2</em></span></li>
+          <li><span class="k">启用中账号</span><span class="v">23</span></li>
+          <li><span class="k">开启两步验证</span><span class="v">1</span></li>
+          <li><span class="k">自定义头像</span><span class="v">2</span></li>
+          <li><span class="k">GitHub SSO 绑定</span><span class="v">1</span></li>
+          <li><span class="k">刷新令牌</span><span class="v">60</span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="ptitle">💬 即时通讯</div>
+        <ul class="dlist">
+          <li><span class="k">私信会话</span><span class="v">23<em>成员关系 46</em></span></li>
+          <li><span class="k">私信消息</span><span class="v">680<em>文本 679 · 图片 1 · 撤回 1</em></span></li>
+          <li><span class="k">群聊</span><span class="v">1<em>成员 3 · 消息 2</em></span></li>
+          <li><span class="k">拉黑关系</span><span class="v">1</span></li>
+          <li><span class="k">举报</span><span class="v">3<em>全部已处理</em></span></li>
+          <li><span class="k">水印取证记录</span><span class="v">58<em>已消费额度 3</em></span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="ptitle">🤖 AI 服务</div>
+        <ul class="dlist">
+          <li><span class="k">会话</span><span class="v">14</span></li>
+          <li><span class="k">消息往返</span><span class="v">25</span></li>
+          <li><span class="k">deepseek-chat</span><span class="v">8</span></li>
+          <li><span class="k">deepseek-reasoner</span><span class="v">4<em>深度思考</em></span></li>
+          <li><span class="k">mock（联调）</span><span class="v">13</span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="ptitle">📡 IoT 接入</div>
+        <ul class="dlist">
+          <li><span class="k">注册设备</span><span class="v">2</span></li>
+          <li><span class="k">遥测记录</span><span class="v">1,295,060</span></li>
+          <li><span class="k">数据跨度</span><span class="v">08-14 12:38 → 09-13 12:27</span></li>
+          <li><span class="k">日均写入</span><span class="v">≈ 43,190 条</span></li>
+          <li><span class="k">上报间隔</span><span class="v">2 秒 / 条</span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="ptitle">📋 留言板与公告</div>
+        <ul class="dlist">
+          <li><span class="k">访客留言</span><span class="v">4<em>档案号可追踪</em></span></li>
+          <li><span class="k">往来回复</span><span class="v">5<em>管理员回复</em></span></li>
+          <li><span class="k">站内公告</span><span class="v">3</span></li>
+          <li><span class="k">机器人广播</span><span class="v">35<em>定向私信 33</em></span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="ptitle">🛡️ 安全与治理</div>
+        <ul class="dlist">
+          <li><span class="k">登录尝试</span><span class="v">441<em>成功 206</em></span></li>
+          <li><span class="k">密码登录</span><span class="v">418</span></li>
+          <li><span class="k">验证码登录</span><span class="v">8</span></li>
+          <li><span class="k">注册 / 重置</span><span class="v">13 / 2</span></li>
+          <li><span class="k">敏感词词库</span><span class="v">37<em>拦截 67 次</em></span></li>
+          <li><span class="k">账号注销</span><span class="v">0</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="snum">03</span><h2 class="stitle">运行日志回顾</h2><span class="sdesc">聚合后的审计与运行事件 · 已脱敏</span></div>
+    <div class="panel">
+      <div class="ptitle">审计动作分布（Top 12 · 共 1,180 条）<span>失败操作仅 2 条</span></div>
+      <div class="trow"><span class="tn">水印取证解码</span><span class="tb"><i style="--w:100%"></i></span><span class="tc">160</span></div>
+      <div class="trow"><span class="tn">消息撤回</span><span class="tb"><i style="--w:66%"></i></span><span class="tc">106</span></div>
+      <div class="trow"><span class="tn">敏感词拦截</span><span class="tb"><i style="--w:42%"></i></span><span class="tc">67</span></div>
+      <div class="trow"><span class="tn">用户举报</span><span class="tb"><i style="--w:39%"></i></span><span class="tc">62</span></div>
+      <div class="trow"><span class="tn">举报处理</span><span class="tb"><i style="--w:35%"></i></span><span class="tc">56</span></div>
+      <div class="trow"><span class="tn">群邀请</span><span class="tb"><i style="--w:34%"></i></span><span class="tc">54</span></div>
+      <div class="trow"><span class="tn">创建群聊</span><span class="tb"><i style="--w:34%"></i></span><span class="tc">54</span></div>
+      <div class="trow"><span class="tn">水印授权</span><span class="tb"><i style="--w:29%"></i></span><span class="tc">46</span></div>
+      <div class="trow"><span class="tn">解散群聊</span><span class="tb"><i style="--w:26%"></i></span><span class="tc">41</span></div>
+      <div class="trow"><span class="tn">隐藏会话</span><span class="tb"><i style="--w:25%"></i></span><span class="tc">40</span></div>
+      <div class="trow"><span class="tn">公告广播</span><span class="tb"><i style="--w:22%"></i></span><span class="tc">35</span></div>
+      <div class="trow"><span class="tn">机器人私信</span><span class="tb"><i style="--w:21%"></i></span><span class="tc">33</span></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">数据表记录数（Top 12 · 共 33 张表）<span>迁移链 a6b7c8d9e0f1</span></div>
+      <div class="trow"><span class="tn">device_telemetry</span><span class="tb"><i style="--w:100%"></i></span><span class="tc">1,295,060</span></div>
+      <div class="trow"><span class="tn">audit_logs</span><span class="tb"><i style="--w:1.5%"></i></span><span class="tc">1,180</span></div>
+      <div class="trow"><span class="tn">visit_logs</span><span class="tb"><i style="--w:1.5%"></i></span><span class="tc">856</span></div>
+      <div class="trow"><span class="tn">dm_messages</span><span class="tb"><i style="--w:1.5%"></i></span><span class="tc">680</span></div>
+      <div class="trow"><span class="tn">login_logs</span><span class="tb"><i style="--w:1.5%"></i></span><span class="tc">441</span></div>
+      <div class="trow"><span class="tn">refresh_tokens</span><span class="tb"><i style="--w:1.5%"></i></span><span class="tc">60</span></div>
+      <div class="trow"><span class="tn">watermark_logs</span><span class="tb"><i style="--w:1.5%"></i></span><span class="tc">58</span></div>
+      <div class="trow"><span class="tn">dm_conversation_members</span><span class="tb"><i style="--w:1.5%"></i></span><span class="tc">46</span></div>
+      <div class="trow"><span class="tn">sensitive_words</span><span class="tb"><i style="--w:1.5%"></i></span><span class="tc">37</span></div>
+      <div class="trow"><span class="tn">users</span><span class="tb"><i style="--w:1.5%"></i></span><span class="tc">30</span></div>
+      <div class="trow"><span class="tn">ai_history</span><span class="tb"><i style="--w:1.5%"></i></span><span class="tc">25</span></div>
+      <div class="trow"><span class="tn">dm_conversations</span><span class="tb"><i style="--w:1.5%"></i></span><span class="tc">23</span></div>
+    </div>
+    <div class="panel" style="padding:0;background:transparent;border:none">
+      <div class="term">
+        <div class="termbar"><i></i><i></i><i></i><span>harness@prod — service timeline</span></div>
+        <div class="termbody">
+          <div class="row"><span class="t">2026-08-14 12:38</span> <span class="mod">[db]</span>     <span class="lv-i">INFO</span>  <span class="msg">PostgreSQL 16-alpine 就绪 · 33 张表迁移至 a6b7c8d9e0f1</span></div>
+          <div class="row"><span class="t">2026-08-14 12:38</span> <span class="mod">[iot]</span>    <span class="lv-i">INFO</span>  <span class="msg">设备遥测管道开启 · 每 2 秒写入一条记录</span></div>
+          <div class="row"><span class="t">2026-08-14 12:39</span> <span class="mod">[api]</span>    <span class="lv-i">INFO</span>  <span class="msg">FastAPI 启动 · 14 个路由模块 / 21 个服务模块挂载完成</span></div>
+          <div class="row"><span class="t">2026-08-14 16:37</span> <span class="mod2">[web]</span>    <span class="lv-i">INFO</span>  <span class="msg">Nginx + Let's Encrypt 上线 · HTTPS / WSS 全站可用</span></div>
+          <div class="row"><span class="t">2026-08-18 18:29</span> <span class="mod2">[deploy]</span> <span class="lv-i">INFO</span>  <span class="msg">全站部署完成 · 维护模式自动关闭</span></div>
+          <div class="row"><span class="t">2026-08-29 19:55</span> <span class="mod">[auth]</span>   <span class="lv-w">WARN</span>  <span class="msg">检测到登录失败尝试，触发 IP 限流与邮箱锁定策略</span></div>
+          <div class="row"><span class="t">2026-09-04 10:12</span> <span class="mod">[im]</span>     <span class="lv-i">INFO</span>  <span class="msg">敏感词过滤命中 67 次，消息被拦截并记入审计</span></div>
+          <div class="row"><span class="t">2026-09-08 15:40</span> <span class="mod">[im]</span>     <span class="lv-i">INFO</span>  <span class="msg">水印取证解码 160 次 · 零宽文本水印命中正常</span></div>
+          <div class="row"><span class="t">2026-09-12 09:05</span> <span class="mod">[ops]</span>    <span class="lv-i">INFO</span>  <span class="msg">磁盘占用 9.8G / 40G · 5 个容器全部健康</span></div>
+          <div class="row"><span class="t">2026-09-13 12:27</span> <span class="mod">[iot]</span>    <span class="lv-i">INFO</span>  <span class="msg">写入第 1,295,060 条遥测记录（最后一次数据写入）</span></div>
+          <div class="row"><span class="t">2026-09-13 19:39</span> <span class="mod">[ops]</span>    <span class="lv-i">INFO</span>  <span class="msg">全量备份完成 · SHA256 校验通过 · 三份归档共 403MB</span></div>
+          <div class="row"><span class="t">2026-09-13 19:52</span> <span class="mod">[ops]</span>    <span class="lv-i">INFO</span>  <span class="msg">还原实测通过 · 15 张表行数与线上完全一致</span></div>
+          <div class="row"><span class="t">2026-09-13 20:14</span> <span class="mod2">[web]</span>    <span class="lv-i">INFO</span>  <span class="msg">官网切换为告别页 · 全部路由返回本页面</span></div>
+          <div class="row"><span class="t">2026-09-13 20:31</span> <span class="mod">[ops]</span>    <span class="lv-e">STOP</span>  <span class="msg">服务生命周期结束 · 感谢每一位曾经使用的朋友 <span class="cursor"></span></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="snum">04</span><h2 class="stitle">这一路</h2><span class="sdesc">v0.1 → v0.10.1</span></div>
+    <div class="grid2">
+      <div class="panel">
+        <div class="ptitle">里程碑</div>
+        <ul class="tl">
+          <li class="done"><span class="when">v0.1–0.8</span><b>基础平台</b>：用户体系 · AI 模块 · Admin 后台 · 备份体系</li>
+          <li class="done"><span class="when">v0.9</span><b>账号安全</b>：邮箱验证码 · 2FA(TOTP) · GitHub SSO · 主题系统</li>
+          <li class="done"><span class="when">v0.10</span><b>站内消息</b>：私信 · 群聊 · 公告机器人 · 双层水印溯源</li>
+          <li class="done"><span class="when">v0.10</span><b>合规化</b>：协议与隐私 · 账号注销 · 聊天导出 · 敏感词 · 保留期</li>
+          <li class="done"><span class="when">v0.10</span><b>企业级维护模式</b>：四模式 · 三级自动恢复 · 紧急令牌</li>
+          <li class="done"><span class="when">v0.10</span><b>安全加固基线</b>：限流 · 可信 IP · 设备绑定 · 上传校验</li>
+          <li class="done"><span class="when">v0.10.1</span><b>图灵斑图实验室</b>：WebGL2 反应扩散 · 7 种动物纹路</li>
+          <li class="end"><span class="when">2026.09</span><b>服务下线</b>：全量备份 · 官网转为告别页</li>
+        </ul>
+      </div>
+      <div class="panel recall">
+        <div class="ptitle">做过的功能</div>
+        <ul>
+          <li>JWT 双 Token + 设备指纹硬校验、TOTP 两步验证、GitHub SSO</li>
+          <li>AI 流式对话：SSE 输出、深度思考、Markdown / LaTeX / 代码高亮</li>
+          <li>私信与群聊：WebSocket 实时、撤回、拉黑、举报审核闭环</li>
+          <li>可见水印 + 零宽字符文本水印，复制文本也能溯源取证</li>
+          <li>留言板档案号追踪、多轮回复时间线、邮件通知</li>
+          <li>企业级维护模式：四种模式、倒计时自动恢复、紧急逃生令牌</li>
+          <li>企业级日志导出：六大数据源、CSV/JSON、SHA-256 完整性校验</li>
+          <li>安全基线：IP 限流、可信 IP、上传内容校验、CSP/HSTS 安全头</li>
+          <li>图灵斑图：斑马、老虎、豹、长颈鹿、苏眉鱼、蝴蝶鱼、箱鲀</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
   <div class="actions">
     <a class="btn primary" href="https://github.com/3128771573/project-harness" target="_blank" rel="noopener">
@@ -150,13 +376,15 @@
 
   <p class="farewell">
     "这不是结束，只是一次暂停。"<br>
-    所有数据已被完整备份并验证可还原，代码与技术沉淀将一直留在开源仓库里。<br>
+    30 天里，它扛住了 129 万条遥测、680 条私信、1,180 条审计记录。<br>
+    所有数据已被完整备份并验证可还原，代码与技术沉淀会一直留在开源仓库里。<br>
     谢谢你曾经来过。
   </p>
-</main>
 
-<footer>
-  © 2026 Project Harness<span class="sep">·</span>AI · IoT · Digital Services<span class="sep">·</span>已停止服务
-</footer>
+  <footer>
+    © 2026 Project Harness<span class="sep">·</span>AI · IoT · Digital Services<span class="sep">·</span>已停止服务<br>
+    <span style="opacity:.6">统计口径：2026-08-14 ~ 2026-09-13 · 仅展示聚合数据，不含用户隐私信息</span>
+  </footer>
+</div>
 </body>
 </html>
