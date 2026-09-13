@@ -5,136 +5,90 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark">
 <title>Project Harness · 感谢陪伴</title>
-<meta name="description" content="Project Harness 已停止对外服务。运行 30 天的完整数据与日志回顾。">
+<meta name="description" content="Project Harness 已停止对外服务。30 天运行数据、访客地理与日志全景回顾。">
 <meta name="robots" content="noindex">
 <style>
-/* ============================================================
-   性能说明（首版滚动卡顿的根因与修复）
-   1. 去掉全部 backdrop-filter：卡片不再逐帧重算背景模糊
-   2. 去掉 filter: blur(120px) 光晕：改为单层径向渐变，绘制一次即缓存
-   3. 去掉 mask-image：改用渐变自然淡出
-   4. 动画只走 transform / opacity（合成器线程），不再动 height / width（触发布局重排）
-   5. 滚动监听用 rAF 节流；渐显用 IntersectionObserver，触发一次即注销
-   ============================================================ */
-  :root{
-    --bg:#06080d; --fg:#eef2f7; --muted:#8b98ab; --dim:#606e81;
-    --line:rgba(255,255,255,.085); --line2:rgba(255,255,255,.16); --card:rgba(255,255,255,.038);
-    --accent:#5b8def; --accent2:#a78bfa; --warm:#ffd27a; --ok:#34d399; --err:#f87171;
-    --mono:"SF Mono",SFMono-Regular,ui-monospace,Consolas,"Liberation Mono",Menlo,monospace;
-    --ease:cubic-bezier(.22,.8,.26,1);
-  }
+  :root{--bg:#06080d;--fg:#eef2f7;--muted:#8b98ab;--dim:#606e81;--line:rgba(255,255,255,.085);--line2:rgba(255,255,255,.16);--card:rgba(255,255,255,.038);--accent:#5b8def;--accent2:#a78bfa;--warm:#ffd27a;--ok:#34d399;--err:#f87171;--mono:"SF Mono",SFMono-Regular,ui-monospace,Consolas,Menlo,monospace;--ease:cubic-bezier(.22,.8,.26,1)}
   *{box-sizing:border-box}
-  html{scroll-behavior:smooth; scroll-padding-top:78px; -webkit-text-size-adjust:100%}
-  body{margin:0;background:var(--bg);color:var(--fg);overflow-x:hidden;line-height:1.68;
-    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
-  body{-webkit-overflow-scrolling:touch}
-
-  /* 单层固定背景：无数值滤镜、无遮罩，一次性缓存 */
-  .bg{position:fixed;inset:0;z-index:0;pointer-events:none;
-    background:
-      radial-gradient(circle, rgba(120,160,240,.14) 1.4px, transparent 1.5px) 0 0/46px 46px,
-      radial-gradient(58% 42% at 10% 6%, rgba(91,141,239,.20), transparent 72%),
-      radial-gradient(52% 40% at 92% 20%, rgba(167,139,250,.15), transparent 74%),
-      radial-gradient(70% 46% at 50% 108%, rgba(255,210,122,.09), transparent 72%),
-      radial-gradient(1200px 560px at 50% -12%, rgba(91,141,239,.10), transparent 76%),
-      #06080d;
-  }
-
-  /* 顶部滚动进度条（transform: scaleX，合成层） */
-  .progress{position:fixed;top:0;left:0;right:0;height:2px;z-index:60;background:transparent;pointer-events:none}
-  .progress i{display:block;height:100%;transform:scaleX(0);transform-origin:0 50%;
-    background:linear-gradient(90deg,var(--accent),var(--accent2),var(--warm));
-    transition:transform .08s linear}
-
-  /* 吸顶导航：纯色半透明，无 backdrop-filter */
-  .topbar{position:fixed;top:0;left:0;right:0;height:56px;z-index:50;display:flex;align-items:center;gap:12px;
-    padding:0 max(18px,calc((100vw - 1060px)/2));background:rgba(6,8,13,.88);border-bottom:1px solid var(--line)}
+  html{scroll-behavior:smooth;scroll-padding-top:78px;-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);overflow-x:hidden;line-height:1.68;-webkit-font-smoothing:antialiased;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .bg{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(circle,rgba(120,160,240,.13) 1.4px,transparent 1.5px) 0 0/46px 46px,radial-gradient(58% 42% at 10% 6%,rgba(91,141,239,.2),transparent 72%),radial-gradient(52% 40% at 92% 20%,rgba(167,139,250,.15),transparent 74%),radial-gradient(70% 46% at 50% 108%,rgba(255,210,122,.09),transparent 72%),#06080d}
+  .progress{position:fixed;top:0;left:0;right:0;height:2px;z-index:60;pointer-events:none}
+  .progress i{display:block;height:100%;transform:scaleX(0);transform-origin:0 50%;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--warm));transition:transform .08s linear}
+  .topbar{position:fixed;top:0;left:0;right:0;height:56px;z-index:50;display:flex;align-items:center;gap:12px;padding:0 max(18px,calc((100vw - 1060px)/2));background:rgba(6,8,13,.9);border-bottom:1px solid var(--line)}
   .tb-dot{width:7px;height:7px;border-radius:50%;background:#e5484d;flex:none}
   .tb-title{font-size:12px;font-weight:700;letter-spacing:.16em;color:#c6d2e2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .tb-nav{margin-left:auto;display:flex;gap:22px}
+  .tb-nav{margin-left:auto;display:flex;gap:20px}
   .tb-nav a{font-size:12.5px;color:var(--muted);text-decoration:none;transition:color .18s var(--ease)}
   .tb-nav a:hover{color:#fff}
-
   .wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:0 24px}
-
-  /* 首屏 */
-  .hero{padding:104px 0 46px;text-align:center}
-  .badge{display:inline-flex;align-items:center;gap:9px;font-size:11.5px;font-weight:700;letter-spacing:.22em;
-    color:#c9d4e4;background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:999px;padding:9px 18px}
+  .hero{padding:104px 0 40px;text-align:center}
+  .badge{display:inline-flex;align-items:center;gap:9px;font-size:11.5px;font-weight:700;letter-spacing:.22em;color:#c9d4e4;background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:999px;padding:9px 18px}
   .dot{width:7px;height:7px;border-radius:50%;background:#e5484d}
-  h1{margin:26px 0 0;font-size:clamp(40px,8.5vw,76px);font-weight:800;letter-spacing:-.035em;line-height:1.04;
-    background:linear-gradient(112deg,#fff 8%,#c2d4f8 46%,var(--accent2) 92%);
-    -webkit-background-clip:text;background-clip:text;color:transparent}
-  .lede{margin:18px auto 0;max-width:660px;font-size:clamp(14px,2vw,16.5px);color:#b5c1d2}
+  h1{margin:26px 0 0;font-size:clamp(40px,8.5vw,76px);font-weight:800;letter-spacing:-.035em;line-height:1.04;background:linear-gradient(112deg,#fff 8%,#c2d4f8 46%,var(--accent2) 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{margin:18px auto 0;max-width:680px;font-size:clamp(14px,2vw,16.5px);color:#b5c1d2}
   .lede b{color:#fff;font-weight:600}
-  .pillrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+  .pillrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:24px}
   .pill{font-size:12.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 15px}
   .pill b{color:var(--warm);font-weight:700}
-
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin:50px 0 0}
-  .kpi{background:linear-gradient(180deg,rgba(255,255,255,.058),rgba(255,255,255,.016));border:1px solid var(--line);
-    border-radius:16px;padding:20px 16px;will-change:transform;
-    transition:transform .32s var(--ease),border-color .32s var(--ease),box-shadow .32s var(--ease)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:48px 0 0}
+  .kpi{background:linear-gradient(180deg,rgba(255,255,255,.058),rgba(255,255,255,.016));border:1px solid var(--line);border-radius:16px;padding:18px 15px;transition:transform .32s var(--ease),border-color .32s var(--ease),box-shadow .32s var(--ease)}
   .kpi:hover{transform:translateY(-4px);border-color:var(--line2);box-shadow:0 18px 40px rgba(0,0,0,.38)}
-  .kpi .n{font-size:27px;font-weight:800;letter-spacing:-.02em;color:#fff;font-variant-numeric:tabular-nums}
-  .kpi .n small{font-size:12.5px;font-weight:600;color:var(--muted);margin-left:3px}
+  .kpi .n{font-size:26px;font-weight:800;letter-spacing:-.02em;color:#fff;font-variant-numeric:tabular-nums}
+  .kpi .n small{font-size:12px;font-weight:600;color:var(--muted);margin-left:3px}
   .kpi .l{margin-top:6px;font-size:12px;color:var(--muted);letter-spacing:.04em}
   .kpi .s{margin-top:3px;font-size:11px;color:var(--dim)}
-
-  section{margin-top:72px}
+  section{margin-top:70px}
   .shead{display:flex;align-items:baseline;gap:12px;margin-bottom:20px}
-  .snum{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.12em;
-    border:1px solid rgba(91,141,239,.3);border-radius:6px;padding:3px 8px;background:rgba(91,141,239,.08)}
+  .snum{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.12em;border:1px solid rgba(91,141,239,.3);border-radius:6px;padding:3px 8px;background:rgba(91,141,239,.08)}
   .stitle{font-size:19px;font-weight:700;letter-spacing:-.01em;margin:0}
   .sdesc{font-size:12.5px;color:var(--dim);margin-left:auto;text-align:right}
-  .hr{height:1px;margin:52px 0 0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent)}
-
+  .hr{height:1px;margin:50px 0 0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent)}
   .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px}
   .panel+.panel{margin-top:14px}
-  .ptitle{font-size:13px;font-weight:700;color:#d2dbe8;letter-spacing:.08em;margin:0 0 16px;
-    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .ptitle{font-size:13px;font-weight:700;color:#d2dbe8;letter-spacing:.08em;margin:0 0 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
   .ptitle span{font-size:11.5px;color:var(--dim);font-weight:500;letter-spacing:0}
-
-  /* 柱状图：只动 transform */
-  .chart{display:flex;align-items:flex-end;gap:6px;height:184px;padding-top:20px}
+  .chart{display:flex;align-items:flex-end;gap:6px;height:180px;padding-top:20px}
   .bar{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:0}
-  .col{display:block;width:100%;height:var(--h);border-radius:5px 5px 3px 3px;transform-origin:50% 100%;
-    background:linear-gradient(180deg,#6f9df3,rgba(91,141,239,.26));
-    animation:colIn .78s var(--ease) both; animation-delay:calc(var(--i) * 24ms)}
+  .col{display:block;width:100%;height:var(--h);border-radius:5px 5px 3px 3px;transform-origin:50% 100%;background:linear-gradient(180deg,#6f9df3,rgba(91,141,239,.26));animation:colIn .78s var(--ease) both;animation-delay:calc(var(--i)*24ms)}
   .bar:nth-child(4n) .col{background:linear-gradient(180deg,#b49bfb,rgba(167,139,250,.24))}
-  .bar:hover .col{filter:brightness(1.15)}
   @keyframes colIn{from{transform:scaleY(.02);opacity:.3}to{transform:scaleY(1);opacity:1}}
   .bv{font-size:10px;color:var(--muted);margin-bottom:5px;font-variant-numeric:tabular-nums}
   .bl{font-size:9.5px;color:var(--dim);margin-top:7px;white-space:nowrap;transform:rotate(-42deg)}
-  .baseline{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent);margin-top:-1px}
-
-  .strip{display:flex;align-items:flex-end;gap:3px;height:78px;margin-top:6px}
-  .hbar{flex:1;height:var(--h);border-radius:3px 3px 0 0;transform-origin:50% 100%;
-    background:linear-gradient(180deg,rgba(52,211,153,.88),rgba(52,211,153,.20));
-    animation:colIn .7s var(--ease) both; animation-delay:calc(var(--i) * 22ms)}
+  .strip{display:flex;align-items:flex-end;gap:3px;height:76px;margin-top:6px}
+  .hbar{flex:1;height:var(--h);border-radius:3px 3px 0 0;transform-origin:50% 100%;background:linear-gradient(180deg,rgba(52,211,153,.88),rgba(52,211,153,.2));animation:colIn .7s var(--ease) both;animation-delay:calc(var(--i)*22ms)}
+  .strip.ip .hbar{background:linear-gradient(180deg,rgba(255,210,122,.9),rgba(255,210,122,.18))}
   .axis{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:8px;font-family:var(--mono)}
-
-  /* 横向条形：只动 transform */
-  .trow{display:grid;grid-template-columns:minmax(120px,180px) 1fr 84px;align-items:center;gap:12px;padding:5px 0}
+  .trow{display:grid;grid-template-columns:minmax(120px,190px) 1fr 84px;align-items:center;gap:12px;padding:5px 0}
   .tn{font-family:var(--mono);font-size:11.5px;color:#adbacb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tb{height:8px;background:rgba(255,255,255,.055);border-radius:999px;overflow:hidden}
-  .tb i{display:block;height:100%;width:var(--w);border-radius:999px;transform-origin:0 50%;
-    background:linear-gradient(90deg,var(--accent),var(--accent2));
-    animation:rowIn .72s var(--ease) both; animation-delay:calc(var(--i) * 26ms)}
+  .tb i{display:block;height:100%;width:var(--w);border-radius:999px;transform-origin:0 50%;background:linear-gradient(90deg,var(--accent),var(--accent2));animation:rowIn .72s var(--ease) both;animation-delay:calc(var(--i)*26ms)}
   @keyframes rowIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
   .tc{font-size:11.5px;color:#d2dbe8;text-align:right;font-variant-numeric:tabular-nums}
-
+  .mapwrap{position:relative;aspect-ratio:2/1;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,#04060a,#070a11);border:1px solid var(--line)}
+  .mapwrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .pins{position:absolute;inset:0}
+  .pin{position:absolute;left:var(--x);top:var(--y);width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:radial-gradient(circle,#93b7ff,#3d6cd6);box-shadow:0 0 0 3px rgba(91,141,239,.16),0 0 15px rgba(91,141,239,.55);animation:pinIn .62s var(--ease) both;animation-delay:var(--d)}
+  .pin.frn{background:radial-gradient(circle,#ffb2a4,#dc4b34);box-shadow:0 0 0 3px rgba(229,72,77,.15),0 0 15px rgba(229,72,77,.5)}
+  .pin b{position:absolute;left:13px;top:-5px;font-size:10.5px;font-weight:600;color:#dce6f5;white-space:nowrap;text-shadow:0 1px 6px #000,0 0 12px #000;pointer-events:none}
+  @keyframes pinIn{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(var(--s))}}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:12px;align-items:center}
+  .legend s{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;background:radial-gradient(circle,#93b7ff,#3d6cd6)}
+  .legend s.r{background:radial-gradient(circle,#ffb2a4,#dc4b34)}
+  .mapnote{font-size:11px;color:var(--dim);margin-top:8px}
   .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(286px,1fr));gap:14px}
   .dlist{margin:0;padding:0;list-style:none}
-  .dlist li{display:flex;justify-content:space-between;gap:14px;padding:8px 0;font-size:13.5px;
-    border-bottom:1px dashed rgba(255,255,255,.07)}
+  .dlist li{display:flex;justify-content:space-between;gap:14px;padding:8px 0;font-size:13.5px;border-bottom:1px dashed rgba(255,255,255,.07)}
   .dlist li:last-child{border-bottom:none}
-  .dlist .k{color:var(--muted)}
-  .dlist .v{color:#fff;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
-  .dlist .v em{font-style:normal;color:var(--dim);font-weight:500;font-size:12px;margin-left:5px}
-
-  /* 终端日志：整段展示，不做内层滚动（避免嵌套滚动卡顿） */
+  .dlist .k{color:var(--muted);display:flex;align-items:baseline;gap:7px;min-width:0}
+  .dlist .k em{font-style:normal;color:var(--dim);font-size:11.5px}
+  .dlist .v{color:#fff;font-weight:600;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .dlist .v em{font-style:normal;color:var(--dim);font-weight:500;font-size:12px;margin-left:6px}
+  .insight{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:rgba(229,72,77,.07);border:1px solid rgba(229,72,77,.22);margin-top:14px}
+  .insight.ok{background:rgba(52,211,153,.06);border-color:rgba(52,211,153,.22)}
+  .insight i{font-style:normal;font-size:17px;line-height:1.2}
+  .insight p{margin:0;font-size:13px;color:#c4d0df;line-height:1.7}
+  .insight b{color:#fff}
   .term{background:#04060a;border:1px solid var(--line2);border-radius:14px;overflow:hidden;font-family:var(--mono)}
   .termbar{display:flex;align-items:center;gap:7px;padding:11px 14px;background:rgba(255,255,255,.04);border-bottom:1px solid var(--line)}
   .termbar i{width:10px;height:10px;border-radius:50%;display:block}
@@ -142,394 +96,212 @@
   .termbar span{margin-left:8px;font-size:11.5px;color:var(--dim);letter-spacing:.06em}
   .termbody{padding:16px 18px;font-size:12px;line-height:2.05}
   .termbody .row{white-space:pre-wrap;word-break:break-word}
-  .t{color:var(--dim)}
-  .lv-i{color:var(--ok)}.lv-w{color:var(--warm)}.lv-e{color:var(--err)}
-  .mod{color:var(--accent)}.mod2{color:var(--accent2)}
-  .msg{color:#c9d4e2}
+  .t{color:var(--dim)}.lv-i{color:var(--ok)}.lv-w{color:var(--warm)}.lv-e{color:var(--err)}.mod{color:var(--accent)}.mod2{color:var(--accent2)}.msg{color:#c9d4e2}
   .cursor{display:inline-block;width:7px;height:13px;background:var(--ok);animation:blink 1.15s steps(1) infinite;vertical-align:-2px}
   @keyframes blink{50%{opacity:0}}
-
   .tl{position:relative;margin:0;padding:0 0 0 26px;list-style:none}
-  .tl::before{content:"";position:absolute;left:7px;top:8px;bottom:8px;width:1px;
-    background:linear-gradient(180deg,transparent,rgba(255,255,255,.18),transparent)}
+  .tl::before{content:"";position:absolute;left:7px;top:8px;bottom:8px;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.18),transparent)}
   .tl li{position:relative;padding:9px 0 9px 6px;font-size:13.5px;color:#bcc7d6}
-  .tl li::before{content:"";position:absolute;left:-24px;top:16px;width:9px;height:9px;border-radius:50%;
-    background:var(--bg);border:2px solid var(--accent)}
+  .tl li::before{content:"";position:absolute;left:-24px;top:16px;width:9px;height:9px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
   .tl li.done::before{border-color:var(--ok);background:var(--ok)}
   .tl li.end::before{border-color:#e5484d;background:#e5484d}
-  .tl b{color:#fff;font-weight:600}
-  .tl .when{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-right:8px}
-
+  .tl b{color:#fff;font-weight:600}.tl .when{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-right:8px}
   .recall ul{margin:0;padding:0;list-style:none;display:grid;gap:9px}
   .recall li{font-size:13.5px;color:#b5c1d2;padding-left:20px;position:relative}
-  .recall li::before{content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;
-    background:linear-gradient(135deg,var(--accent),var(--accent2))}
-
-  .actions{margin:56px 0 0;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-  .btn{display:inline-flex;align-items:center;gap:9px;text-decoration:none;font-weight:600;font-size:14.5px;
-    padding:13px 26px;border-radius:999px;will-change:transform;
-    transition:transform .26s var(--ease),box-shadow .26s var(--ease),background .26s var(--ease)}
+  .recall li::before{content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .actions{margin:54px 0 0;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:9px;text-decoration:none;font-weight:600;font-size:14.5px;padding:13px 26px;border-radius:999px;transition:transform .26s var(--ease),box-shadow .26s var(--ease),background .26s var(--ease)}
   .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 10px 30px rgba(91,141,239,.26)}
   .btn.primary:hover{transform:translateY(-2px);box-shadow:0 18px 46px rgba(91,141,239,.4)}
   .btn.ghost{border:1px solid var(--line2);color:#dde5ef;background:rgba(255,255,255,.04)}
   .btn.ghost:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
   .btn svg{width:16px;height:16px;fill:currentColor}
-
-  .farewell{margin:58px auto 0;max-width:620px;text-align:center;font-size:14.5px;color:#9dabbb;font-style:italic;line-height:2.05}
-  footer{margin-top:66px;border-top:1px solid var(--line);padding:26px 0 44px;text-align:center;font-size:12.5px;color:var(--dim)}
+  .farewell{margin:56px auto 0;max-width:640px;text-align:center;font-size:14.5px;color:#9dabbb;font-style:italic;line-height:2.05}
+  footer{margin-top:64px;border-top:1px solid var(--line);padding:26px 0 44px;text-align:center;font-size:12.5px;color:var(--dim)}
   footer .sep{margin:0 8px;opacity:.5}
-
-  /* 回到顶部 */
-  .totop{position:fixed;right:22px;bottom:24px;z-index:55;width:44px;height:44px;border-radius:50%;
-    border:1px solid var(--line2);background:rgba(12,16,24,.92);color:#dbe3ee;font-size:17px;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;
-    transform:translateY(12px) scale(.94);transition:opacity .3s var(--ease),transform .3s var(--ease)}
+  .totop{position:fixed;right:22px;bottom:24px;z-index:55;width:44px;height:44px;border-radius:50%;border:1px solid var(--line2);background:rgba(12,16,24,.92);color:#dbe3ee;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transform:translateY(12px) scale(.94);transition:opacity .3s var(--ease),transform .3s var(--ease)}
   .totop.on{opacity:1;pointer-events:auto;transform:none}
-  .totop:hover{background:rgba(255,255,255,.12)}
-
-  /* 滚动渐显：仅在 JS 可用时启用；只动 transform / opacity */
   .js .rv{opacity:0;transform:translateY(18px)}
   .js .rv.in{opacity:1;transform:none;transition:opacity .62s var(--ease),transform .62s var(--ease);transition-delay:var(--d,0ms)}
-
-  @media (prefers-reduced-motion: reduce){
-    html{scroll-behavior:auto}
-    .js .rv{opacity:1;transform:none}
-    .col,.hbar,.tb i{animation:none}
-    .cursor{animation:none}
-  }
-  @media (max-width:700px){
-    .topbar{height:52px}
-    .tb-nav{display:none}
-    .hero{padding:88px 0 34px}
-    .panel{padding:18px 16px}
-    .sdesc{display:none}
-    .bl{display:none}
-    .chart{height:132px;gap:4px}
-    .trow{grid-template-columns:1fr auto;gap:8px}
-    .tb{display:none}
-    .btn{width:100%;justify-content:center}
-    .totop{right:14px;bottom:16px;width:40px;height:40px}
-    section{margin-top:56px}
-  }
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.js .rv{opacity:1;transform:none}.col,.hbar,.tb i,.pin{animation:none}.cursor{animation:none}}
+  @media (max-width:700px){.topbar{height:52px}.tb-nav{display:none}.hero{padding:88px 0 30px}.panel{padding:16px 14px}.sdesc{display:none}.bl{display:none}.chart{height:130px;gap:4px}.trow{grid-template-columns:1fr auto;gap:8px}.tb{display:none}.btn{width:100%;justify-content:center}.totop{right:14px;bottom:16px;width:40px;height:40px}section{margin-top:54px}.pin b{display:none}}
 </style>
 </head>
 <body>
 <div class="bg"></div>
 <div class="progress"><i id="pg"></i></div>
-
 <header class="topbar">
   <span class="tb-dot"></span>
   <span class="tb-title">PROJECT HARNESS · 已停止服务</span>
   <nav class="tb-nav">
-    <a href="#trend">访问趋势</a><a href="#data">数据全景</a><a href="#logs">运行日志</a><a href="#journey">这一路</a>
+    <a href="#trend">趋势</a><a href="#geo">地理</a><a href="#who">画像</a><a href="#data">数据</a><a href="#logs">日志</a><a href="#journey">历程</a>
   </nav>
 </header>
-
 <div class="wrap">
-
   <div class="hero">
     <span class="badge"><span class="dot"></span>2026.09 · 服务终止</span>
     <h1>感谢陪伴</h1>
-    <p class="lede">Project Harness 已于 <b>2026 年 9 月 13 日</b> 停止对外服务，官网切换为这张告别页。<br>从 8 月 14 日第一次启动，到 9 月 13 日最后一次写入遥测，这台小小的服务器运行了 <b>30 天</b>。</p>
-    <div class="pillrow">
-      <span class="pill">运行时长 <b>30 天</b></span>
-      <span class="pill">数据表 <b>33 张</b></span>
-      <span class="pill">容器 <b>5 个</b></span>
-      <span class="pill">版本 <b>v0.10.1</b></span>
-      <span class="pill">数据已完整备份</span>
-    </div>
+    <p class="lede">Project Harness 已于 <b>2026 年 9 月 13 日</b> 停止对外服务。从 8 月 14 日启动到 9 月 13 日最后一次写入遥测，这台服务器运行了 <b>30 天</b>，接待了 <b>139 个独立 IP</b>、覆盖 <b>43 个属地</b>。</p>
+    <div class="pillrow"><span class="pill">运行 <b>30 天</b></span><span class="pill">数据表 <b>33 张</b></span><span class="pill">容器 <b>5 个</b></span><span class="pill">版本 <b>v0.10.1</b></span><span class="pill">数据已完整备份</span></div>
   </div>
-
-  <div class="kpis">
-      <div class="kpi rv" style="--d:0ms"><div class="n">856</div><div class="l">页面访问</div><div class="s">来自 139 个独立 IP</div></div>
-      <div class="kpi rv" style="--d:40ms"><div class="n">30</div><div class="l">注册用户</div><div class="s">含 2 个机器人账号</div></div>
-      <div class="kpi rv" style="--d:80ms"><div class="n">680</div><div class="l">私信消息</div><div class="s">23 个会话 · 撤回 1 条</div></div>
-      <div class="kpi rv" style="--d:120ms"><div class="n">129.5<small>万</small></div><div class="l">设备遥测记录</div><div class="s">连续 30 天不间断</div></div>
-      <div class="kpi rv" style="--d:160ms"><div class="n">1,180</div><div class="l">审计日志</div><div class="s">覆盖 30+ 类操作</div></div>
-      <div class="kpi rv" style="--d:200ms"><div class="n">441</div><div class="l">登录尝试</div><div class="s">成功 206 · 2FA 91</div></div>
-      <div class="kpi rv" style="--d:240ms"><div class="n">58</div><div class="l">水印取证</div><div class="s">零宽文本水印解码</div></div>
-      <div class="kpi rv" style="--d:280ms"><div class="n">67</div><div class="l">敏感词拦截</div><div class="s">词库 37 条</div></div>
-  </div>
+  <div class="kpis"><div class="kpi rv" style="--d:0ms"><div class="n">856</div><div class="l">页面访问</div><div class="s">来自 139 个独立 IP</div></div><div class="kpi rv" style="--d:35ms"><div class="n">139</div><div class="l">独立 IP</div><div class="s">覆盖 43 个属地</div></div><div class="kpi rv" style="--d:70ms"><div class="n">18</div><div class="l">境外 IP</div><div class="s">7 个国家 · 全为机房</div></div><div class="kpi rv" style="--d:105ms"><div class="n">111</div><div class="l">境内 IP</div><div class="s">22 个城市 / 省份</div></div><div class="kpi rv" style="--d:140ms"><div class="n">30</div><div class="l">注册用户</div><div class="s">含 2 个机器人</div></div><div class="kpi rv" style="--d:175ms"><div class="n">680</div><div class="l">私信消息</div><div class="s">23 个会话</div></div><div class="kpi rv" style="--d:210ms"><div class="n">129.5<small>万</small></div><div class="l">设备遥测</div><div class="s">连续 30 天不间断</div></div><div class="kpi rv" style="--d:245ms"><div class="n">1,180</div><div class="l">审计日志</div><div class="s">失败仅 2 条</div></div><div class="kpi rv" style="--d:280ms"><div class="n">441</div><div class="l">登录尝试</div><div class="s">成功 206 · 2FA 91</div></div><div class="kpi rv" style="--d:315ms"><div class="n">67</div><div class="l">敏感词拦截</div><div class="s">词库 37 条</div></div></div>
 
   <section id="trend">
     <div class="shead rv"><span class="snum">01</span><h2 class="stitle">访问趋势</h2><span class="sdesc">2026-08-24 ~ 09-13 · 最近 21 天</span></div>
     <div class="panel rv">
       <div class="ptitle">每日页面访问（次）<span>峰值 09-04 · 23 次 &nbsp;|&nbsp; 日均约 10 次</span></div>
-      <div class="chart">
-        <div class="bar" title="08-24 · 5 次"><span class="bv">5</span><span class="col" style="--h:22%;--i:0"></span><span class="bl">08-24</span></div>
-        <div class="bar" title="08-25 · 17 次"><span class="bv">17</span><span class="col" style="--h:74%;--i:1"></span><span class="bl">08-25</span></div>
-        <div class="bar" title="08-26 · 4 次"><span class="bv">4</span><span class="col" style="--h:17%;--i:2"></span><span class="bl">08-26</span></div>
-        <div class="bar" title="08-27 · 6 次"><span class="bv">6</span><span class="col" style="--h:26%;--i:3"></span><span class="bl">08-27</span></div>
-        <div class="bar" title="08-28 · 18 次"><span class="bv">18</span><span class="col" style="--h:78%;--i:4"></span><span class="bl">08-28</span></div>
-        <div class="bar" title="08-29 · 13 次"><span class="bv">13</span><span class="col" style="--h:57%;--i:5"></span><span class="bl">08-29</span></div>
-        <div class="bar" title="08-30 · 7 次"><span class="bv">7</span><span class="col" style="--h:30%;--i:6"></span><span class="bl">08-30</span></div>
-        <div class="bar" title="08-31 · 8 次"><span class="bv">8</span><span class="col" style="--h:35%;--i:7"></span><span class="bl">08-31</span></div>
-        <div class="bar" title="09-01 · 12 次"><span class="bv">12</span><span class="col" style="--h:52%;--i:8"></span><span class="bl">09-01</span></div>
-        <div class="bar" title="09-02 · 4 次"><span class="bv">4</span><span class="col" style="--h:17%;--i:9"></span><span class="bl">09-02</span></div>
-        <div class="bar" title="09-03 · 6 次"><span class="bv">6</span><span class="col" style="--h:26%;--i:10"></span><span class="bl">09-03</span></div>
-        <div class="bar" title="09-04 · 23 次"><span class="bv">23</span><span class="col" style="--h:100%;--i:11"></span><span class="bl">09-04</span></div>
-        <div class="bar" title="09-05 · 9 次"><span class="bv">9</span><span class="col" style="--h:39%;--i:12"></span><span class="bl">09-05</span></div>
-        <div class="bar" title="09-06 · 4 次"><span class="bv">4</span><span class="col" style="--h:17%;--i:13"></span><span class="bl">09-06</span></div>
-        <div class="bar" title="09-07 · 6 次"><span class="bv">6</span><span class="col" style="--h:26%;--i:14"></span><span class="bl">09-07</span></div>
-        <div class="bar" title="09-08 · 18 次"><span class="bv">18</span><span class="col" style="--h:78%;--i:15"></span><span class="bl">09-08</span></div>
-        <div class="bar" title="09-09 · 6 次"><span class="bv">6</span><span class="col" style="--h:26%;--i:16"></span><span class="bl">09-09</span></div>
-        <div class="bar" title="09-10 · 7 次"><span class="bv">7</span><span class="col" style="--h:30%;--i:17"></span><span class="bl">09-10</span></div>
-        <div class="bar" title="09-11 · 11 次"><span class="bv">11</span><span class="col" style="--h:48%;--i:18"></span><span class="bl">09-11</span></div>
-        <div class="bar" title="09-12 · 12 次"><span class="bv">12</span><span class="col" style="--h:52%;--i:19"></span><span class="bl">09-12</span></div>
-        <div class="bar" title="09-13 · 7 次"><span class="bv">7</span><span class="col" style="--h:30%;--i:20"></span><span class="bl">09-13</span></div>
-      </div>
-      <div class="baseline"></div>
+      <div class="chart"><div class="bar" title="08-24 · 5 次"><span class="bv">5</span><span class="col" style="--h:22%;--i:0"></span><span class="bl">08-24</span></div><div class="bar" title="08-25 · 17 次"><span class="bv">17</span><span class="col" style="--h:74%;--i:1"></span><span class="bl">08-25</span></div><div class="bar" title="08-26 · 4 次"><span class="bv">4</span><span class="col" style="--h:17%;--i:2"></span><span class="bl">08-26</span></div><div class="bar" title="08-27 · 6 次"><span class="bv">6</span><span class="col" style="--h:26%;--i:3"></span><span class="bl">08-27</span></div><div class="bar" title="08-28 · 18 次"><span class="bv">18</span><span class="col" style="--h:78%;--i:4"></span><span class="bl">08-28</span></div><div class="bar" title="08-29 · 13 次"><span class="bv">13</span><span class="col" style="--h:57%;--i:5"></span><span class="bl">08-29</span></div><div class="bar" title="08-30 · 7 次"><span class="bv">7</span><span class="col" style="--h:30%;--i:6"></span><span class="bl">08-30</span></div><div class="bar" title="08-31 · 8 次"><span class="bv">8</span><span class="col" style="--h:35%;--i:7"></span><span class="bl">08-31</span></div><div class="bar" title="09-01 · 12 次"><span class="bv">12</span><span class="col" style="--h:52%;--i:8"></span><span class="bl">09-01</span></div><div class="bar" title="09-02 · 4 次"><span class="bv">4</span><span class="col" style="--h:17%;--i:9"></span><span class="bl">09-02</span></div><div class="bar" title="09-03 · 6 次"><span class="bv">6</span><span class="col" style="--h:26%;--i:10"></span><span class="bl">09-03</span></div><div class="bar" title="09-04 · 23 次"><span class="bv">23</span><span class="col" style="--h:100%;--i:11"></span><span class="bl">09-04</span></div><div class="bar" title="09-05 · 9 次"><span class="bv">9</span><span class="col" style="--h:39%;--i:12"></span><span class="bl">09-05</span></div><div class="bar" title="09-06 · 4 次"><span class="bv">4</span><span class="col" style="--h:17%;--i:13"></span><span class="bl">09-06</span></div><div class="bar" title="09-07 · 6 次"><span class="bv">6</span><span class="col" style="--h:26%;--i:14"></span><span class="bl">09-07</span></div><div class="bar" title="09-08 · 18 次"><span class="bv">18</span><span class="col" style="--h:78%;--i:15"></span><span class="bl">09-08</span></div><div class="bar" title="09-09 · 6 次"><span class="bv">6</span><span class="col" style="--h:26%;--i:16"></span><span class="bl">09-09</span></div><div class="bar" title="09-10 · 7 次"><span class="bv">7</span><span class="col" style="--h:30%;--i:17"></span><span class="bl">09-10</span></div><div class="bar" title="09-11 · 11 次"><span class="bv">11</span><span class="col" style="--h:48%;--i:18"></span><span class="bl">09-11</span></div><div class="bar" title="09-12 · 12 次"><span class="bv">12</span><span class="col" style="--h:52%;--i:19"></span><span class="bl">09-12</span></div><div class="bar" title="09-13 · 7 次"><span class="bv">7</span><span class="col" style="--h:30%;--i:20"></span><span class="bl">09-13</span></div></div>
     </div>
     <div class="panel rv">
-      <div class="ptitle">遥测写入节律（每小时记录数）<span>模拟设备每 2 秒上报一次 · 24 小时恒定</span></div>
-      <div class="strip">
-        <div class="hbar" style="--h:100%;--i:0" title="00:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:1" title="01:00 · 3598 条"></div>
-        <div class="hbar" style="--h:100%;--i:2" title="02:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:3" title="03:00 · 3598 条"></div>
-        <div class="hbar" style="--h:100%;--i:4" title="04:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:5" title="05:00 · 3598 条"></div>
-        <div class="hbar" style="--h:100%;--i:6" title="06:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:7" title="07:00 · 3598 条"></div>
-        <div class="hbar" style="--h:100%;--i:8" title="08:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:9" title="09:00 · 3599 条"></div>
-        <div class="hbar" style="--h:100%;--i:10" title="10:00 · 3599 条"></div>
-        <div class="hbar" style="--h:100%;--i:11" title="11:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:12" title="12:00 · 3598 条"></div>
-        <div class="hbar" style="--h:100%;--i:13" title="13:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:14" title="14:00 · 3598 条"></div>
-        <div class="hbar" style="--h:100%;--i:15" title="15:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:16" title="16:00 · 3598 条"></div>
-        <div class="hbar" style="--h:100%;--i:17" title="17:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:18" title="18:00 · 3598 条"></div>
-        <div class="hbar" style="--h:100%;--i:19" title="19:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:20" title="20:00 · 3598 条"></div>
-        <div class="hbar" style="--h:100%;--i:21" title="21:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:22" title="22:00 · 3600 条"></div>
-        <div class="hbar" style="--h:100%;--i:23" title="23:00 · 3598 条"></div>
-      </div>
+      <div class="ptitle">每小时访问分布（全天 856 次）<span>峰值 10:00 · 130 次 &nbsp;|&nbsp; 05:00 最低 · 4 次</span></div>
+      <div class="strip"><div class="hbar" style="--h:8%;--i:0" title="00:00 · 10 次"></div><div class="hbar" style="--h:5%;--i:1" title="01:00 · 7 次"></div><div class="hbar" style="--h:8%;--i:2" title="02:00 · 11 次"></div><div class="hbar" style="--h:5%;--i:3" title="03:00 · 6 次"></div><div class="hbar" style="--h:8%;--i:4" title="04:00 · 10 次"></div><div class="hbar" style="--h:4%;--i:5" title="05:00 · 4 次"></div><div class="hbar" style="--h:31%;--i:6" title="06:00 · 40 次"></div><div class="hbar" style="--h:23%;--i:7" title="07:00 · 30 次"></div><div class="hbar" style="--h:21%;--i:8" title="08:00 · 27 次"></div><div class="hbar" style="--h:55%;--i:9" title="09:00 · 71 次"></div><div class="hbar" style="--h:100%;--i:10" title="10:00 · 130 次"></div><div class="hbar" style="--h:58%;--i:11" title="11:00 · 76 次"></div><div class="hbar" style="--h:35%;--i:12" title="12:00 · 45 次"></div><div class="hbar" style="--h:35%;--i:13" title="13:00 · 46 次"></div><div class="hbar" style="--h:25%;--i:14" title="14:00 · 32 次"></div><div class="hbar" style="--h:48%;--i:15" title="15:00 · 62 次"></div><div class="hbar" style="--h:52%;--i:16" title="16:00 · 68 次"></div><div class="hbar" style="--h:48%;--i:17" title="17:00 · 63 次"></div><div class="hbar" style="--h:21%;--i:18" title="18:00 · 27 次"></div><div class="hbar" style="--h:14%;--i:19" title="19:00 · 18 次"></div><div class="hbar" style="--h:28%;--i:20" title="20:00 · 36 次"></div><div class="hbar" style="--h:6%;--i:21" title="21:00 · 8 次"></div><div class="hbar" style="--h:12%;--i:22" title="22:00 · 15 次"></div><div class="hbar" style="--h:11%;--i:23" title="23:00 · 14 次"></div></div>
       <div class="axis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
     </div>
+    <div class="panel rv">
+      <div class="ptitle">每日独立 IP 数（31 天）<span>首日 08-14 最多 · 29 个 IP</span></div>
+      <div class="strip ip"><div class="hbar ip" style="--h:100%;--i:0" title="08-14 · 29 个独立 IP"></div><div class="hbar ip" style="--h:90%;--i:1" title="08-15 · 26 个独立 IP"></div><div class="hbar ip" style="--h:41%;--i:2" title="08-16 · 12 个独立 IP"></div><div class="hbar ip" style="--h:41%;--i:3" title="08-17 · 12 个独立 IP"></div><div class="hbar ip" style="--h:52%;--i:4" title="08-18 · 15 个独立 IP"></div><div class="hbar ip" style="--h:21%;--i:5" title="08-19 · 6 个独立 IP"></div><div class="hbar ip" style="--h:28%;--i:6" title="08-20 · 8 个独立 IP"></div><div class="hbar ip" style="--h:62%;--i:7" title="08-21 · 18 个独立 IP"></div><div class="hbar ip" style="--h:41%;--i:8" title="08-22 · 12 个独立 IP"></div><div class="hbar ip" style="--h:24%;--i:9" title="08-23 · 7 个独立 IP"></div><div class="hbar ip" style="--h:45%;--i:10" title="08-24 · 13 个独立 IP"></div><div class="hbar ip" style="--h:55%;--i:11" title="08-25 · 16 个独立 IP"></div><div class="hbar ip" style="--h:14%;--i:12" title="08-26 · 4 个独立 IP"></div><div class="hbar ip" style="--h:21%;--i:13" title="08-27 · 6 个独立 IP"></div><div class="hbar ip" style="--h:55%;--i:14" title="08-28 · 16 个独立 IP"></div><div class="hbar ip" style="--h:31%;--i:15" title="08-29 · 9 个独立 IP"></div><div class="hbar ip" style="--h:21%;--i:16" title="08-30 · 6 个独立 IP"></div><div class="hbar ip" style="--h:28%;--i:17" title="08-31 · 8 个独立 IP"></div><div class="hbar ip" style="--h:41%;--i:18" title="09-01 · 12 个独立 IP"></div><div class="hbar ip" style="--h:14%;--i:19" title="09-02 · 4 个独立 IP"></div><div class="hbar ip" style="--h:21%;--i:20" title="09-03 · 6 个独立 IP"></div><div class="hbar ip" style="--h:59%;--i:21" title="09-04 · 17 个独立 IP"></div><div class="hbar ip" style="--h:24%;--i:22" title="09-05 · 7 个独立 IP"></div><div class="hbar ip" style="--h:14%;--i:23" title="09-06 · 4 个独立 IP"></div><div class="hbar ip" style="--h:21%;--i:24" title="09-07 · 6 个独立 IP"></div><div class="hbar ip" style="--h:45%;--i:25" title="09-08 · 13 个独立 IP"></div><div class="hbar ip" style="--h:21%;--i:26" title="09-09 · 6 个独立 IP"></div><div class="hbar ip" style="--h:21%;--i:27" title="09-10 · 6 个独立 IP"></div><div class="hbar ip" style="--h:34%;--i:28" title="09-11 · 10 个独立 IP"></div><div class="hbar ip" style="--h:38%;--i:29" title="09-12 · 11 个独立 IP"></div><div class="hbar ip" style="--h:10%;--i:30" title="09-13 · 3 个独立 IP"></div></div>
+      <div class="axis"><span>08-14</span><span>08-22</span><span>08-30</span><span>09-07</span><span>09-13</span></div>
+    </div>
   </section>
-
   <div class="hr"></div>
-
+  <section id="geo">
+    <div class="shead rv"><span class="snum">02</span><h2 class="stitle">访问地理</h2><span class="sdesc">139 个独立 IP · 43 个属地 · 城市级聚合</span></div>
+    <div class="panel rv">
+      <div class="ptitle">访客分布世界地图<span>点大小 = 访问量 &nbsp;|&nbsp; 蓝 = 境内 &nbsp; 红 = 境外</span></div>
+      <div class="mapwrap"><canvas id="world"></canvas><div class="pins"><i class="pin big" style="--x:83.311%;--y:31.967%;--s:1.35;--d:0ms" title="江苏 泰州 · 4 个 IP · 230 次访问"><b>泰州</b></i><i class="pin big" style="--x:83.000%;--y:32.189%;--s:1.19;--d:40ms" title="江苏 南京 · 16 个 IP · 152 次访问"><b>南京</b></i><i class="pin big" style="--x:81.461%;--y:37.150%;--s:1.03;--d:80ms" title="广东 广州 · 7 个 IP · 90 次访问"><b>广州</b></i><i class="pin big" style="--x:83.325%;--y:32.328%;--s:1.01;--d:120ms" title="江苏 常州 · 20 个 IP · 82 次访问"><b>常州</b></i><i class="pin big" style="--x:82.533%;--y:29.639%;--s:0.96;--d:160ms" title="山东 济南 · 6 个 IP · 68 次访问"><b>济南</b></i><i class="pin big" style="--x:82.336%;--y:27.833%;--s:0.92;--d:200ms" title="北京 · 29 个 IP · 57 次访问"><b>北京</b></i><i class="pin big" style="--x:81.597%;--y:37.211%;--s:0.69;--d:240ms" title="广东 东莞 · 12 个 IP · 12 次访问"><b>东莞</b></i><i class="pin" style="--x:83.494%;--y:32.611%;--s:0.63;--d:280ms" title="江苏 苏州 · 1 个 IP · 5 次访问"></i><i class="pin" style="--x:83.742%;--y:32.650%;--s:0.61;--d:320ms" title="上海 · 2 个 IP · 4 次访问"></i><i class="pin" style="--x:81.817%;--y:29.650%;--s:0.61;--d:360ms" title="河北 邯郸 · 1 个 IP · 4 次访问"></i><i class="pin" style="--x:81.264%;--y:28.961%;--s:0.61;--d:400ms" title="山西 · 2 个 IP · 4 次访问"></i><i class="pin" style="--x:83.903%;--y:24.400%;--s:0.60;--d:440ms" title="内蒙古 兴安盟 · 1 个 IP · 3 次访问"></i><i class="pin" style="--x:79.369%;--y:28.417%;--s:0.58;--d:480ms" title="内蒙古 阿拉善 · 1 个 IP · 2 次访问"></i><i class="pin" style="--x:80.394%;--y:36.483%;--s:0.58;--d:520ms" title="广西 柳州 · 1 个 IP · 2 次访问"></i><i class="pin" style="--x:83.769%;--y:36.094%;--s:0.56;--d:560ms" title="台湾 · 1 个 IP · 1 次访问"></i><i class="pin" style="--x:81.683%;--y:37.478%;--s:0.56;--d:600ms" title="广东 深圳 · 1 个 IP · 1 次访问"></i><i class="pin" style="--x:81.258%;--y:31.672%;--s:0.56;--d:640ms" title="河南 南阳 · 1 个 IP · 1 次访问"></i><i class="pin" style="--x:81.753%;--y:33.006%;--s:0.56;--d:680ms" title="湖北 武汉 · 1 个 IP · 1 次访问"></i><i class="pin" style="--x:80.556%;--y:34.694%;--s:0.56;--d:720ms" title="湖南 怀化 · 1 个 IP · 1 次访问"></i><i class="pin" style="--x:81.003%;--y:35.322%;--s:0.56;--d:760ms" title="湖南 永州 · 1 个 IP · 1 次访问"></i><i class="pin" style="--x:84.286%;--y:26.772%;--s:0.56;--d:800ms" title="辽宁 沈阳 · 1 个 IP · 1 次访问"></i><i class="pin" style="--x:81.319%;--y:29.061%;--s:0.56;--d:840ms" title="山西 晋中 · 1 个 IP · 1 次访问"></i><i class="pin frn" style="--x:15.922%;--y:24.711%;--s:0.60;--d:880ms" title="美国 波特兰 · 2 个 IP · 3 次访问 · Amazon 机房"></i><i class="pin frn" style="--x:28.475%;--y:28.311%;--s:0.60;--d:920ms" title="美国 阿什本 · 3 个 IP · 3 次访问 · Amazon 机房"></i><i class="pin frn" style="--x:29.442%;--y:27.383%;--s:0.58;--d:960ms" title="美国 纽约 · 2 个 IP · 2 次访问 · M247 机房"></i><i class="pin frn" style="--x:16.122%;--y:29.250%;--s:0.56;--d:1000ms" title="美国 圣克拉拉 · 1 个 IP · 1 次访问 · CenturyLink 机房"></i><i class="pin frn" style="--x:16.142%;--y:29.256%;--s:0.56;--d:1040ms" title="美国 圣何塞 · 1 个 IP · 1 次访问 · AceData 机房"></i><i class="pin frn" style="--x:23.375%;--y:27.078%;--s:0.56;--d:1080ms" title="美国 康瑟尔布拉夫斯 · 1 个 IP · 1 次访问 · Google 机房"></i><i class="pin frn" style="--x:53.722%;--y:20.822%;--s:0.58;--d:1120ms" title="德国 柏林 · 2 个 IP · 2 次访问 · HostRoyale 机房"></i><i class="pin frn" style="--x:53.128%;--y:23.211%;--s:0.56;--d:1160ms" title="德国 迈萨赫 · 1 个 IP · 1 次访问 · NUXOA 机房"></i><i class="pin frn" style="--x:51.169%;--y:21.117%;--s:0.56;--d:1200ms" title="荷兰 纳尔德韦克 · 1 个 IP · 1 次访问 · WorldStream 机房"></i><i class="pin frn" style="--x:85.261%;--y:29.244%;--s:0.56;--d:1240ms" title="韩国 军浦 · 1 个 IP · 1 次访问 · KT 机房"></i><i class="pin frn" style="--x:88.803%;--y:30.172%;--s:0.56;--d:1280ms" title="日本 东京 · 1 个 IP · 1 次访问 · M247 机房"></i><i class="pin frn" style="--x:15.839%;--y:22.639%;--s:0.58;--d:1320ms" title="加拿大 本拿比 · 1 个 IP · 2 次访问 · Bell 机房"></i><i class="pin frn" style="--x:54.547%;--y:23.217%;--s:0.56;--d:1360ms" title="奥地利 维也纳 · 1 个 IP · 1 次访问 · Cogent 机房"></i></div></div>
+      <div class="legend"><span><s></s>境内访问点</span><span><s class="r"></s>境外访问点（机房 / 爬虫）</span><span>点越大 = 访问越多</span><span>悬停查看明细</span></div>
+      <p class="mapnote">等距圆柱投影点阵底图（200×100 网格，陆地占比 29.1%）；坐标按属地城市中心标注，仅展示城市级聚合，不含 IP 原文。</p>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <div class="panel rv"><div class="ptitle">境内访问 Top 12<span>111 个 IP · 723 次访问</span></div><ul class="dlist"><li><span class="k"><em>1.</em>江苏 泰州</span><span class="v">230 次<em>4 IP</em></span></li><li><span class="k"><em>2.</em>江苏 南京</span><span class="v">152 次<em>16 IP</em></span></li><li><span class="k"><em>3.</em>广东 广州</span><span class="v">90 次<em>7 IP</em></span></li><li><span class="k"><em>4.</em>江苏 常州</span><span class="v">82 次<em>20 IP</em></span></li><li><span class="k"><em>5.</em>山东 济南</span><span class="v">68 次<em>6 IP</em></span></li><li><span class="k"><em>6.</em>北京</span><span class="v">57 次<em>29 IP</em></span></li><li><span class="k"><em>7.</em>广东 东莞</span><span class="v">12 次<em>12 IP</em></span></li><li><span class="k"><em>8.</em>江苏 苏州</span><span class="v">5 次<em>1 IP</em></span></li><li><span class="k"><em>9.</em>上海</span><span class="v">4 次<em>2 IP</em></span></li><li><span class="k"><em>10.</em>河北 邯郸</span><span class="v">4 次<em>1 IP</em></span></li><li><span class="k"><em>11.</em>山西</span><span class="v">4 次<em>2 IP</em></span></li><li><span class="k"><em>12.</em>内蒙古 兴安盟</span><span class="v">3 次<em>1 IP</em></span></li></ul></div>
+      <div class="panel rv"><div class="ptitle">境外访问明细<span>18 个 IP · 20 次访问 · 7 国</span></div><ul class="dlist"><li><span class="k">美国 阿什本<em>Amazon</em></span><span class="v">3 IP</span></li><li><span class="k">美国 波特兰<em>Amazon</em></span><span class="v">2 IP</span></li><li><span class="k">美国 纽约<em>M247</em></span><span class="v">2 IP</span></li><li><span class="k">德国 柏林<em>HostRoyale</em></span><span class="v">2 IP</span></li><li><span class="k">美国 圣克拉拉<em>CenturyLink</em></span><span class="v">1 IP</span></li><li><span class="k">美国 圣何塞<em>AceData</em></span><span class="v">1 IP</span></li><li><span class="k">美国 康瑟尔布拉夫斯<em>Google</em></span><span class="v">1 IP</span></li><li><span class="k">德国 迈萨赫<em>NUXOA</em></span><span class="v">1 IP</span></li><li><span class="k">荷兰 纳尔德韦克<em>WorldStream</em></span><span class="v">1 IP</span></li><li><span class="k">韩国 军浦<em>KT</em></span><span class="v">1 IP</span></li><li><span class="k">日本 东京<em>M247</em></span><span class="v">1 IP</span></li><li><span class="k">加拿大 本拿比<em>Bell</em></span><span class="v">1 IP</span></li><li><span class="k">奥地利 维也纳<em>Cogent</em></span><span class="v">1 IP</span></li></ul>
+        <div class="insight"><i>🛡️</i><p><b>18 个境外 IP 全部来自云厂商 / 机房</b> —— Amazon、Google、M247、WorldStream、Cogent、HostRoyale、NUXOA、CenturyLink、AceData、Korea Telecom、Bell。这类 IP 不可能是真实用户，基本是<b>互联网扫描器与爬虫</b>的例行探测，未造成任何数据泄露。</p></div>
+      </div>
+    </div>
+    <div class="panel rv" style="margin-top:14px">
+      <div class="ptitle">地理数据汇总</div>
+      <div class="grid2">
+        <ul class="dlist">
+          <li><span class="k">独立 IP 总数</span><span class="v">139</span></li>
+          <li><span class="k">可解析属地</span><span class="v">43<em>覆盖 134 个 IP</em></span></li>
+          <li><span class="k">境内 IP</span><span class="v">111<em>22 个城市 / 省份</em></span></li>
+          <li><span class="k">境外 IP</span><span class="v">18<em>7 个国家</em></span></li>
+        </ul>
+        <ul class="dlist">
+          <li><span class="k">访问最集中城市</span><span class="v">江苏 泰州<em>230 次 / 4 IP</em></span></li>
+          <li><span class="k">IP 最多城市</span><span class="v">北京<em>29 个 IP</em></span></li>
+          <li><span class="k">单 IP 平均访问</span><span class="v">6.2<em>次 / IP</em></span></li>
+          <li><span class="k">属地解析覆盖率</span><span class="v">96.4%<em>754 / 782 行</em></span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  <div class="hr"></div>
+  <section id="who">
+    <div class="shead rv"><span class="snum">03</span><h2 class="stitle">访客画像</h2><span class="sdesc">设备 · 路径 · 来源 · 安全观察</span></div>
+    <div class="grid2">
+      <div class="panel rv"><div class="ptitle">设备与系统分布<span>共 856 次访问</span></div><div class="trow"><span class="tn">桌面端 · Windows · Edge</span><span class="tb"><i style="--w:100%;--i:0"></i></span><span class="tc">244</span></div><div class="trow"><span class="tn">手机 · iPhone · Safari</span><span class="tb"><i style="--w:73%;--i:1"></i></span><span class="tc">178</span></div><div class="trow"><span class="tn">手机 · Android · Chrome</span><span class="tb"><i style="--w:44%;--i:2"></i></span><span class="tc">108</span></div><div class="trow"><span class="tn">电脑 · Windows · Edge</span><span class="tb"><i style="--w:32%;--i:3"></i></span><span class="tc">78</span></div><div class="trow"><span class="tn">桌面端 · macOS · Chrome</span><span class="tb"><i style="--w:21%;--i:4"></i></span><span class="tc">52</span></div><div class="trow"><span class="tn">桌面端 · 未知系统</span><span class="tb"><i style="--w:17%;--i:5"></i></span><span class="tc">41</span></div><div class="trow"><span class="tn">桌面端 · Windows · Chrome</span><span class="tb"><i style="--w:15%;--i:6"></i></span><span class="tc">37</span></div><div class="trow"><span class="tn">手机 · Android · 微信内置</span><span class="tb"><i style="--w:8%;--i:7"></i></span><span class="tc">19</span></div><div class="trow"><span class="tn">桌面端 · Linux · Chrome</span><span class="tb"><i style="--w:6%;--i:8"></i></span><span class="tc">15</span></div><div class="trow"><span class="tn">爬虫 / 机器人</span><span class="tb"><i style="--w:6%;--i:9"></i></span><span class="tc">14</span></div>
+        <div class="insight ok"><i>📱</i><p>移动端（iPhone + Android）合计 <b>305 次</b>，占 35.6%；微信内置浏览器 <b>19 次</b>，说明曾通过群 / 朋友圈分享传播。</p></div>
+      </div>
+      <div class="panel rv"><div class="ptitle">访问页面 Top 13<span>站点共 30+ 路由</span></div><div class="trow"><span class="tn">/</span><span class="tb"><i style="--w:100%;--i:0"></i></span><span class="tc">443</span></div><div class="trow"><span class="tn">/dashboard</span><span class="tb"><i style="--w:17%;--i:1"></i></span><span class="tc">76</span></div><div class="trow"><span class="tn">/maintenance</span><span class="tb"><i style="--w:11%;--i:2"></i></span><span class="tc">49</span></div><div class="trow"><span class="tn">/login</span><span class="tb"><i style="--w:10%;--i:3"></i></span><span class="tc">45</span></div><div class="trow"><span class="tn">/guestbook</span><span class="tb"><i style="--w:7%;--i:4"></i></span><span class="tc">31</span></div><div class="trow"><span class="tn">/settings</span><span class="tb"><i style="--w:6%;--i:5"></i></span><span class="tc">25</span></div><div class="trow"><span class="tn">/status</span><span class="tb"><i style="--w:6%;--i:6"></i></span><span class="tc">25</span></div><div class="trow"><span class="tn">/messages</span><span class="tb"><i style="--w:5%;--i:7"></i></span><span class="tc">24</span></div><div class="trow"><span class="tn">/demo</span><span class="tb"><i style="--w:5%;--i:8"></i></span><span class="tc">23</span></div><div class="trow"><span class="tn">/ai</span><span class="tb"><i style="--w:5%;--i:9"></i></span><span class="tc">22</span></div><div class="trow"><span class="tn">/register</span><span class="tb"><i style="--w:3%;--i:10"></i></span><span class="tc">15</span></div><div class="trow"><span class="tn">/docs</span><span class="tb"><i style="--w:3%;--i:11"></i></span><span class="tc">14</span></div><div class="trow"><span class="tn">/iot</span><span class="tb"><i style="--w:3%;--i:12"></i></span><span class="tc">12</span></div></div>
+      <div class="panel rv"><div class="ptitle">访问来源（Referer）<span>83.8% 为直接访问</span></div><div class="trow"><span class="tn">直接访问 / 无来源</span><span class="tb"><i style="--w:100%;--i:0"></i></span><span class="tc">717</span></div><div class="trow"><span class="tn">站内跳转 · /docs</span><span class="tb"><i style="--w:6%;--i:1"></i></span><span class="tc">40</span></div><div class="trow"><span class="tn">IP 直连 · /maintenance</span><span class="tb"><i style="--w:5%;--i:2"></i></span><span class="tc">33</span></div><div class="trow"><span class="tn">站内跳转 · /maintenance</span><span class="tb"><i style="--w:3%;--i:3"></i></span><span class="tc">22</span></div><div class="trow"><span class="tn">github.com</span><span class="tb"><i style="--w:2%;--i:4"></i></span><span class="tc">15</span></div><div class="trow"><span class="tn">IP 直连 · /login</span><span class="tb"><i style="--w:1.5%;--i:5"></i></span><span class="tc">8</span></div><div class="trow"><span class="tn">微信安全页 weixin110.qq.com</span><span class="tb"><i style="--w:1.5%;--i:6"></i></span><span class="tc">6</span></div></div>
+      <div class="panel rv"><div class="ptitle">安全观察<span>运行期间的异常流量</span></div><ul class="dlist">
+        <li><span class="k">WordPress 探测</span><span class="v">17 次<em>wp-admin/install.php</em></span></li>
+        <li><span class="k">扫描器指纹（zgrab）</span><span class="v">6 次</span></li>
+        <li><span class="k">爬虫 / 机器人 UA</span><span class="v">14 次</span></li>
+        <li><span class="k">404 响应</span><span class="v">4 次<em>探测失败</em></span></li>
+        <li><span class="k">境外机房 IP</span><span class="v">18 个<em>无一得手</em></span></li>
+        <li><span class="k">敏感词拦截</span><span class="v">67 次<em>词库 37 条</em></span></li>
+        <li><span class="k">邮箱失败锁定</span><span class="v">已触发<em>5 次 / 15 分钟</em></span></li>
+      </ul></div>
+    </div>
+  </section>
+  <div class="hr"></div>
   <section id="data">
-    <div class="shead rv"><span class="snum">02</span><h2 class="stitle">数据全景</h2><span class="sdesc">截至 2026-09-13 · 仅聚合统计，不含用户隐私字段</span></div>
+    <div class="shead rv"><span class="snum">04</span><h2 class="stitle">数据全景</h2><span class="sdesc">截至 2026-09-13 · 仅聚合统计</span></div>
     <div class="grid2">
-      <div class="panel rv">
-        <div class="ptitle">👤 用户体系</div>
-        <ul class="dlist">
-          <li><span class="k">注册用户</span><span class="v">30<em>普通 23 · 管理员 2 · 超管 1 · 机器人 2</em></span></li>
-          <li><span class="k">启用中账号</span><span class="v">23</span></li>
-          <li><span class="k">开启两步验证</span><span class="v">1</span></li>
-          <li><span class="k">自定义头像</span><span class="v">2</span></li>
-          <li><span class="k">GitHub SSO 绑定</span><span class="v">1</span></li>
-          <li><span class="k">刷新令牌</span><span class="v">60</span></li>
-        </ul>
-      </div>
-      <div class="panel rv">
-        <div class="ptitle">💬 即时通讯</div>
-        <ul class="dlist">
-          <li><span class="k">私信会话</span><span class="v">23<em>成员关系 46</em></span></li>
-          <li><span class="k">私信消息</span><span class="v">680<em>文本 679 · 图片 1 · 撤回 1</em></span></li>
-          <li><span class="k">群聊</span><span class="v">1<em>成员 3 · 消息 2</em></span></li>
-          <li><span class="k">拉黑关系</span><span class="v">1</span></li>
-          <li><span class="k">举报</span><span class="v">3<em>全部已处理</em></span></li>
-          <li><span class="k">水印取证记录</span><span class="v">58<em>已消费额度 3</em></span></li>
-        </ul>
-      </div>
-      <div class="panel rv">
-        <div class="ptitle">🤖 AI 服务</div>
-        <ul class="dlist">
-          <li><span class="k">会话</span><span class="v">14</span></li>
-          <li><span class="k">消息往返</span><span class="v">25</span></li>
-          <li><span class="k">deepseek-chat</span><span class="v">8</span></li>
-          <li><span class="k">deepseek-reasoner</span><span class="v">4<em>深度思考</em></span></li>
-          <li><span class="k">mock（联调）</span><span class="v">13</span></li>
-        </ul>
-      </div>
-      <div class="panel rv">
-        <div class="ptitle">📡 IoT 接入</div>
-        <ul class="dlist">
-          <li><span class="k">注册设备</span><span class="v">2</span></li>
-          <li><span class="k">遥测记录</span><span class="v">1,295,060</span></li>
-          <li><span class="k">数据跨度</span><span class="v">08-14 12:38 → 09-13 12:27</span></li>
-          <li><span class="k">日均写入</span><span class="v">≈ 43,190 条</span></li>
-          <li><span class="k">上报间隔</span><span class="v">2 秒 / 条</span></li>
-        </ul>
-      </div>
-      <div class="panel rv">
-        <div class="ptitle">📋 留言板与公告</div>
-        <ul class="dlist">
-          <li><span class="k">访客留言</span><span class="v">4<em>档案号可追踪</em></span></li>
-          <li><span class="k">往来回复</span><span class="v">5<em>管理员回复</em></span></li>
-          <li><span class="k">站内公告</span><span class="v">3</span></li>
-          <li><span class="k">机器人广播</span><span class="v">35<em>定向私信 33</em></span></li>
-        </ul>
-      </div>
-      <div class="panel rv">
-        <div class="ptitle">🛡️ 安全与治理</div>
-        <ul class="dlist">
-          <li><span class="k">登录尝试</span><span class="v">441<em>成功 206</em></span></li>
-          <li><span class="k">密码登录</span><span class="v">418</span></li>
-          <li><span class="k">验证码登录</span><span class="v">8</span></li>
-          <li><span class="k">注册 / 重置</span><span class="v">13 / 2</span></li>
-          <li><span class="k">敏感词词库</span><span class="v">37<em>拦截 67 次</em></span></li>
-          <li><span class="k">账号注销</span><span class="v">0</span></li>
-        </ul>
-      </div>
+      <div class="panel rv"><div class="ptitle">👤 用户体系</div><ul class="dlist"><li><span class="k">注册用户</span><span class="v">30<em>普通 23 · 管理 2 · 超管 1 · 机器人 2</em></span></li><li><span class="k">启用中账号</span><span class="v">23</span></li><li><span class="k">开启两步验证</span><span class="v">1</span></li><li><span class="k">自定义头像</span><span class="v">2</span></li><li><span class="k">GitHub SSO 绑定</span><span class="v">1</span></li><li><span class="k">刷新令牌</span><span class="v">60</span></li></ul></div>
+      <div class="panel rv"><div class="ptitle">💬 即时通讯</div><ul class="dlist"><li><span class="k">私信会话</span><span class="v">23<em>成员关系 46</em></span></li><li><span class="k">私信消息</span><span class="v">680<em>文本 679 · 图片 1 · 撤回 1</em></span></li><li><span class="k">群聊</span><span class="v">1<em>成员 3 · 消息 2</em></span></li><li><span class="k">拉黑关系</span><span class="v">1</span></li><li><span class="k">举报</span><span class="v">3<em>全部已处理</em></span></li><li><span class="k">水印取证</span><span class="v">58<em>消费额度 3</em></span></li></ul></div>
+      <div class="panel rv"><div class="ptitle">🤖 AI 服务</div><ul class="dlist"><li><span class="k">会话</span><span class="v">14</span></li><li><span class="k">消息往返</span><span class="v">25</span></li><li><span class="k">deepseek-chat</span><span class="v">8</span></li><li><span class="k">deepseek-reasoner</span><span class="v">4<em>深度思考</em></span></li><li><span class="k">mock（联调）</span><span class="v">13</span></li></ul></div>
+      <div class="panel rv"><div class="ptitle">📡 IoT 接入</div><ul class="dlist"><li><span class="k">注册设备</span><span class="v">2</span></li><li><span class="k">遥测记录</span><span class="v">1,295,060</span></li><li><span class="k">数据跨度</span><span class="v">08-14 12:38 → 09-13 12:27</span></li><li><span class="k">日均写入</span><span class="v">≈ 43,190 条</span></li><li><span class="k">上报间隔</span><span class="v">2 秒 / 条</span></li></ul></div>
+      <div class="panel rv"><div class="ptitle">📋 留言板与公告</div><ul class="dlist"><li><span class="k">访客留言</span><span class="v">4<em>档案号可追踪</em></span></li><li><span class="k">往来回复</span><span class="v">5<em>管理员回复</em></span></li><li><span class="k">站内公告</span><span class="v">3</span></li><li><span class="k">机器人广播</span><span class="v">35<em>定向私信 33</em></span></li></ul></div>
+      <div class="panel rv"><div class="ptitle">🛡️ 安全与治理</div><ul class="dlist"><li><span class="k">登录尝试</span><span class="v">441<em>成功 206</em></span></li><li><span class="k">密码登录</span><span class="v">418</span></li><li><span class="k">验证码登录</span><span class="v">8</span></li><li><span class="k">注册 / 重置</span><span class="v">13 / 2</span></li><li><span class="k">敏感词词库</span><span class="v">37<em>拦截 67 次</em></span></li><li><span class="k">账号注销</span><span class="v">0</span></li></ul></div>
     </div>
   </section>
-
   <div class="hr"></div>
-
   <section id="logs">
-    <div class="shead rv"><span class="snum">03</span><h2 class="stitle">运行日志回顾</h2><span class="sdesc">聚合后的审计与运行事件 · 已脱敏</span></div>
-    <div class="panel rv">
-      <div class="ptitle">审计动作分布（Top 12 · 共 1,180 条）<span>失败操作仅 2 条</span></div>
-        <div class="trow"><span class="tn">水印取证解码</span><span class="tb"><i style="--w:100%;--i:0"></i></span><span class="tc">160</span></div>
-        <div class="trow"><span class="tn">消息撤回</span><span class="tb"><i style="--w:66%;--i:1"></i></span><span class="tc">106</span></div>
-        <div class="trow"><span class="tn">敏感词拦截</span><span class="tb"><i style="--w:42%;--i:2"></i></span><span class="tc">67</span></div>
-        <div class="trow"><span class="tn">用户举报</span><span class="tb"><i style="--w:39%;--i:3"></i></span><span class="tc">62</span></div>
-        <div class="trow"><span class="tn">举报处理</span><span class="tb"><i style="--w:35%;--i:4"></i></span><span class="tc">56</span></div>
-        <div class="trow"><span class="tn">群邀请</span><span class="tb"><i style="--w:34%;--i:5"></i></span><span class="tc">54</span></div>
-        <div class="trow"><span class="tn">创建群聊</span><span class="tb"><i style="--w:34%;--i:6"></i></span><span class="tc">54</span></div>
-        <div class="trow"><span class="tn">水印授权</span><span class="tb"><i style="--w:29%;--i:7"></i></span><span class="tc">46</span></div>
-        <div class="trow"><span class="tn">解散群聊</span><span class="tb"><i style="--w:26%;--i:8"></i></span><span class="tc">41</span></div>
-        <div class="trow"><span class="tn">隐藏会话</span><span class="tb"><i style="--w:25%;--i:9"></i></span><span class="tc">40</span></div>
-        <div class="trow"><span class="tn">公告广播</span><span class="tb"><i style="--w:22%;--i:10"></i></span><span class="tc">35</span></div>
-        <div class="trow"><span class="tn">机器人私信</span><span class="tb"><i style="--w:21%;--i:11"></i></span><span class="tc">33</span></div>
-    </div>
-    <div class="panel rv">
-      <div class="ptitle">数据表记录数（Top 12 · 共 33 张表）<span>迁移链 a6b7c8d9e0f1</span></div>
-        <div class="trow"><span class="tn">device_telemetry</span><span class="tb"><i style="--w:100%;--i:0"></i></span><span class="tc">1,295,060</span></div>
-        <div class="trow"><span class="tn">audit_logs</span><span class="tb"><i style="--w:1.5%;--i:1"></i></span><span class="tc">1,180</span></div>
-        <div class="trow"><span class="tn">visit_logs</span><span class="tb"><i style="--w:1.5%;--i:2"></i></span><span class="tc">856</span></div>
-        <div class="trow"><span class="tn">dm_messages</span><span class="tb"><i style="--w:1.5%;--i:3"></i></span><span class="tc">680</span></div>
-        <div class="trow"><span class="tn">login_logs</span><span class="tb"><i style="--w:1.5%;--i:4"></i></span><span class="tc">441</span></div>
-        <div class="trow"><span class="tn">refresh_tokens</span><span class="tb"><i style="--w:1.5%;--i:5"></i></span><span class="tc">60</span></div>
-        <div class="trow"><span class="tn">watermark_logs</span><span class="tb"><i style="--w:1.5%;--i:6"></i></span><span class="tc">58</span></div>
-        <div class="trow"><span class="tn">dm_conversation_members</span><span class="tb"><i style="--w:1.5%;--i:7"></i></span><span class="tc">46</span></div>
-        <div class="trow"><span class="tn">sensitive_words</span><span class="tb"><i style="--w:1.5%;--i:8"></i></span><span class="tc">37</span></div>
-        <div class="trow"><span class="tn">users</span><span class="tb"><i style="--w:1.5%;--i:9"></i></span><span class="tc">30</span></div>
-        <div class="trow"><span class="tn">ai_history</span><span class="tb"><i style="--w:1.5%;--i:10"></i></span><span class="tc">25</span></div>
-        <div class="trow"><span class="tn">dm_conversations</span><span class="tb"><i style="--w:1.5%;--i:11"></i></span><span class="tc">23</span></div>
-    </div>
-    <div class="panel rv" style="padding:0;background:transparent;border:none">
-      <div class="term">
-        <div class="termbar"><i></i><i></i><i></i><span>harness@prod — service timeline</span></div>
-        <div class="termbody">
-          <div class="row"><span class="t">2026-08-14 12:38</span> <span class="mod">[db]</span>     <span class="lv-i">INFO</span>  <span class="msg">PostgreSQL 16-alpine 就绪 · 33 张表迁移至 a6b7c8d9e0f1</span></div>
-          <div class="row"><span class="t">2026-08-14 12:38</span> <span class="mod">[iot]</span>    <span class="lv-i">INFO</span>  <span class="msg">设备遥测管道开启 · 每 2 秒写入一条记录</span></div>
-          <div class="row"><span class="t">2026-08-14 12:39</span> <span class="mod">[api]</span>    <span class="lv-i">INFO</span>  <span class="msg">FastAPI 启动 · 14 个路由模块 / 21 个服务模块挂载完成</span></div>
-          <div class="row"><span class="t">2026-08-14 16:37</span> <span class="mod2">[web]</span>    <span class="lv-i">INFO</span>  <span class="msg">Nginx + Let's Encrypt 上线 · HTTPS / WSS 全站可用</span></div>
-          <div class="row"><span class="t">2026-08-18 18:29</span> <span class="mod2">[deploy]</span> <span class="lv-i">INFO</span>  <span class="msg">全站部署完成 · 维护模式自动关闭</span></div>
-          <div class="row"><span class="t">2026-08-29 19:55</span> <span class="mod">[auth]</span>   <span class="lv-w">WARN</span>  <span class="msg">检测到登录失败尝试，触发 IP 限流与邮箱锁定策略</span></div>
-          <div class="row"><span class="t">2026-09-04 10:12</span> <span class="mod">[im]</span>     <span class="lv-i">INFO</span>  <span class="msg">敏感词过滤命中 67 次，消息被拦截并记入审计</span></div>
-          <div class="row"><span class="t">2026-09-08 15:40</span> <span class="mod">[im]</span>     <span class="lv-i">INFO</span>  <span class="msg">水印取证解码 160 次 · 零宽文本水印命中正常</span></div>
-          <div class="row"><span class="t">2026-09-12 09:05</span> <span class="mod">[ops]</span>    <span class="lv-i">INFO</span>  <span class="msg">磁盘占用 9.8G / 40G · 5 个容器全部健康</span></div>
-          <div class="row"><span class="t">2026-09-13 12:27</span> <span class="mod">[iot]</span>    <span class="lv-i">INFO</span>  <span class="msg">写入第 1,295,060 条遥测记录（最后一次数据写入）</span></div>
-          <div class="row"><span class="t">2026-09-13 19:39</span> <span class="mod">[ops]</span>    <span class="lv-i">INFO</span>  <span class="msg">全量备份完成 · SHA256 校验通过 · 三份归档共 403MB</span></div>
-          <div class="row"><span class="t">2026-09-13 19:52</span> <span class="mod">[ops]</span>    <span class="lv-i">INFO</span>  <span class="msg">还原实测通过 · 15 张表行数与线上完全一致</span></div>
-          <div class="row"><span class="t">2026-09-13 20:14</span> <span class="mod2">[web]</span>    <span class="lv-i">INFO</span>  <span class="msg">官网切换为告别页 · 全部路由返回本页面</span></div>
-          <div class="row"><span class="t">2026-09-13 20:31</span> <span class="mod">[ops]</span>    <span class="lv-e">STOP</span>  <span class="msg">服务生命周期结束 · 感谢每一位曾经使用的朋友 <span class="cursor"></span></span></div>
-        </div>
-      </div>
-    </div>
+    <div class="shead rv"><span class="snum">05</span><h2 class="stitle">运行日志回顾</h2><span class="sdesc">聚合后的审计与运行事件 · 已脱敏</span></div>
+    <div class="panel rv"><div class="ptitle">审计动作分布（Top 12 · 共 1,180 条）<span>失败操作仅 2 条</span></div><div class="trow"><span class="tn">水印取证解码</span><span class="tb"><i style="--w:100%;--i:0"></i></span><span class="tc">160</span></div><div class="trow"><span class="tn">消息撤回</span><span class="tb"><i style="--w:66%;--i:1"></i></span><span class="tc">106</span></div><div class="trow"><span class="tn">敏感词拦截</span><span class="tb"><i style="--w:42%;--i:2"></i></span><span class="tc">67</span></div><div class="trow"><span class="tn">用户举报</span><span class="tb"><i style="--w:39%;--i:3"></i></span><span class="tc">62</span></div><div class="trow"><span class="tn">举报处理</span><span class="tb"><i style="--w:35%;--i:4"></i></span><span class="tc">56</span></div><div class="trow"><span class="tn">群邀请</span><span class="tb"><i style="--w:34%;--i:5"></i></span><span class="tc">54</span></div><div class="trow"><span class="tn">创建群聊</span><span class="tb"><i style="--w:34%;--i:6"></i></span><span class="tc">54</span></div><div class="trow"><span class="tn">水印授权</span><span class="tb"><i style="--w:29%;--i:7"></i></span><span class="tc">46</span></div><div class="trow"><span class="tn">解散群聊</span><span class="tb"><i style="--w:26%;--i:8"></i></span><span class="tc">41</span></div><div class="trow"><span class="tn">隐藏会话</span><span class="tb"><i style="--w:25%;--i:9"></i></span><span class="tc">40</span></div><div class="trow"><span class="tn">公告广播</span><span class="tb"><i style="--w:22%;--i:10"></i></span><span class="tc">35</span></div><div class="trow"><span class="tn">机器人私信</span><span class="tb"><i style="--w:21%;--i:11"></i></span><span class="tc">33</span></div></div>
+    <div class="panel rv"><div class="ptitle">数据表记录数（Top 12 · 共 33 张表）<span>迁移链 a6b7c8d9e0f1</span></div><div class="trow"><span class="tn">device_telemetry</span><span class="tb"><i style="--w:100%;--i:0"></i></span><span class="tc">1,295,060</span></div><div class="trow"><span class="tn">audit_logs</span><span class="tb"><i style="--w:1.5%;--i:1"></i></span><span class="tc">1,180</span></div><div class="trow"><span class="tn">visit_logs</span><span class="tb"><i style="--w:1.5%;--i:2"></i></span><span class="tc">856</span></div><div class="trow"><span class="tn">dm_messages</span><span class="tb"><i style="--w:1.5%;--i:3"></i></span><span class="tc">680</span></div><div class="trow"><span class="tn">login_logs</span><span class="tb"><i style="--w:1.5%;--i:4"></i></span><span class="tc">441</span></div><div class="trow"><span class="tn">refresh_tokens</span><span class="tb"><i style="--w:1.5%;--i:5"></i></span><span class="tc">60</span></div><div class="trow"><span class="tn">watermark_logs</span><span class="tb"><i style="--w:1.5%;--i:6"></i></span><span class="tc">58</span></div><div class="trow"><span class="tn">dm_conversation_members</span><span class="tb"><i style="--w:1.5%;--i:7"></i></span><span class="tc">46</span></div><div class="trow"><span class="tn">sensitive_words</span><span class="tb"><i style="--w:1.5%;--i:8"></i></span><span class="tc">37</span></div><div class="trow"><span class="tn">users</span><span class="tb"><i style="--w:1.5%;--i:9"></i></span><span class="tc">30</span></div><div class="trow"><span class="tn">ai_history</span><span class="tb"><i style="--w:1.5%;--i:10"></i></span><span class="tc">25</span></div><div class="trow"><span class="tn">dm_conversations</span><span class="tb"><i style="--w:1.5%;--i:11"></i></span><span class="tc">23</span></div></div>
+    <div class="panel rv" style="padding:0;background:transparent;border:none"><div class="term"><div class="termbar"><i></i><i></i><i></i><span>harness@prod — service timeline</span></div><div class="termbody">
+      <div class="row"><span class="t">2026-08-14 12:38</span> <span class="mod">[db]</span>     <span class="lv-i">INFO</span>  <span class="msg">PostgreSQL 16-alpine 就绪 · 33 张表迁移至 a6b7c8d9e0f1</span></div>
+      <div class="row"><span class="t">2026-08-14 12:38</span> <span class="mod">[iot]</span>    <span class="lv-i">INFO</span>  <span class="msg">设备遥测管道开启 · 每 2 秒写入一条记录</span></div>
+      <div class="row"><span class="t">2026-08-14 12:39</span> <span class="mod">[api]</span>    <span class="lv-i">INFO</span>  <span class="msg">FastAPI 启动 · 14 个路由模块 / 21 个服务模块挂载完成</span></div>
+      <div class="row"><span class="t">2026-08-14 16:37</span> <span class="mod2">[web]</span>    <span class="lv-i">INFO</span>  <span class="msg">Nginx + Let&apos;s Encrypt 上线 · HTTPS / WSS 全站可用</span></div>
+      <div class="row"><span class="t">2026-08-18 18:29</span> <span class="mod2">[deploy]</span> <span class="lv-i">INFO</span>  <span class="msg">全站部署完成 · 维护模式自动关闭</span></div>
+      <div class="row"><span class="t">2026-08-29 19:55</span> <span class="mod">[auth]</span>   <span class="lv-w">WARN</span>  <span class="msg">检测到登录失败尝试，触发 IP 限流与邮箱锁定策略</span></div>
+      <div class="row"><span class="t">2026-09-04 10:12</span> <span class="mod">[im]</span>     <span class="lv-i">INFO</span>  <span class="msg">敏感词过滤命中 67 次，消息被拦截并记入审计</span></div>
+      <div class="row"><span class="t">2026-09-08 15:40</span> <span class="mod">[im]</span>     <span class="lv-i">INFO</span>  <span class="msg">水印取证解码 160 次 · 零宽文本水印命中正常</span></div>
+      <div class="row"><span class="t">2026-09-12 09:05</span> <span class="mod">[ops]</span>    <span class="lv-i">INFO</span>  <span class="msg">磁盘占用 9.8G / 40G · 5 个容器全部健康</span></div>
+      <div class="row"><span class="t">2026-09-13 12:27</span> <span class="mod">[iot]</span>    <span class="lv-i">INFO</span>  <span class="msg">写入第 1,295,060 条遥测记录（最后一次数据写入）</span></div>
+      <div class="row"><span class="t">2026-09-13 19:39</span> <span class="mod">[ops]</span>    <span class="lv-i">INFO</span>  <span class="msg">全量备份完成 · SHA256 校验通过 · 三份归档共 403MB</span></div>
+      <div class="row"><span class="t">2026-09-13 19:52</span> <span class="mod">[ops]</span>    <span class="lv-i">INFO</span>  <span class="msg">还原实测通过 · 15 张表行数与线上完全一致</span></div>
+      <div class="row"><span class="t">2026-09-13 20:14</span> <span class="mod2">[web]</span>    <span class="lv-i">INFO</span>  <span class="msg">官网切换为告别页 · 全部路由返回本页面</span></div>
+      <div class="row"><span class="t">2026-09-13 21:05</span> <span class="mod">[ops]</span>    <span class="lv-e">STOP</span>  <span class="msg">服务生命周期结束 · 感谢每一位曾经使用的朋友 <span class="cursor"></span></span></div>
+    </div></div></div>
   </section>
-
   <div class="hr"></div>
-
   <section id="journey">
-    <div class="shead rv"><span class="snum">04</span><h2 class="stitle">这一路</h2><span class="sdesc">v0.1 → v0.10.1</span></div>
+    <div class="shead rv"><span class="snum">06</span><h2 class="stitle">这一路</h2><span class="sdesc">v0.1 → v0.10.1</span></div>
     <div class="grid2">
-      <div class="panel rv">
-        <div class="ptitle">里程碑</div>
-        <ul class="tl">
-          <li class="done"><span class="when">v0.1–0.8</span><b>基础平台</b>：用户体系 · AI 模块 · Admin 后台 · 备份体系</li>
-          <li class="done"><span class="when">v0.9</span><b>账号安全</b>：邮箱验证码 · 2FA(TOTP) · GitHub SSO · 主题系统</li>
-          <li class="done"><span class="when">v0.10</span><b>站内消息</b>：私信 · 群聊 · 公告机器人 · 双层水印溯源</li>
-          <li class="done"><span class="when">v0.10</span><b>合规化</b>：协议与隐私 · 账号注销 · 聊天导出 · 敏感词 · 保留期</li>
-          <li class="done"><span class="when">v0.10</span><b>企业级维护模式</b>：四模式 · 三级自动恢复 · 紧急令牌</li>
-          <li class="done"><span class="when">v0.10</span><b>安全加固基线</b>：限流 · 可信 IP · 设备绑定 · 上传校验</li>
-          <li class="done"><span class="when">v0.10.1</span><b>图灵斑图实验室</b>：WebGL2 反应扩散 · 7 种动物纹路</li>
-          <li class="end"><span class="when">2026.09</span><b>服务下线</b>：全量备份 · 官网转为告别页</li>
-        </ul>
-      </div>
-      <div class="panel recall rv">
-        <div class="ptitle">做过的功能</div>
-        <ul>
-          <li>JWT 双 Token + 设备指纹硬校验、TOTP 两步验证、GitHub SSO</li>
-          <li>AI 流式对话：SSE 输出、深度思考、Markdown / LaTeX / 代码高亮</li>
-          <li>私信与群聊：WebSocket 实时、撤回、拉黑、举报审核闭环</li>
-          <li>可见水印 + 零宽字符文本水印，复制文本也能溯源取证</li>
-          <li>留言板档案号追踪、多轮回复时间线、邮件通知</li>
-          <li>企业级维护模式：四种模式、倒计时自动恢复、紧急逃生令牌</li>
-          <li>企业级日志导出：六大数据源、CSV/JSON、SHA-256 完整性校验</li>
-          <li>安全基线：IP 限流、可信 IP、上传内容校验、CSP/HSTS 安全头</li>
-          <li>图灵斑图：斑马、老虎、豹、长颈鹿、苏眉鱼、蝴蝶鱼、箱鲀</li>
-        </ul>
-      </div>
+      <div class="panel rv"><div class="ptitle">里程碑</div><ul class="tl">
+        <li class="done"><span class="when">v0.1–0.8</span><b>基础平台</b>：用户体系 · AI 模块 · Admin 后台 · 备份体系</li>
+        <li class="done"><span class="when">v0.9</span><b>账号安全</b>：邮箱验证码 · 2FA(TOTP) · GitHub SSO · 主题系统</li>
+        <li class="done"><span class="when">v0.10</span><b>站内消息</b>：私信 · 群聊 · 公告机器人 · 双层水印溯源</li>
+        <li class="done"><span class="when">v0.10</span><b>合规化</b>：协议与隐私 · 账号注销 · 聊天导出 · 敏感词 · 保留期</li>
+        <li class="done"><span class="when">v0.10</span><b>企业级维护模式</b>：四模式 · 三级自动恢复 · 紧急令牌</li>
+        <li class="done"><span class="when">v0.10</span><b>安全加固基线</b>：限流 · 可信 IP · 设备绑定 · 上传校验</li>
+        <li class="done"><span class="when">v0.10.1</span><b>图灵斑图实验室</b>：WebGL2 反应扩散 · 7 种动物纹路</li>
+        <li class="end"><span class="when">2026.09</span><b>服务下线</b>：全量备份 · 官网转为告别页</li>
+      </ul></div>
+      <div class="panel recall rv"><div class="ptitle">做过的功能</div><ul>
+        <li>JWT 双 Token + 设备指纹硬校验、TOTP 两步验证、GitHub SSO</li>
+        <li>AI 流式对话：SSE 输出、深度思考、Markdown / LaTeX / 代码高亮</li>
+        <li>私信与群聊：WebSocket 实时、撤回、拉黑、举报审核闭环</li>
+        <li>可见水印 + 零宽字符文本水印，复制文本也能溯源取证</li>
+        <li>留言板档案号追踪、多轮回复时间线、邮件通知</li>
+        <li>企业级维护模式：四种模式、倒计时自动恢复、紧急逃生令牌</li>
+        <li>企业级日志导出：六大数据源、CSV/JSON、SHA-256 完整性校验</li>
+        <li>安全基线：IP 限流、可信 IP、上传内容校验、CSP/HSTS 安全头</li>
+        <li>图灵斑图：斑马、老虎、豹、长颈鹿、苏眉鱼、蝴蝶鱼、箱鲀</li>
+      </ul></div>
     </div>
   </section>
 
   <div class="actions rv">
-    <a class="btn primary" href="https://github.com/3128771573/project-harness" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.17c-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.11-.76.41-1.27.74-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.47.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.69 5.4-5.25 5.69.42.36.79 1.08.79 2.18v3.23c0 .31.21.68.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg>
-      查看项目源码
-    </a>
+    <a class="btn primary" href="https://github.com/3128771573/project-harness" target="_blank" rel="noopener">查看项目源码</a>
     <a class="btn ghost" href="https://github.com/3128771573/project-harness/tree/main/docs" target="_blank" rel="noopener">项目文档</a>
   </div>
-
-  <p class="farewell rv">
-    "这不是结束，只是一次暂停。"<br>
-    30 天里，它扛住了 129 万条遥测、680 条私信、1,180 条审计记录。<br>
-    所有数据已被完整备份并验证可还原，代码与技术沉淀会一直留在开源仓库里。<br>
-    谢谢你曾经来过。
-  </p>
-
-  <footer>
-    © 2026 Project Harness<span class="sep">·</span>AI · IoT · Digital Services<span class="sep">·</span>已停止服务<br>
-    <span style="opacity:.6">统计口径：2026-08-14 ~ 2026-09-13 · 仅展示聚合数据，不含用户隐私信息</span>
-  </footer>
+  <p class="farewell rv">"这不是结束，只是一次暂停。"<br>30 天里，它扛住了 129 万条遥测、680 条私信、1,180 条审计记录，接待了来自 22 个城市与 7 个国家的访问。<br>所有数据已被完整备份并验证可还原，代码与技术沉淀会一直留在开源仓库里。<br>谢谢你曾经来过。</p>
+  <footer>© 2026 Project Harness<span class="sep">·</span>AI · IoT · Digital Services<span class="sep">·</span>已停止服务<br><span style="opacity:.6">统计口径：2026-08-14 ~ 2026-09-13 · 仅展示聚合数据，不含 IP 原文与用户隐私信息</span></footer>
 </div>
-
 <button class="totop" id="totop" aria-label="回到顶部">↑</button>
-
 <script>
 (function(){
-  var d=document, root=d.documentElement;
-  root.classList.add('js');
-
-  // 滚动进度 + 回到顶部：rAF 节流，避免滚动期间频繁回调
-  var pg=d.getElementById('pg'), tt=d.getElementById('totop'), ticking=false;
-  function onScroll(){
-    if(ticking) return; ticking=true;
-    requestAnimationFrame(function(){
-      var max=root.scrollHeight-root.clientHeight;
-      var y=window.pageYOffset||root.scrollTop;
-      pg.style.transform='scaleX('+(max>0?Math.min(1,y/max):0)+')';
-      tt.classList.toggle('on', y>620);
-      ticking=false;
-    });
-  }
-  addEventListener('scroll', onScroll, {passive:true});
-  onScroll();
-  tt.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
-
-  // 渐显：IntersectionObserver，触发一次即注销（不再参与后续滚动）
-  var items=d.querySelectorAll('.rv');
-  if('IntersectionObserver' in window){
-    var io=new IntersectionObserver(function(es){
-      for(var i=0;i<es.length;i++){
-        if(es[i].isIntersecting){ es[i].target.classList.add('in'); io.unobserve(es[i].target); }
-      }
-    }, {rootMargin:'0px 0px -8% 0px', threshold:0.08});
-    for(var i=0;i<items.length;i++) io.observe(items[i]);
-  } else {
-    for(var j=0;j<items.length;j++) items[j].classList.add('in');
-  }
+  var d=document,root=d.documentElement;root.classList.add("js");
+  var pg=d.getElementById("pg"),tt=d.getElementById("totop"),ticking=false;
+  function onScroll(){if(ticking)return;ticking=true;requestAnimationFrame(function(){var max=root.scrollHeight-root.clientHeight;var y=window.pageYOffset||root.scrollTop;pg.style.transform="scaleX("+(max>0?Math.min(1,y/max):0)+")";tt.classList.toggle("on",y>620);ticking=false;});}
+  addEventListener("scroll",onScroll,{passive:true});onScroll();
+  tt.addEventListener("click",function(){window.scrollTo({top:0,behavior:"smooth"});});
+  var items=d.querySelectorAll(".rv");
+  if("IntersectionObserver" in window){var io=new IntersectionObserver(function(es){for(var i=0;i<es.length;i++){if(es[i].isIntersecting){es[i].target.classList.add("in");io.unobserve(es[i].target);}}},{rootMargin:"0px 0px -8% 0px",threshold:.08});for(var i=0;i<items.length;i++)io.observe(items[i]);}else{for(var j=0;j<items.length;j++)items[j].classList.add("in");}
+  var MASK="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH//P9/9AAAAAAAAAAAAAAAAAAAAAAAAAAPv+////8AAA+ACAAAB4AAAAAAAAAAAAAAWf9////+AAByAAAAAAAwAAAAAAAAAAADhCf8H////AAAAAAAAwAAPwAAAAAAAAAAABgF+AA///4AAAAAAGAAP/8AAQAAAAAAAAfTNtsAH//4AAAAAAGAQf///4AAAAH/7//7gPGAP/gAA////7//fiAAAAAgA//wAf/5/3+fOPgD//AAAA/4AAzf/gAAAAAAgP4AAAAEAEbD8AD////AAFgAAAAAAAAAAAIYAAAAAAA/jfgH+D//gwcAAAAAAAAAAAAAAH//////ODwH4AOAAfn9////////////+AP//////AXAA8AAAAfz//////////////AH+3////gB4ABAAAAH8z///////////w6AABgH///8AfYAAAABBuH//////////wAwAABgAP///4H/AAAAAYFj//////////4AeAABAAB////z/8AAAAOBB//////////4APAAAAAAv///8//gAAAHx////////////8BgAAAAAB//////4AAAAO////////////9AAAAAAAAP////+CAAAAA/////////////QAAAAAAAB/////x4AAAA/////////////gAAAAAAAAf////+gAAAAH//4fj///////4AAAAAAAAH////9AAAAAB/n8Dz///////4YAAAAAAAB////+AAAAAH8M+Aef//////4MAAAAAAAAf///+AAAAAB8A2P/3/////+8CAAAAAAAAH///+AAAAAAfAAn/4/////+CAgAAAAAAAA////wAAAAADhwJ//P/////8wwAAAAAAAAH///8AAAAAAf8Ai///////8N8AAAAAAAAAf//8AAAAAAf/AAP///////goAAAAAAAAAF//+AAAAAAH/+eH///////8IAAAAAAAAAA//wgAAAAAB/////v//////AAAAAAAAAAAL/AIAAAAAB////P5//////gAAAAAAAAAAAfwAAAAAAA////7/j/////4AAAAAAAAAAAL8AAAAAAAf////f7B////9AAAAAAAAAAAAfAcAAAAAH////z/4H/3/8AAAAAAAAAAAAHwwQAAAAB////+/+A/x/gAAAAAAAAAAAAA+YAwAAAAf////n/AP4P6AAAAAAAAAAAAAD+AAAAAAH////8/gB8D+AQAAAAAAAAAAAAD8AAAAAB/////PgAcAPwEAAAAAAAAAAAAAPAAAAAAf////7AADgB+AgAAAAAAAAAAAAAwAAAAAH/////AAAwAHgEAAAAAAAAAAAAAMN8AAAA//////AAMAAgCAAAAAAAAAAAAAAP/gAAAH/////wAAgBAAwAAAAAAAAAAAAAB/8AAAA/////4AAAAIAEAAAAAAAAAAAAAAf/4AAAEBf//+AAAAaBwAAAAAAAAAAAAAAH//AAAAAH///AAAADw4AAAAAAAAAAAAAAD//wAAAAB///AAAAAYfQAAAAAAAAAAAAAB///AAAAAf//gAAAADHoEAAAAAAAAAAAAAP//+AAAAH//wAAAAA57AsAAAAAAAAAAAAH///4AAAA//8AAAAAGAgH4gAAAAAAAAAAB////gAAAH//AAAAAAQAAfAAAAAAAAAAAAP///4AAAB//wAAAAAB0AHQIAAAAAAAAAAD///8AAAAf/8AAAAAAAgACAAAAAAAAAAAAf//+AAAAD//AAAAAAAAAAAAAAAAAAAAAAD///AAAAB//4QAAAAAADxAAAAAAAAAAAAA///wAAAAf/+MAAAAAAH8YAAAAAAAAAAAAD//8AAAAH/+HAAAAAAD/uAAAAAAAAAAAAAf//AAAAB//BgAAAAAA//gAAAAAAAAAAAAH//gAAAAf/g4AAAAAB//+AQAAAAAAAAAAB//4AAAAD/8OAAAAAB///wAAAAAAAAAAAAf/wAAAAA//DAAAAAAf//8AAAAAAAAAAAAH/4AAAAAP/AAAAAAAH///gAAAAAAAAAAAB/+AAAAAB/wAAAAAAB///4AAAAAAAAAAAA//AAAAAAf4AAAAAAAP//+AAAAAAAAAAAAP/wAAAAAD8AAAAAAAD///gAAAAAAAAAAAD/4AAAAAA+AAAAAAAA+BfwAAAAAAAAAAAA/wAAAAAAAAAAAAAAAAAH8ACAAAAAAAAAAf8AAAAAAAAAAAAAAAAAA+AAQAAAAAAAAAH+AAAAAAAAAAAAAAAAAABAAGAAAAAAAAAB+AAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAfgAAAAAAAAAAAAAAAAAAEABgAAAAAAAAAHwAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAD4AAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAA+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAADwQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAAAAAAAfkAf/////gAAAAAAAAAAAALgAAAAAAAA7//4f//////4AAAAAAAAAAAD8AAAACH/////8/////////AAAAAAAA4IAPAAAAP////////////////4AAAAP/+D///gAAAH////////////////wAAAB//////+AAAB/////////////////4AAEf//////4AAYP//////////////////AAAAH//////AIfAP////////////////+AAAAf///////4Dv//////////////////wAAAH/////////////////////////////wAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",W=200,H=100;
+  var raw=atob(MASK),bits=new Uint8Array(W*H);
+  for(var k=0;k<W*H;k++)bits[k]=(raw.charCodeAt(k>>3)>>(7-(k&7)))&1;
+  var cv=d.getElementById("world");
+  function draw(){if(!cv)return;var w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;var dpr=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);var g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);var cw=w/W,ch=h/H,r=Math.max(.9,Math.min(cw,ch)*.34);g.fillStyle="rgba(116,156,236,.62)";for(var y=0;y<H;y++){for(var x=0;x<W;x++){if(bits[y*W+x]){g.beginPath();g.arc((x+.5)*cw,(y+.5)*ch,r,0,6.2832);g.fill();}}}}
+  draw();var rt;addEventListener("resize",function(){clearTimeout(rt);rt=setTimeout(draw,180);},{passive:true});
+  if("IntersectionObserver" in window){var io2=new IntersectionObserver(function(es){if(es[0].isIntersecting){draw();io2.disconnect();}},{threshold:.05});io2.observe(cv);}
 })();
 </script>
 </body>
